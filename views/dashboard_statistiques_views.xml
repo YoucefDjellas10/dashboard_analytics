@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Action Client OWL -->
+    <record id="action_dashboard_statistiques_client" model="ir.actions.client">
+        <field name="name">Dashboard Statistiques</field>
+        <field name="tag">dashboard_analytics.action_dashboard_statistiques</field>
+    </record>
+
+    <!-- Menu -->
+    <menuitem id="menu_dashboard_root"
+              name="Dashboard Analytics"
+              sequence="10"/>
+
+    <menuitem id="menu_dashboard_statistiques"
+              name="Statistiques"
+              parent="menu_dashboard_root"
+              action="action_dashboard_statistiques_client"
+              sequence="1"/>
+</odoo>

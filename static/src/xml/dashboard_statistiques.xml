@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="dashboard_analytics.DashboardStatistiques">
+        <div class="o_action o_dashboard p-3">
+            <div class="d-flex flex-wrap gap-3">
+
+                <div class="card"
+                     style="width:180px; cursor:pointer; background-color:#e8d5d5; border:none; border-radius:12px;"
+                     t-on-click="ouvrirReservations">
+                    <div class="card-body text-center p-3">
+                        <div style="font-size:40px;">📋</div>
+                        <div style="font-size:32px; font-weight:bold; color:#333;">
+                            <t t-esc="state.reservations_confirmer"/>
+                        </div>
+                        <div style="font-size:13px; color:#555; margin-top:4px;">
+                            Réservations Confirmées
+                        </div>
+                        <div style="font-size:11px; color:#888; margin-top:2px;">
+                            <t t-esc="state.mois_en_cours"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="card"
+     style="width:180px; cursor:pointer; background-color:#d5e8d5; border:none; border-radius:12px;"
+     t-on-click="ouvrirChiffreAffaire">
+    <div class="card-body text-center p-3">
+        <div style="font-size:40px;">💶</div>
+        <div style="font-size:28px; font-weight:bold; color:#333;">
+            <t t-esc="Math.round(state.total_reduit_euro)"/> €
+        </div>
+        <div style="font-size:13px; color:#555; margin-top:4px;">
+            Chiffre d'affaires
+        </div>
+        <div style="font-size:11px; color:#888; margin-top:2px;">
+            <t t-esc="state.mois_en_cours"/>
+        </div>
+    </div>
+</div>
+
+            </div>
+        </div>
+    </t>
+</templates>
