@@ -12,6 +12,7 @@
     'assets': {
         'web.assets_backend': [
             'dashboard_analytics/static/src/js/dashboard_statistiques.js',
+            'dashboard_analytics/static/src/css/dashboard_statistiques.css',
             'dashboard_analytics/static/src/xml/dashboard_statistiques.xml',
         ],
     },
