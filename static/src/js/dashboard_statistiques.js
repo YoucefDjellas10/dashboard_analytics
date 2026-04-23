@@ -1,10 +1,12 @@
 /** @odoo-module **/
 
-import { registry } from "@web/core/registry";
-import { useService } from "@web/core/utils/hooks";
+import { registry }    from "@web/core/registry";
+import { useService }  from "@web/core/utils/hooks";
 import { Component, onWillStart, useState } from "@odoo/owl";
 
 export class DashboardStatistiques extends Component {
+
+    // ─── Setup ────────────────────────────────────────────────────────────────
 
     setup() {
         this.orm    = useService("orm");
@@ -39,15 +41,17 @@ export class DashboardStatistiques extends Component {
 
     // ─── Utilitaires dates ────────────────────────────────────────────────────
 
-    _pad(n) { return String(n).padStart(2, "0"); }
+    _pad(n) {
+        return String(n).padStart(2, "0");
+    }
 
     _formatORM(d) {
-        return `${d.getFullYear()}-${this._pad(d.getMonth()+1)}-${this._pad(d.getDate())} `
+        return `${d.getFullYear()}-${this._pad(d.getMonth() + 1)}-${this._pad(d.getDate())} `
              + `${this._pad(d.getHours())}:${this._pad(d.getMinutes())}:${this._pad(d.getSeconds())}`;
     }
 
     _toInputDate(d) {
-        return `${d.getFullYear()}-${this._pad(d.getMonth()+1)}-${this._pad(d.getDate())}`;
+        return `${d.getFullYear()}-${this._pad(d.getMonth() + 1)}-${this._pad(d.getDate())}`;
     }
 
     _parseDebut(str) {
@@ -63,38 +67,16 @@ export class DashboardStatistiques extends Component {
     _getDebutFinMois() {
         const now = new Date();
         return {
-            debut : new Date(now.getFullYear(), now.getMonth(), 1,  0,  0,  0),
+            debut : new Date(now.getFullYear(), now.getMonth(),     1,  0,  0,  0),
             fin   : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59),
         };
     }
-    async loadData() {
-    if (!this.state.date_debut || !this.state.date_fin) return;
-
-    this.state.loading = true;
-    try {
-        const domain = this._buildDomain();
-        const [count, result] = await Promise.all([
-            this.orm.searchCount("reservation", domain),
-            this.orm.readGroup(
-                "reservation",
-                domain,
-                ["total_reduit_euro:sum", "montant_paye:sum"],
-                []
-            ),
-        ]);
-        this.state.reservations_confirmer = count;
-        this.state.total_reduit_euro      = result[0]?.total_reduit_euro || 0;
-        this.state.total_montant_paye     = result[0]?.montant_paye || 0;
-    } finally {
-        this.state.loading = false;
-    }
-}
 
     // ─── Construction du domaine ORM ─────────────────────────────────────────
 
     _buildDomain() {
-        const debut = this._parseDebut(this.state.date_debut);
-        const fin   = this._parseFin  (this.state.date_fin);
+        const debut  = this._parseDebut(this.state.date_debut);
+        const fin    = this._parseFin(this.state.date_fin);
 
         const domain = [
             ["status",      "=",  "confirmee"],
@@ -104,28 +86,38 @@ export class DashboardStatistiques extends Component {
 
         if (this.state.selected_zone) {
             domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
-
         }
 
         return domain;
     }
 
-    // ─── Chargement des données ───────────────────────────────────────────────
+    // ─── Chargement des données (version unique et optimisée) ─────────────────
+    //
+    //  On utilise readGroup avec les 2 agrégats en un seul appel réseau,
+    //  ce qui évite de charger tous les enregistrements un par un (searchRead).
+    //  searchCount est fusionné : readGroup renvoie __count dans le groupe.
 
     async loadData() {
         if (!this.state.date_debut || !this.state.date_fin) return;
 
         this.state.loading = true;
         try {
-            const domain = this._buildDomain();
-            const [count, records] = await Promise.all([
-                this.orm.searchCount("reservation", domain),
-                this.orm.searchRead("reservation", domain, ["total_reduit_euro"]),
-            ]);
-            this.state.reservations_confirmer = count;
-            this.state.total_reduit_euro      = records.reduce(
-                (acc, r) => acc + (r.total_reduit_euro || 0), 0
+            const domain  = this._buildDomain();
+
+            // Un seul appel réseau : count + sommes en même temps
+            const result = await this.orm.readGroup(
+                "reservation",
+                domain,
+                ["total_reduit_euro:sum", "montant_paye:sum"],
+                []          // pas de groupBy → un seul groupe global
             );
+
+            const row = result[0] ?? {};
+
+            this.state.reservations_confirmer = row.__count            ?? 0;
+            this.state.total_reduit_euro      = row.total_reduit_euro  ?? 0;
+            this.state.total_montant_paye     = row.montant_paye       ?? 0;
+
         } finally {
             this.state.loading = false;
         }
@@ -150,9 +142,9 @@ export class DashboardStatistiques extends Component {
     }
 
     async reinitialiserMois() {
-        const { debut, fin }  = this._getDebutFinMois();
-        this.state.date_debut = this._toInputDate(debut);
-        this.state.date_fin   = this._toInputDate(fin);
+        const { debut, fin }     = this._getDebutFinMois();
+        this.state.date_debut    = this._toInputDate(debut);
+        this.state.date_fin      = this._toInputDate(fin);
         this.state.selected_zone = "";
         await this.loadData();
     }
@@ -184,6 +176,16 @@ export class DashboardStatistiques extends Component {
         this.action.doAction({
             type      : "ir.actions.act_window",
             name      : `Chiffre d'affaires — ${this.labelPeriode}`,
+            res_model : "reservation",
+            view_mode : "list,form",
+            domain    : this._buildDomain(),
+        });
+    }
+
+    ouvrirTresorerie() {
+        this.action.doAction({
+            type      : "ir.actions.act_window",
+            name      : `Trésorerie — ${this.labelPeriode}`,
             res_model : "reservation",
             view_mode : "list,form",
             domain    : this._buildDomain(),
