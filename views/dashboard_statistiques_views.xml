@@ -10,7 +10,7 @@
     <menuitem id="menu_dashboard_root"
               name="Dashboard Analytics"
               groups="access_rights_groups.group_admin"/>
-              sequence="10"/>
+              sequence="100000"/>
 
     <menuitem id="menu_dashboard_statistiques"
               name="Statistiques"
