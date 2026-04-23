@@ -73,17 +73,18 @@ export class DashboardStatistiques extends Component {
     this.state.loading = true;
     try {
         const domain = this._buildDomain();
-        const [count, records] = await Promise.all([
+        const [count, result] = await Promise.all([
             this.orm.searchCount("reservation", domain),
-            this.orm.searchRead("reservation", domain, ["total_reduit_euro", "montant_paye"]),
+            this.orm.readGroup(
+                "reservation",
+                domain,
+                ["total_reduit_euro:sum", "montant_paye:sum"],
+                []
+            ),
         ]);
         this.state.reservations_confirmer = count;
-        this.state.total_reduit_euro      = records.reduce(
-            (acc, r) => acc + (r.total_reduit_euro || 0), 0
-        );
-        this.state.total_montant_paye     = records.reduce(  // ← nouveau
-            (acc, r) => acc + (r.montant_paye || 0), 0
-        );
+        this.state.total_reduit_euro      = result[0]?.total_reduit_euro || 0;
+        this.state.total_montant_paye     = result[0]?.montant_paye || 0;
     } finally {
         this.state.loading = false;
     }
