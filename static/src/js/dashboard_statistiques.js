@@ -6,8 +6,6 @@ import { Component, onWillStart, useState } from "@odoo/owl";
 
 export class DashboardStatistiques extends Component {
 
-    // ─── Setup ────────────────────────────────────────────────────────────────
-
     setup() {
         this.orm    = useService("orm");
         this.action = useService("action");
@@ -31,8 +29,6 @@ export class DashboardStatistiques extends Component {
         onWillStart(() => this._loadZones().then(() => this.loadData()));
     }
 
-    // ─── Chargement des zones ─────────────────────────────────────────────────
-
     async _loadZones() {
         this.state.zones = await this.orm.searchRead(
             "zone",
@@ -41,8 +37,6 @@ export class DashboardStatistiques extends Component {
             { order: "name asc" }
         );
     }
-
-    // ─── Utilitaires dates ────────────────────────────────────────────────────
 
     _pad(n) {
         return String(n).padStart(2, "0");
@@ -75,14 +69,10 @@ export class DashboardStatistiques extends Component {
         };
     }
 
-    // ─── Nombre de jours entre deux dates (inclusif) ─────────────────────────
-
     _nbJours(debut, fin) {
         const ms = fin - debut;
         return Math.round(ms / (1000 * 60 * 60 * 24)) + 1;
     }
-
-    // ─── Construction des domaines ORM ───────────────────────────────────────
 
     _buildDomain() {
         const debut = this._parseDebut(this.state.date_debut);
@@ -101,8 +91,6 @@ export class DashboardStatistiques extends Component {
         return domain;
     }
 
-    // Domaine pour les réservations avec dates (pour taux de remplissage)
-    // On filtre sur date_heure_debut/fin qui chevauchent la période
     _buildDomainDates() {
         const debut = this._parseDebut(this.state.date_debut);
         const fin   = this._parseFin(this.state.date_fin);
@@ -120,7 +108,6 @@ export class DashboardStatistiques extends Component {
         return domain;
     }
 
-    // Dépenses : status=valide + date_de_realisation dans la période + zone
     _buildDomainDepense() {
         const domain = [
             ["status",              "=",  "valide"],
@@ -135,8 +122,6 @@ export class DashboardStatistiques extends Component {
         return domain;
     }
 
-    // ─── Chargement des données ───────────────────────────────────────────────
-
     async loadData() {
         if (!this.state.date_debut || !this.state.date_fin) return;
 
@@ -150,7 +135,6 @@ export class DashboardStatistiques extends Component {
                 resDatesList,
             ] = await Promise.all([
 
-                // ── Réservations (agrégat) ─────────────────────────────────────
                 this.orm.readGroup(
                     "reservation",
                     this._buildDomain(),
@@ -158,7 +142,6 @@ export class DashboardStatistiques extends Component {
                     []
                 ),
 
-                // ── Dépenses : somme montant_da ────────────────────────────────
                 this.orm.readGroup(
                     "depense.record",
                     this._buildDomainDepense(),
@@ -166,7 +149,6 @@ export class DashboardStatistiques extends Component {
                     []
                 ),
 
-                // ── Taux de change (id=2) ──────────────────────────────────────
                 this.orm.searchRead(
                     "taux.change",
                     [["id", "=", 2]],
@@ -174,7 +156,6 @@ export class DashboardStatistiques extends Component {
                     { limit: 1 }
                 ),
 
-                // ── Véhicules actifs (filtrés par zone si besoin) ──────────────
                 this.orm.searchRead(
                     "vehicule",
                     this.state.selected_zone
@@ -183,7 +164,6 @@ export class DashboardStatistiques extends Component {
                     ["id"],
                 ),
 
-                // ── Réservations avec dates (pour taux de remplissage) ─────────
                 this.orm.searchRead(
                     "reservation",
                     this._buildDomainDates(),
@@ -192,7 +172,6 @@ export class DashboardStatistiques extends Component {
 
             ]);
 
-            // ── Réservations ──────────────────────────────────────────────────
             const rowRes = resResult[0] ?? {};
             const count  = rowRes.__count           ?? 0;
             const ca     = rowRes.total_reduit_euro ?? 0;
@@ -202,28 +181,31 @@ export class DashboardStatistiques extends Component {
             this.state.total_montant_paye     = rowRes.montant_paye ?? 0;
             this.state.panier_moyen           = count > 0 ? ca / count : 0;
 
-            // ── Dépenses ──────────────────────────────────────────────────────
             const rowDep  = depResult[0]  ?? {};
             const totalDa = rowDep.montant_da ?? 0;
             const taux    = tauxResult[0]?.montant ?? 1;
 
             this.state.total_depense_eur = taux > 0 ? totalDa / taux : 0;
 
-            // ── Taux de remplissage ───────────────────────────────────────────
+            // ───── TAUX DE REMPLISSAGE + PRINTS ─────
             const debut          = this._parseDebut(this.state.date_debut);
             const fin            = this._parseFin(this.state.date_fin);
             const nbJoursPeriode = this._nbJours(debut, fin);
             const nbVehicules    = vehiculesResult.length;
 
+            console.log("=== DEBUG TAUX ===");
+            console.log("Début:", debut);
+            console.log("Fin:", fin);
+            console.log("Nb jours période:", nbJoursPeriode);
+            console.log("Nb véhicules:", nbVehicules);
+
             if (nbVehicules > 0 && nbJoursPeriode > 0) {
                 let totalJoursReserves = 0;
 
                 for (const r of resDatesList) {
-                    // Odoo renvoie les datetimes sous forme de string "YYYY-MM-DD HH:MM:SS"
                     const deb = new Date(r.date_heure_debut);
                     const fn  = new Date(r.date_heure_fin);
 
-                    // Intersection de la réservation avec la période filtrée
                     const startIntersect = deb < debut ? debut : deb;
                     const endIntersect   = fn  > fin   ? fin   : fn;
 
@@ -231,26 +213,39 @@ export class DashboardStatistiques extends Component {
                         (endIntersect - startIntersect) / (1000 * 60 * 60 * 24)
                     );
 
+                    console.log("Réservation:", r);
+                    console.log("Jours:", jours);
+
                     if (jours > 0) {
                         totalJoursReserves += jours;
                     }
                 }
 
                 const capaciteTotale = nbVehicules * nbJoursPeriode;
+
+                console.log("Total jours réservés:", totalJoursReserves);
+                console.log("Capacité totale:", capaciteTotale);
+
+                const tauxCalc = (totalJoursReserves / capaciteTotale) * 100;
+
+                console.log("Taux brut:", tauxCalc);
+
                 this.state.taux_remplissage = Math.min(
                     100,
-                    Math.round((totalJoursReserves / capaciteTotale) * 100)
+                    Math.round(tauxCalc)
                 );
+
+                console.log("Taux final:", this.state.taux_remplissage);
+
             } else {
                 this.state.taux_remplissage = 0;
+                console.log("Taux = 0");
             }
 
         } finally {
             this.state.loading = false;
         }
     }
-
-    // ─── Gestionnaires d'événements ───────────────────────────────────────────
 
     onDateDebutChange(ev) {
         this.state.date_debut = ev.target.value;
@@ -276,8 +271,6 @@ export class DashboardStatistiques extends Component {
         await this.loadData();
     }
 
-    // ─── Label période affichée ───────────────────────────────────────────────
-
     get labelPeriode() {
         if (!this.state.date_debut || !this.state.date_fin) return "";
         const fmt = (str) => {
@@ -287,22 +280,16 @@ export class DashboardStatistiques extends Component {
         return `${fmt(this.state.date_debut)} → ${fmt(this.state.date_fin)}`;
     }
 
-    // ─── Balance ─────────────────────────────────────────────────────────────
-
     get balance() {
         return this.state.total_montant_paye - this.state.total_depense_eur;
     }
 
-    // ─── Couleur taux de remplissage ──────────────────────────────────────────
-
     get taux_color() {
         const t = this.state.taux_remplissage;
-        if (t >= 80) return "#d5e8d5";   // vert → bon
-        if (t >= 40) return "#fde8c8";   // orange → moyen
-        return "#e8d5d5";                // rouge → faible
+        if (t >= 80) return "#d5e8d5";
+        if (t >= 40) return "#fde8c8";
+        return "#e8d5d5";
     }
-
-    // ─── Ouverture des vues liste ─────────────────────────────────────────────
 
     ouvrirReservations() {
         this.action.doAction({
