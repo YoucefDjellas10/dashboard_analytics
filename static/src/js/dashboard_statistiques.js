@@ -159,8 +159,8 @@ export class DashboardStatistiques extends Component {
                 this.orm.searchRead(
                     "vehicule",
                     this.state.selected_zone
-                        ? [["zone", "=", parseInt(this.state.selected_zone)]]
-                        : [],
+                        ? [["zone", "=", parseInt(this.state.selected_zone)], ["active_test", "=", true]]
+                        : [["active_test", "=", true]],
                     ["id"],
                 ),
 
