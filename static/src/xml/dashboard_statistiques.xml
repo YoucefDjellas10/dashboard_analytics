@@ -134,6 +134,64 @@
         </div>
     </div>
 </div>
+                <!-- Carte Panier Moyen -->
+<div class="card"
+     style="width:180px; cursor:pointer; background-color:#fde8c8;
+            border:none; border-radius:12px;
+            transition:transform .15s, box-shadow .15s;"
+     t-on-click="ouvrirChiffreAffaire"
+     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
+     onmouseleave="this.style.transform='';this.style.boxShadow=''">
+    <div class="card-body text-center p-3">
+        <div style="font-size:40px;">🛒</div>
+        <div style="font-size:28px; font-weight:bold; color:#333;">
+            <t t-esc="Math.round(state.panier_moyen)"/> €
+        </div>
+        <div style="font-size:13px; color:#555; margin-top:4px;">
+            Panier Moyen
+        </div>
+        <div style="font-size:11px; color:#888; margin-top:2px;">
+            <t t-esc="labelPeriode"/>
+        </div>
+    </div>
+</div>
+                <!-- Carte Dépenses -->
+<div class="card"
+     style="width:180px; cursor:pointer; background-color:#e8d5d5;
+            border:none; border-radius:12px;
+            transition:transform .15s, box-shadow .15s;"
+     t-on-click="ouvrirDepenses"
+     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
+     onmouseleave="this.style.transform='';this.style.boxShadow=''">
+    <div class="card-body text-center p-3">
+        <div style="font-size:40px;">💸</div>
+        <div style="font-size:28px; font-weight:bold; color:#333;">
+            <t t-esc="Math.round(state.total_depense_eur)"/> €
+        </div>
+        <div style="font-size:13px; color:#555; margin-top:4px;">Dépenses</div>
+        <div style="font-size:11px; color:#888; margin-top:2px;">
+            <t t-esc="labelPeriode"/>
+        </div>
+    </div>
+</div>
+                <!-- Carte Balance -->
+<div class="card"
+     style="width:180px; cursor:pointer; border:none; border-radius:12px;
+            transition:transform .15s, box-shadow .15s;"
+     t-attf-style="background-color: {{ balance >= 0 ? '#d5e8d5' : '#e8d5d5' }}; width:180px; cursor:pointer; border:none; border-radius:12px; transition:transform .15s, box-shadow .15s;"
+     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
+     onmouseleave="this.style.transform='';this.style.boxShadow=''">
+    <div class="card-body text-center p-3">
+        <div style="font-size:40px;">⚖️</div>
+        <div style="font-size:28px; font-weight:bold; color:#333;">
+            <t t-esc="Math.round(balance)"/> €
+        </div>
+        <div style="font-size:13px; color:#555; margin-top:4px;">Balance</div>
+        <div style="font-size:11px; color:#888; margin-top:2px;">
+            <t t-esc="labelPeriode"/>
+        </div>
+    </div>
+</div>
 
             </div>
         </div>
