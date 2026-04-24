@@ -71,7 +71,7 @@ export class DashboardStatistiques extends Component {
 
     _nbJours(debut, fin) {
         const ms = fin - debut;
-        return Math.round(ms / (1000 * 60 * 60 * 24)) + 1;
+        return Math.round(ms / (1000 * 60 * 60 * 24));
     }
 
     _buildDomain() {
