@@ -192,6 +192,26 @@
         </div>
     </div>
 </div>
+                <!-- Carte Taux de remplissage -->
+<div class="card"
+     style="width:180px; cursor:default; border:none; border-radius:12px;
+            transition:transform .15s, box-shadow .15s;"
+     t-attf-style="background-color: {{ state.taux_remplissage >= 80 ? '#d5e8d5' : state.taux_remplissage >= 40 ? '#fde8c8' : '#e8d5d5' }}; width:180px; border:none; border-radius:12px; transition:transform .15s, box-shadow .15s;"
+     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
+     onmouseleave="this.style.transform='';this.style.boxShadow=''">
+    <div class="card-body text-center p-3">
+        <div style="font-size:40px;">📊</div>
+        <div style="font-size:28px; font-weight:bold; color:#333;">
+            <t t-esc="state.taux_remplissage"/> %
+        </div>
+        <div style="font-size:13px; color:#555; margin-top:4px;">
+            Taux de remplissage
+        </div>
+        <div style="font-size:11px; color:#888; margin-top:2px;">
+            <t t-esc="labelPeriode"/>
+        </div>
+    </div>
+</div>
 
             </div>
         </div>
