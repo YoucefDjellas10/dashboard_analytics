@@ -9,7 +9,7 @@
     <!-- Menu -->
     <menuitem id="menu_dashboard_root"
               name="Dashboard Analytics"
-              groups="access_rights_groups.group_admin"
+              groups="access_rights_groups.group_admin,access_rights_groups.group_ceo"
               sequence="10000"/>
 
 
@@ -17,6 +17,6 @@
               name="Statistiques"
               parent="menu_dashboard_root"
               action="action_dashboard_statistiques_client"
-              groups="access_rights_groups.group_admin"/>
+              groups="access_rights_groups.group_admin,access_rights_groups.group_ceo"
               sequence="1"/>
 </odoo>
