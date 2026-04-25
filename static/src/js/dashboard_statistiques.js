@@ -14,10 +14,10 @@ export class DashboardStatistiques extends Component {
 
         this.state = useState({
             reservations_confirmer : 0,
-            total_reduit_euro      : 0,
-            total_montant_paye     : 0,
-            panier_moyen           : 0,
-            total_depense_eur      : 0,
+            total_ca_da            : 0,
+            total_tresorerie_da    : 0,
+            panier_moyen_da        : 0,
+            total_depense_da       : 0,
             taux_remplissage       : 0,
             date_debut             : this._toInputDate(debut),
             date_fin               : this._toInputDate(fin),
@@ -96,9 +96,9 @@ export class DashboardStatistiques extends Component {
         const fin   = this._parseFin(this.state.date_fin);
 
         const domain = [
-            ["status",          "=",  "confirmee"],
-            ["date_heure_debut","<=", this._formatORM(fin)],
-            ["date_heure_fin",  ">=", this._formatORM(debut)],
+            ["status",           "=",  "confirmee"],
+            ["date_heure_debut", "<=", this._formatORM(fin)],
+            ["date_heure_fin",   ">=", this._formatORM(debut)],
         ];
 
         if (this.state.selected_zone) {
@@ -172,32 +172,26 @@ export class DashboardStatistiques extends Component {
 
             ]);
 
-            const rowRes = resResult[0] ?? {};
-            const count  = rowRes.__count           ?? 0;
-            const ca     = rowRes.total_reduit_euro ?? 0;
+            const rowRes  = resResult[0] ?? {};
+            const count   = rowRes.__count            ?? 0;
+            const caEuro  = rowRes.total_reduit_euro  ?? 0;
+            const payeEuro = rowRes.montant_paye      ?? 0;
 
+            const taux = tauxResult[0]?.montant ?? 1;
+
+            this.state.total_ca_da         = caEuro   * taux;
+            this.state.total_tresorerie_da = payeEuro * taux;
+            this.state.panier_moyen_da     = count > 0 ? (caEuro / count) * taux : 0;
             this.state.reservations_confirmer = count;
-            this.state.total_reduit_euro      = ca;
-            this.state.total_montant_paye     = rowRes.montant_paye ?? 0;
-            this.state.panier_moyen           = count > 0 ? ca / count : 0;
 
-            const rowDep  = depResult[0]  ?? {};
-            const totalDa = rowDep.montant_da ?? 0;
-            const taux    = tauxResult[0]?.montant ?? 1;
+            const rowDep = depResult[0] ?? {};
+            this.state.total_depense_da = rowDep.montant_da ?? 0;
 
-            this.state.total_depense_eur = taux > 0 ? totalDa / taux : 0;
-
-            // ───── TAUX DE REMPLISSAGE + PRINTS ─────
+            // ───── TAUX DE REMPLISSAGE ─────
             const debut          = this._parseDebut(this.state.date_debut);
             const fin            = this._parseFin(this.state.date_fin);
             const nbJoursPeriode = this._nbJours(debut, fin);
             const nbVehicules    = vehiculesResult.length;
-
-            console.log("=== DEBUG TAUX ===");
-            console.log("Début:", debut);
-            console.log("Fin:", fin);
-            console.log("Nb jours période:", nbJoursPeriode);
-            console.log("Nb véhicules:", nbVehicules);
 
             if (nbVehicules > 0 && nbJoursPeriode > 0) {
                 let totalJoursReserves = 0;
@@ -213,33 +207,17 @@ export class DashboardStatistiques extends Component {
                         (endIntersect - startIntersect) / (1000 * 60 * 60 * 24)
                     );
 
-                    console.log("Réservation:", r);
-                    console.log("Jours:", jours);
-
                     if (jours > 0) {
                         totalJoursReserves += jours;
                     }
                 }
 
                 const capaciteTotale = nbVehicules * nbJoursPeriode;
-
-                console.log("Total jours réservés:", totalJoursReserves);
-                console.log("Capacité totale:", capaciteTotale);
-
                 const tauxCalc = (totalJoursReserves / capaciteTotale) * 100;
-
-                console.log("Taux brut:", tauxCalc);
-
-                this.state.taux_remplissage = Math.min(
-                    100,
-                    Math.round(tauxCalc)
-                );
-
-                console.log("Taux final:", this.state.taux_remplissage);
+                this.state.taux_remplissage = Math.min(100, Math.round(tauxCalc));
 
             } else {
                 this.state.taux_remplissage = 0;
-                console.log("Taux = 0");
             }
 
         } finally {
@@ -281,14 +259,7 @@ export class DashboardStatistiques extends Component {
     }
 
     get balance() {
-        return this.state.total_montant_paye - this.state.total_depense_eur;
-    }
-
-    get taux_color() {
-        const t = this.state.taux_remplissage;
-        if (t >= 80) return "#d5e8d5";
-        if (t >= 40) return "#fde8c8";
-        return "#e8d5d5";
+        return this.state.total_tresorerie_da - this.state.total_depense_da;
     }
 
     ouvrirReservations() {
@@ -305,16 +276,6 @@ export class DashboardStatistiques extends Component {
         this.action.doAction({
             type      : "ir.actions.act_window",
             name      : `Chiffre d'affaires — ${this.labelPeriode}`,
-            res_model : "reservation",
-            view_mode : "list,form",
-            domain    : this._buildDomain(),
-        });
-    }
-
-    ouvrirTresorerie() {
-        this.action.doAction({
-            type      : "ir.actions.act_window",
-            name      : `Trésorerie — ${this.labelPeriode}`,
             res_model : "reservation",
             view_mode : "list,form",
             domain    : this._buildDomain(),

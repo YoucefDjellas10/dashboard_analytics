@@ -9,7 +9,6 @@
 
                 <span style="font-weight:600; color:#444; font-size:14px;">📅 Période :</span>
 
-                <!-- Date début -->
                 <div class="d-flex align-items-center gap-1">
                     <label style="font-size:12px; color:#666; white-space:nowrap;">Du</label>
                     <input type="date"
@@ -19,7 +18,6 @@
                            t-on-change="onDateDebutChange"/>
                 </div>
 
-                <!-- Date fin -->
                 <div class="d-flex align-items-center gap-1">
                     <label style="font-size:12px; color:#666; white-space:nowrap;">Au</label>
                     <input type="date"
@@ -29,7 +27,6 @@
                            t-on-change="onDateFinChange"/>
                 </div>
 
-                <!-- Filtre Zone -->
                 <div class="d-flex align-items-center gap-1">
                     <label style="font-size:12px; color:#666; white-space:nowrap;">Zone</label>
                     <select class="form-select form-select-sm"
@@ -44,7 +41,6 @@
                     </select>
                 </div>
 
-                <!-- Bouton Appliquer -->
                 <button class="btn btn-sm btn-primary"
                         style="border-radius:8px; font-size:13px;"
                         t-on-click="appliquerFiltre"
@@ -53,7 +49,6 @@
                     <t t-else="">🔍 Appliquer</t>
                 </button>
 
-                <!-- Bouton Mois actuel -->
                 <button class="btn btn-sm btn-outline-secondary"
                         style="border-radius:8px; font-size:13px;"
                         t-on-click="reinitialiserMois"
@@ -61,7 +56,6 @@
                     🔄 Mois actuel
                 </button>
 
-                <!-- Label période sélectionnée -->
                 <span t-if="labelPeriode"
                       style="font-size:12px; color:#888; margin-left:4px;">
                     (<t t-esc="labelPeriode"/>)
@@ -71,7 +65,7 @@
             <!-- ── Cartes KPI ── -->
             <div class="d-flex flex-wrap gap-3">
 
-                <!-- Carte Réservations confirmées -->
+                <!-- Réservations confirmées -->
                 <div class="card"
                      style="width:180px; cursor:pointer; background-color:#e8d5d5;
                             border:none; border-radius:12px;
@@ -84,16 +78,12 @@
                         <div style="font-size:32px; font-weight:bold; color:#333;">
                             <t t-esc="state.reservations_confirmer"/>
                         </div>
-                        <div style="font-size:13px; color:#555; margin-top:4px;">
-                            Réservations Confirmées
-                        </div>
-                        <div style="font-size:11px; color:#888; margin-top:2px;">
-                            <t t-esc="labelPeriode"/>
-                        </div>
+                        <div style="font-size:13px; color:#555; margin-top:4px;">Réservations Confirmées</div>
+                        <div style="font-size:11px; color:#888; margin-top:2px;"><t t-esc="labelPeriode"/></div>
                     </div>
                 </div>
 
-                <!-- Carte Chiffre d'affaires -->
+                <!-- Chiffre d'affaires -->
                 <div class="card"
                      style="width:180px; cursor:pointer; background-color:#d5e8d5;
                             border:none; border-radius:12px;
@@ -104,114 +94,95 @@
                     <div class="card-body text-center p-3">
                         <div style="font-size:40px;">💶</div>
                         <div style="font-size:28px; font-weight:bold; color:#333;">
-                            <t t-esc="Math.round(state.total_reduit_euro)"/> €
+                            <t t-esc="Math.round(state.total_ca_da)"/> DA
                         </div>
-                        <div style="font-size:13px; color:#555; margin-top:4px;">
-                            Chiffre d'affaires
-                        </div>
-                        <div style="font-size:11px; color:#888; margin-top:2px;">
-                            <t t-esc="labelPeriode"/>
-                        </div>
+                        <div style="font-size:13px; color:#555; margin-top:4px;">Chiffre d'affaires</div>
+                        <div style="font-size:11px; color:#888; margin-top:2px;"><t t-esc="labelPeriode"/></div>
                     </div>
                 </div>
-                <!-- Carte Trésorerie -->
-<div class="card"
-     style="width:180px; cursor:pointer; background-color:#d5d5e8;
-            border:none; border-radius:12px;
-            transition:transform .15s, box-shadow .15s;"
-     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
-     onmouseleave="this.style.transform='';this.style.boxShadow=''">
-    <div class="card-body text-center p-3">
-        <div style="font-size:40px;">💰</div>
-        <div style="font-size:28px; font-weight:bold; color:#333;">
-            <t t-esc="Math.round(state.total_montant_paye)"/> €
-        </div>
-        <div style="font-size:13px; color:#555; margin-top:4px;">
-            Trésorerie
-        </div>
-        <div style="font-size:11px; color:#888; margin-top:2px;">
-            <t t-esc="labelPeriode"/>
-        </div>
-    </div>
-</div>
-                <!-- Carte Panier Moyen -->
-<div class="card"
-     style="width:180px; cursor:pointer; background-color:#fde8c8;
-            border:none; border-radius:12px;
-            transition:transform .15s, box-shadow .15s;"
-     t-on-click="ouvrirChiffreAffaire"
-     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
-     onmouseleave="this.style.transform='';this.style.boxShadow=''">
-    <div class="card-body text-center p-3">
-        <div style="font-size:40px;">🛒</div>
-        <div style="font-size:28px; font-weight:bold; color:#333;">
-            <t t-esc="Math.round(state.panier_moyen)"/> €
-        </div>
-        <div style="font-size:13px; color:#555; margin-top:4px;">
-            Panier Moyen
-        </div>
-        <div style="font-size:11px; color:#888; margin-top:2px;">
-            <t t-esc="labelPeriode"/>
-        </div>
-    </div>
-</div>
-                <!-- Carte Dépenses -->
-<div class="card"
-     style="width:180px; cursor:pointer; background-color:#e8d5d5;
-            border:none; border-radius:12px;
-            transition:transform .15s, box-shadow .15s;"
-     t-on-click="ouvrirDepenses"
-     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
-     onmouseleave="this.style.transform='';this.style.boxShadow=''">
-    <div class="card-body text-center p-3">
-        <div style="font-size:40px;">💸</div>
-        <div style="font-size:28px; font-weight:bold; color:#333;">
-            <t t-esc="Math.round(state.total_depense_eur)"/> €
-        </div>
-        <div style="font-size:13px; color:#555; margin-top:4px;">Dépenses</div>
-        <div style="font-size:11px; color:#888; margin-top:2px;">
-            <t t-esc="labelPeriode"/>
-        </div>
-    </div>
-</div>
-                <!-- Carte Balance -->
-<div class="card"
-     style="width:180px; cursor:pointer; border:none; border-radius:12px;
-            transition:transform .15s, box-shadow .15s;"
-     t-attf-style="background-color: {{ balance >= 0 ? '#d5e8d5' : '#e8d5d5' }}; width:180px; cursor:pointer; border:none; border-radius:12px; transition:transform .15s, box-shadow .15s;"
-     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
-     onmouseleave="this.style.transform='';this.style.boxShadow=''">
-    <div class="card-body text-center p-3">
-        <div style="font-size:40px;">⚖️</div>
-        <div style="font-size:28px; font-weight:bold; color:#333;">
-            <t t-esc="Math.round(balance)"/> €
-        </div>
-        <div style="font-size:13px; color:#555; margin-top:4px;">Balance</div>
-        <div style="font-size:11px; color:#888; margin-top:2px;">
-            <t t-esc="labelPeriode"/>
-        </div>
-    </div>
-</div>
-                <!-- Carte Taux de remplissage -->
-<div class="card"
-     style="width:180px; cursor:default; border:none; border-radius:12px;
-            transition:transform .15s, box-shadow .15s;"
-     t-attf-style="background-color: {{ state.taux_remplissage >= 80 ? '#d5e8d5' : state.taux_remplissage >= 40 ? '#fde8c8' : '#e8d5d5' }}; width:180px; border:none; border-radius:12px; transition:transform .15s, box-shadow .15s;"
-     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
-     onmouseleave="this.style.transform='';this.style.boxShadow=''">
-    <div class="card-body text-center p-3">
-        <div style="font-size:40px;">📊</div>
-        <div style="font-size:28px; font-weight:bold; color:#333;">
-            <t t-esc="state.taux_remplissage"/> %
-        </div>
-        <div style="font-size:13px; color:#555; margin-top:4px;">
-            Taux de remplissage
-        </div>
-        <div style="font-size:11px; color:#888; margin-top:2px;">
-            <t t-esc="labelPeriode"/>
-        </div>
-    </div>
-</div>
+
+                <!-- Trésorerie -->
+                <div class="card"
+                     style="width:180px; cursor:pointer; background-color:#d5d5e8;
+                            border:none; border-radius:12px;
+                            transition:transform .15s, box-shadow .15s;"
+                     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                    <div class="card-body text-center p-3">
+                        <div style="font-size:40px;">💰</div>
+                        <div style="font-size:28px; font-weight:bold; color:#333;">
+                            <t t-esc="Math.round(state.total_tresorerie_da)"/> DA
+                        </div>
+                        <div style="font-size:13px; color:#555; margin-top:4px;">Trésorerie</div>
+                        <div style="font-size:11px; color:#888; margin-top:2px;"><t t-esc="labelPeriode"/></div>
+                    </div>
+                </div>
+
+                <!-- Panier Moyen -->
+                <div class="card"
+                     style="width:180px; cursor:pointer; background-color:#fde8c8;
+                            border:none; border-radius:12px;
+                            transition:transform .15s, box-shadow .15s;"
+                     t-on-click="ouvrirChiffreAffaire"
+                     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                    <div class="card-body text-center p-3">
+                        <div style="font-size:40px;">🛒</div>
+                        <div style="font-size:28px; font-weight:bold; color:#333;">
+                            <t t-esc="Math.round(state.panier_moyen_da)"/> DA
+                        </div>
+                        <div style="font-size:13px; color:#555; margin-top:4px;">Panier Moyen</div>
+                        <div style="font-size:11px; color:#888; margin-top:2px;"><t t-esc="labelPeriode"/></div>
+                    </div>
+                </div>
+
+                <!-- Dépenses -->
+                <div class="card"
+                     style="width:180px; cursor:pointer; background-color:#e8d5d5;
+                            border:none; border-radius:12px;
+                            transition:transform .15s, box-shadow .15s;"
+                     t-on-click="ouvrirDepenses"
+                     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                    <div class="card-body text-center p-3">
+                        <div style="font-size:40px;">💸</div>
+                        <div style="font-size:28px; font-weight:bold; color:#333;">
+                            <t t-esc="Math.round(state.total_depense_da)"/> DA
+                        </div>
+                        <div style="font-size:13px; color:#555; margin-top:4px;">Dépenses</div>
+                        <div style="font-size:11px; color:#888; margin-top:2px;"><t t-esc="labelPeriode"/></div>
+                    </div>
+                </div>
+
+                <!-- Balance -->
+                <div class="card"
+                     t-attf-style="background-color: {{ balance >= 0 ? '#d5e8d5' : '#e8d5d5' }}; width:180px; cursor:pointer; border:none; border-radius:12px; transition:transform .15s, box-shadow .15s;"
+                     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                    <div class="card-body text-center p-3">
+                        <div style="font-size:40px;">⚖️</div>
+                        <div style="font-size:28px; font-weight:bold; color:#333;">
+                            <t t-esc="Math.round(balance)"/> DA
+                        </div>
+                        <div style="font-size:13px; color:#555; margin-top:4px;">Balance</div>
+                        <div style="font-size:11px; color:#888; margin-top:2px;"><t t-esc="labelPeriode"/></div>
+                    </div>
+                </div>
+
+                <!-- Taux de remplissage -->
+                <div class="card"
+                     t-attf-style="background-color: {{ state.taux_remplissage >= 80 ? '#d5e8d5' : state.taux_remplissage >= 40 ? '#fde8c8' : '#e8d5d5' }}; width:180px; border:none; border-radius:12px; transition:transform .15s, box-shadow .15s;"
+                     onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 18px rgba(0,0,0,.12)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow=''">
+                    <div class="card-body text-center p-3">
+                        <div style="font-size:40px;">📊</div>
+                        <div style="font-size:28px; font-weight:bold; color:#333;">
+                            <t t-esc="state.taux_remplissage"/> %
+                        </div>
+                        <div style="font-size:13px; color:#555; margin-top:4px;">Taux de remplissage</div>
+                        <div style="font-size:11px; color:#888; margin-top:2px;"><t t-esc="labelPeriode"/></div>
+                    </div>
+                </div>
 
             </div>
         </div>
