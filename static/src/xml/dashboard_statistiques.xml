@@ -50,8 +50,8 @@
 
                 <button class="btn btn-sm btn-primary"
                         style="border-radius:8px; font-size:13px; padding:5px 14px;
-                               background:linear-gradient(135deg,#4776e6,#8e54e9);
-                               border:none; box-shadow:0 2px 6px rgba(71,118,230,.4);"
+                               background:linear-gradient(135deg,#1565c0,#6a1b9a);
+                               border:none; box-shadow:0 2px 6px rgba(21,101,192,.4);"
                         t-on-click="appliquerFiltre"
                         t-att-disabled="state.loading">
                     <t t-if="state.loading">⏳ Chargement…</t>
@@ -72,272 +72,248 @@
             </div>
 
             <!-- ═══════════════════════════════════════════
-                 Helper interne : badge delta
-                 (réutilisé dans chaque carte via t-call)
+                 Grille KPI  —  3 colonnes égales
             ═══════════════════════════════════════════ -->
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
 
-            <!-- ═══════════════════════════════════════════
-                 Cartes KPI
-            ═══════════════════════════════════════════ -->
-            <div class="d-flex flex-wrap gap-3">
+                <!-- ══════ LIGNE 1 ══════ -->
 
-                <!-- ── 1. Réservations confirmées ── -->
-                <div class="card"
-                     style="width:190px; cursor:pointer; border:none; border-radius:16px;
-                            background:linear-gradient(135deg,#1a73e8,#6c63ff);
-                            box-shadow:0 4px 15px rgba(26,115,232,.35);
-                            transition:transform .18s, box-shadow .18s; color:#fff;"
+                <!-- 1. Réservations confirmées -->
+                <div t-attf-style="border-radius:18px; border:none; cursor:pointer; color:#fff;
+                            background: {{ !deltaReservations ? 'linear-gradient(135deg,#1565c0,#1e88e5)' : deltaReservations.positive ? 'linear-gradient(135deg,#2e7d32,#43a047)' : 'linear-gradient(135deg,#c62828,#ef5350)' }};
+                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+                            transition:transform .18s, box-shadow .18s;"
                      t-on-click="ouvrirReservations"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(26,115,232,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 15px rgba(26,115,232,.35)'">
-                    <div class="card-body text-center p-3">
-                        <div style="font-size:36px; opacity:.9;">📋</div>
-                        <div style="font-size:34px; font-weight:800; letter-spacing:-1px;">
-                            <t t-esc="state.reservations_confirmer"/>
-                        </div>
-                        <div style="font-size:12px; opacity:.85; margin-top:3px; font-weight:500;">
-                            Réservations Confirmées
-                        </div>
-                        <div style="font-size:11px; opacity:.7; margin-top:2px;">
-                            <t t-esc="labelPeriode"/>
-                        </div>
-                        <!-- Delta N-1 -->
-                        <t t-if="deltaReservations">
-                            <div style="margin-top:8px; display:inline-block;
-                                        padding:2px 10px; border-radius:20px;
-                                        font-size:13px; font-weight:800;
-                                        background:rgba(0,0,0,.18);">
-                                <t t-if="deltaReservations.positive">
-                                    <span style="color:#00e676;">▲ +<t t-esc="deltaReservations.val"/></span>
-                                </t>
-                                <t t-else="">
-                                    <span style="color:#b71c1c;">▼ <t t-esc="deltaReservations.val"/></span>
-                                </t>
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
+                        <div style="font-size:52px; opacity:.95; line-height:1;">📋</div>
+                        <div style="text-align:right;">
+                            <div style="font-size:38px; font-weight:900; letter-spacing:-1px; line-height:1;">
+                                <t t-esc="state.reservations_confirmer"/>
                             </div>
-                        </t>
+                            <div style="font-size:13px; font-weight:600; opacity:.9; margin-top:4px;">
+                                Réservations Confirmées
+                            </div>
+                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                                <t t-esc="labelPeriode"/>
+                            </div>
+                            <t t-if="deltaReservations">
+                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
+                                            border-radius:20px; font-size:13px; font-weight:800;
+                                            background:rgba(255,255,255,.85); color:#111;">
+                                    <t t-if="deltaReservations.positive">
+                                        ▲ +<t t-esc="deltaReservations.val"/>
+                                    </t>
+                                    <t t-else="">
+                                        ▼ <t t-esc="deltaReservations.val"/>
+                                    </t>
+                                </div>
+                            </t>
+                        </div>
                     </div>
                 </div>
 
-                <!-- ── 2. Chiffre d'affaires ── -->
-                <div class="card"
-                     style="width:190px; cursor:pointer; border:none; border-radius:16px;
-                            background:linear-gradient(135deg,#11998e,#38ef7d);
-                            box-shadow:0 4px 15px rgba(17,153,142,.35);
-                            transition:transform .18s, box-shadow .18s; color:#fff;"
+                <!-- 2. Chiffre d'affaires -->
+                <div t-attf-style="border-radius:18px; border:none; cursor:pointer; color:#fff;
+                            background: {{ !deltaCa ? 'linear-gradient(135deg,#2e7d32,#43a047)' : deltaCa.positive ? 'linear-gradient(135deg,#2e7d32,#43a047)' : 'linear-gradient(135deg,#c62828,#ef5350)' }};
+                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+                            transition:transform .18s, box-shadow .18s;"
                      t-on-click="ouvrirChiffreAffaire"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(17,153,142,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 15px rgba(17,153,142,.35)'">
-                    <div class="card-body text-center p-3">
-                        <div style="font-size:36px; opacity:.9;">💶</div>
-                        <div style="font-size:26px; font-weight:800; letter-spacing:-1px;">
-                            <t t-esc="Math.round(state.total_ca_da)"/> DA
-                        </div>
-                        <div style="font-size:12px; opacity:.85; margin-top:3px; font-weight:500;">
-                            Chiffre d'affaires
-                        </div>
-                        <div style="font-size:11px; opacity:.7; margin-top:2px;">
-                            <t t-esc="labelPeriode"/>
-                        </div>
-                        <t t-if="deltaCa">
-                            <div style="margin-top:8px; display:inline-block;
-                                        padding:2px 10px; border-radius:20px;
-                                        font-size:13px; font-weight:800;
-                                        background:rgba(0,0,0,.18);">
-                                <t t-if="deltaCa.positive">
-                                    <span style="color:#00e676;">▲ +<t t-esc="deltaCa.val"/> DA</span>
-                                </t>
-                                <t t-else="">
-                                    <span style="color:#b71c1c;">▼ <t t-esc="deltaCa.val"/> DA</span>
-                                </t>
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
+                        <div style="font-size:52px; opacity:.95; line-height:1;">💶</div>
+                        <div style="text-align:right;">
+                            <div style="font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1;">
+                                <t t-esc="Math.round(state.total_ca_da)"/> DA
                             </div>
-                        </t>
+                            <div style="font-size:13px; font-weight:600; opacity:.9; margin-top:4px;">
+                                Chiffre d'affaires
+                            </div>
+                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                                <t t-esc="labelPeriode"/>
+                            </div>
+                            <t t-if="deltaCa">
+                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
+                                            border-radius:20px; font-size:13px; font-weight:800;
+                                            background:rgba(255,255,255,.85); color:#111;">
+                                    <t t-if="deltaCa.positive">▲ +<t t-esc="deltaCa.val"/> DA</t>
+                                    <t t-else="">▼ <t t-esc="deltaCa.val"/> DA</t>
+                                </div>
+                            </t>
+                        </div>
                     </div>
                 </div>
 
-                <!-- ── 3. Trésorerie ── -->
-                <div class="card"
-                     style="width:190px; border:none; border-radius:16px;
-                            background:linear-gradient(135deg,#f953c6,#b91d73);
-                            box-shadow:0 4px 15px rgba(249,83,198,.35);
-                            transition:transform .18s, box-shadow .18s; color:#fff;"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(249,83,198,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 15px rgba(249,83,198,.35)'">
-                    <div class="card-body text-center p-3">
-                        <div style="font-size:36px; opacity:.9;">💰</div>
-                        <div style="font-size:26px; font-weight:800; letter-spacing:-1px;">
-                            <t t-esc="Math.round(state.total_tresorerie_da)"/> DA
-                        </div>
-                        <div style="font-size:12px; opacity:.85; margin-top:3px; font-weight:500;">
-                            Trésorerie
-                        </div>
-                        <div style="font-size:11px; opacity:.7; margin-top:2px;">
-                            <t t-esc="labelPeriode"/>
-                        </div>
-                        <t t-if="deltaTresorerie">
-                            <div style="margin-top:8px; display:inline-block;
-                                        padding:2px 10px; border-radius:20px;
-                                        font-size:13px; font-weight:800;
-                                        background:rgba(0,0,0,.18);">
-                                <t t-if="deltaTresorerie.positive">
-                                    <span style="color:#00e676;">▲ +<t t-esc="deltaTresorerie.val"/> DA</span>
-                                </t>
-                                <t t-else="">
-                                    <span style="color:#b71c1c;">▼ <t t-esc="deltaTresorerie.val"/> DA</span>
-                                </t>
+                <!-- 3. Trésorerie -->
+                <div t-attf-style="border-radius:18px; border:none; color:#fff;
+                            background: {{ !deltaTresorerie ? 'linear-gradient(135deg,#880e4f,#ad1457)' : deltaTresorerie.positive ? 'linear-gradient(135deg,#2e7d32,#43a047)' : 'linear-gradient(135deg,#c62828,#ef5350)' }};
+                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+                            transition:transform .18s, box-shadow .18s;"
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
+                        <div style="font-size:52px; opacity:.95; line-height:1;">💰</div>
+                        <div style="text-align:right;">
+                            <div style="font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1;">
+                                <t t-esc="Math.round(state.total_tresorerie_da)"/> DA
                             </div>
-                        </t>
+                            <div style="font-size:13px; font-weight:600; opacity:.9; margin-top:4px;">
+                                Trésorerie
+                            </div>
+                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                                <t t-esc="labelPeriode"/>
+                            </div>
+                            <t t-if="deltaTresorerie">
+                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
+                                            border-radius:20px; font-size:13px; font-weight:800;
+                                            background:rgba(255,255,255,.85); color:#111;">
+                                    <t t-if="deltaTresorerie.positive">▲ +<t t-esc="deltaTresorerie.val"/> DA</t>
+                                    <t t-else="">▼ <t t-esc="deltaTresorerie.val"/> DA</t>
+                                </div>
+                            </t>
+                        </div>
                     </div>
                 </div>
 
-                <!-- ── 4. Panier Moyen ── -->
-                <div class="card"
-                     style="width:190px; cursor:pointer; border:none; border-radius:16px;
-                            background:linear-gradient(135deg,#f7971e,#ffd200);
-                            box-shadow:0 4px 15px rgba(247,151,30,.35);
-                            transition:transform .18s, box-shadow .18s; color:#fff;"
+                <!-- ══════ LIGNE 2 ══════ -->
+
+                <!-- 4. Panier Moyen -->
+                <div t-attf-style="border-radius:18px; border:none; cursor:pointer; color:#fff;
+                            background: {{ !deltaPanier ? 'linear-gradient(135deg,#e65100,#fb8c00)' : deltaPanier.positive ? 'linear-gradient(135deg,#2e7d32,#43a047)' : 'linear-gradient(135deg,#c62828,#ef5350)' }};
+                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+                            transition:transform .18s, box-shadow .18s;"
                      t-on-click="ouvrirChiffreAffaire"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(247,151,30,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 15px rgba(247,151,30,.35)'">
-                    <div class="card-body text-center p-3">
-                        <div style="font-size:36px; opacity:.9;">🛒</div>
-                        <div style="font-size:26px; font-weight:800; letter-spacing:-1px; color:#4a3200;">
-                            <t t-esc="Math.round(state.panier_moyen_da)"/> DA
-                        </div>
-                        <div style="font-size:12px; opacity:.85; margin-top:3px; font-weight:500; color:#4a3200;">
-                            Panier Moyen
-                        </div>
-                        <div style="font-size:11px; opacity:.7; margin-top:2px; color:#4a3200;">
-                            <t t-esc="labelPeriode"/>
-                        </div>
-                        <t t-if="deltaPanier">
-                            <div style="margin-top:8px; display:inline-block;
-                                        padding:2px 10px; border-radius:20px;
-                                        font-size:13px; font-weight:800;
-                                        background:rgba(0,0,0,.12);">
-                                <t t-if="deltaPanier.positive">
-                                    <span style="color:#1b5e20;">▲ +<t t-esc="deltaPanier.val"/> DA</span>
-                                </t>
-                                <t t-else="">
-                                    <span style="color:#b71c1c;">▼ <t t-esc="deltaPanier.val"/> DA</span>
-                                </t>
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
+                        <div style="font-size:52px; opacity:.95; line-height:1;">🛒</div>
+                        <div style="text-align:right;">
+                            <div style="font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1;">
+                                <t t-esc="Math.round(state.panier_moyen_da)"/> DA
                             </div>
-                        </t>
+                            <div style="font-size:13px; font-weight:600; opacity:.9; margin-top:4px;">
+                                Panier Moyen
+                            </div>
+                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                                <t t-esc="labelPeriode"/>
+                            </div>
+                            <t t-if="deltaPanier">
+                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
+                                            border-radius:20px; font-size:13px; font-weight:800;
+                                            background:rgba(255,255,255,.85); color:#111;">
+                                    <t t-if="deltaPanier.positive">▲ +<t t-esc="deltaPanier.val"/> DA</t>
+                                    <t t-else="">▼ <t t-esc="deltaPanier.val"/> DA</t>
+                                </div>
+                            </t>
+                        </div>
                     </div>
                 </div>
 
-                <!-- ── 5. Dépenses ── -->
-                <div class="card"
-                     style="width:190px; cursor:pointer; border:none; border-radius:16px;
-                            background:linear-gradient(135deg,#f85032,#e73827);
-                            box-shadow:0 4px 15px rgba(248,80,50,.35);
-                            transition:transform .18s, box-shadow .18s; color:#fff;"
+                <!-- 5. Dépenses  (logique inversée : baisse = vert, hausse = rouge) -->
+                <div t-attf-style="border-radius:18px; border:none; cursor:pointer; color:#fff;
+                            background: {{ !deltaDepense ? 'linear-gradient(135deg,#b71c1c,#ef5350)' : deltaDepense.positive ? 'linear-gradient(135deg,#c62828,#ef5350)' : 'linear-gradient(135deg,#2e7d32,#43a047)' }};
+                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+                            transition:transform .18s, box-shadow .18s;"
                      t-on-click="ouvrirDepenses"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(248,80,50,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 15px rgba(248,80,50,.35)'">
-                    <div class="card-body text-center p-3">
-                        <div style="font-size:36px; opacity:.9;">💸</div>
-                        <div style="font-size:26px; font-weight:800; letter-spacing:-1px;">
-                            <t t-esc="Math.round(state.total_depense_da)"/> DA
-                        </div>
-                        <div style="font-size:12px; opacity:.85; margin-top:3px; font-weight:500;">
-                            Dépenses
-                        </div>
-                        <div style="font-size:11px; opacity:.7; margin-top:2px;">
-                            <t t-esc="labelPeriode"/>
-                        </div>
-                        <t t-if="deltaDepense">
-                            <div style="margin-top:8px; display:inline-block;
-                                        padding:2px 10px; border-radius:20px;
-                                        font-size:13px; font-weight:800;
-                                        background:rgba(0,0,0,.18);">
-                                <t t-if="deltaDepense.positive">
-                                    <span style="color:#b71c1c;">▲ +<t t-esc="deltaDepense.val"/> DA</span>
-                                </t>
-                                <t t-else="">
-                                    <span style="color:#00e676;">▼ <t t-esc="deltaDepense.val"/> DA</span>
-                                </t>
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
+                        <div style="font-size:52px; opacity:.95; line-height:1;">💸</div>
+                        <div style="text-align:right;">
+                            <div style="font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1;">
+                                <t t-esc="Math.round(state.total_depense_da)"/> DA
                             </div>
-                        </t>
+                            <div style="font-size:13px; font-weight:600; opacity:.9; margin-top:4px;">
+                                Dépenses
+                            </div>
+                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                                <t t-esc="labelPeriode"/>
+                            </div>
+                            <t t-if="deltaDepense">
+                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
+                                            border-radius:20px; font-size:13px; font-weight:800;
+                                            background:rgba(255,255,255,.85); color:#111;">
+                                    <t t-if="deltaDepense.positive">▲ +<t t-esc="deltaDepense.val"/> DA</t>
+                                    <t t-else="">▼ <t t-esc="deltaDepense.val"/> DA</t>
+                                </div>
+                            </t>
+                        </div>
                     </div>
                 </div>
 
-                <!-- ── 6. Balance ── -->
-                <div class="card"
-                     style="width:190px; border:none; border-radius:16px;
-                            background:linear-gradient(135deg,#4776e6,#8e54e9);
-                            box-shadow:0 4px 15px rgba(71,118,230,.35);
-                            transition:transform .18s, box-shadow .18s; color:#fff;"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(71,118,230,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 15px rgba(71,118,230,.35)'">
-                    <div class="card-body text-center p-3">
-                        <div style="font-size:36px; opacity:.9;">⚖️</div>
-                        <div style="font-size:26px; font-weight:800; letter-spacing:-1px;">
-                            <t t-esc="Math.round(balance)"/> DA
-                        </div>
-                        <div style="font-size:12px; opacity:.85; margin-top:3px; font-weight:500;">
-                            Balance
-                        </div>
-                        <div style="font-size:11px; opacity:.7; margin-top:2px;">
-                            <t t-esc="labelPeriode"/>
-                        </div>
-                        <t t-if="deltaBalance">
-                            <div style="margin-top:8px; display:inline-block;
-                                        padding:2px 10px; border-radius:20px;
-                                        font-size:13px; font-weight:800;
-                                        background:rgba(0,0,0,.18);">
-                                <t t-if="deltaBalance.positive">
-                                    <span style="color:#00e676;">▲ +<t t-esc="deltaBalance.val"/> DA</span>
-                                </t>
-                                <t t-else="">
-                                    <span style="color:#b71c1c;">▼ <t t-esc="deltaBalance.val"/> DA</span>
-                                </t>
+                <!-- 6. Balance -->
+                <div t-attf-style="border-radius:18px; border:none; color:#fff;
+                            background: {{ !deltaBalance ? 'linear-gradient(135deg,#3949ab,#7986cb)' : deltaBalance.positive ? 'linear-gradient(135deg,#2e7d32,#43a047)' : 'linear-gradient(135deg,#c62828,#ef5350)' }};
+                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+                            transition:transform .18s, box-shadow .18s;"
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
+                        <div style="font-size:52px; opacity:.95; line-height:1;">⚖️</div>
+                        <div style="text-align:right;">
+                            <div style="font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1;">
+                                <t t-esc="Math.round(balance)"/> DA
                             </div>
-                        </t>
+                            <div style="font-size:13px; font-weight:600; opacity:.9; margin-top:4px;">
+                                Balance
+                            </div>
+                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                                <t t-esc="labelPeriode"/>
+                            </div>
+                            <t t-if="deltaBalance">
+                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
+                                            border-radius:20px; font-size:13px; font-weight:800;
+                                            background:rgba(255,255,255,.85); color:#111;">
+                                    <t t-if="deltaBalance.positive">▲ +<t t-esc="deltaBalance.val"/> DA</t>
+                                    <t t-else="">▼ <t t-esc="deltaBalance.val"/> DA</t>
+                                </div>
+                            </t>
+                        </div>
                     </div>
                 </div>
 
-                <!-- ── 7. Taux de remplissage ── -->
-                <div class="card"
-                     style="width:190px; border:none; border-radius:16px;
-                            background:linear-gradient(135deg,#0f9b8e,#00d2ff);
-                            box-shadow:0 4px 15px rgba(0,210,255,.35);
-                            transition:transform .18s, box-shadow .18s; color:#fff;"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(0,210,255,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 4px 15px rgba(0,210,255,.35)'">
-                    <div class="card-body text-center p-3">
-                        <div style="font-size:36px; opacity:.9;">📊</div>
-                        <div style="font-size:30px; font-weight:800; letter-spacing:-1px;">
-                            <t t-esc="state.taux_remplissage"/> %
-                        </div>
-                        <!-- Barre de progression -->
-                        <div style="background:rgba(255,255,255,.25); border-radius:10px;
-                                    height:5px; margin:6px 0; overflow:hidden;">
-                            <div t-attf-style="width:{{state.taux_remplissage}}%; height:100%;
-                                               background:#fff; border-radius:10px; transition:width .5s;"/>
-                        </div>
-                        <div style="font-size:12px; opacity:.85; margin-top:2px; font-weight:500;">
-                            Taux de remplissage
-                        </div>
-                        <div style="font-size:11px; opacity:.7; margin-top:2px;">
-                            <t t-esc="labelPeriode"/>
-                        </div>
-                        <t t-if="deltaTaux">
-                            <div style="margin-top:8px; display:inline-block;
-                                        padding:2px 10px; border-radius:20px;
-                                        font-size:13px; font-weight:800;
-                                        background:rgba(0,0,0,.18);">
-                                <t t-if="deltaTaux.positive">
-                                    <span style="color:#00e676;">▲ +<t t-esc="deltaTaux.val"/> %</span>
-                                </t>
-                                <t t-else="">
-                                    <span style="color:#b71c1c;">▼ <t t-esc="deltaTaux.val"/> %</span>
-                                </t>
+                <!-- ══════ LIGNE 3 ══════ -->
+
+                <!-- 7. Taux de remplissage -->
+                <div t-attf-style="border-radius:18px; border:none; color:#fff;
+                            background: {{ !deltaTaux ? 'linear-gradient(135deg,#00838f,#00acc1)' : deltaTaux.positive ? 'linear-gradient(135deg,#2e7d32,#43a047)' : 'linear-gradient(135deg,#c62828,#ef5350)' }};
+                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+                            transition:transform .18s, box-shadow .18s;
+                            grid-column: 1 / 2;"
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
+                        <div style="font-size:52px; opacity:.95; line-height:1;">📊</div>
+                        <div style="text-align:right; flex:1; margin-left:16px;">
+                            <div style="font-size:34px; font-weight:900; letter-spacing:-1px; line-height:1;">
+                                <t t-esc="state.taux_remplissage"/> %
                             </div>
-                        </t>
+                            <div style="background:rgba(255,255,255,.2); border-radius:10px;
+                                        height:6px; margin:8px 0; overflow:hidden;">
+                                <div t-attf-style="width:{{state.taux_remplissage}}%; height:100%;
+                                                   background:#fff; border-radius:10px; transition:width .6s;"/>
+                            </div>
+                            <div style="font-size:13px; font-weight:600; opacity:.9;">
+                                Taux de remplissage
+                            </div>
+                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                                <t t-esc="labelPeriode"/>
+                            </div>
+                            <t t-if="deltaTaux">
+                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
+                                            border-radius:20px; font-size:13px; font-weight:800;
+                                            background:rgba(255,255,255,.85); color:#111;">
+                                    <t t-if="deltaTaux.positive">▲ +<t t-esc="deltaTaux.val"/> %</t>
+                                    <t t-else="">▼ <t t-esc="deltaTaux.val"/> %</t>
+                                </div>
+                            </t>
+                        </div>
                     </div>
                 </div>
 
-            </div>
+            </div><!-- fin grille -->
         </div>
     </t>
 </templates>
