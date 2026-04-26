@@ -185,7 +185,7 @@ export class DashboardStatistiques extends Component {
     // ── Detail réservations sommées ──
     const detailRes = await this.orm.searchRead("reservation",
         this._buildDomain(debutStr, finStr),
-        ["name", "total_reduit_euro", "montant_paye", "status", "create_date", "ranking"],
+        ["name", "total_reduit_euro", "montant_paye", "status", "create_date"],
     );
 
     const rowRes   = resResult[0] ?? {};
@@ -201,9 +201,9 @@ export class DashboardStatistiques extends Component {
     console.log("📋 Nb réservations   :", count);
     console.log(" ");
     console.log("📋 DETAIL RESERVATIONS SOMMÉES :");
-    console.table(detailRes.map(r => ({
+    console.table(detailRes.map((r, index) => ({
+        "N°"          : index + 1,
         Nom           : r.name,
-        Ranking       : r.ranking,
         CA_Euro       : r.total_reduit_euro,
         Payé_Euro     : r.montant_paye,
         Status        : r.status,
