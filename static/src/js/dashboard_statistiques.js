@@ -157,7 +157,7 @@ export class DashboardStatistiques extends Component {
 
                 this.orm.readGroup("reservation",
                     this._buildDomain(debutStr, finStr),
-                    ["total_reduit_euro:sum", "montant_paye:sum"], []
+                    ["total_reduit_euro:sum"], []
                 ),
 
                 this.orm.readGroup("depense.record",
