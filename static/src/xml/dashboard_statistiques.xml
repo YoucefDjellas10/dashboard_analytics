@@ -80,7 +80,7 @@
 
                 <!-- 1. Réservations confirmées -->
                 <div t-attf-style="border-radius:18px; border:none; cursor:pointer; color:#fff;
-                            background: {{ !deltaReservations ? 'linear-gradient(135deg,#1565c0,#1e88e5)' : deltaReservations.positive ? 'linear-gradient(135deg,#2e7d32,#43a047)' : 'linear-gradient(135deg,#c62828,#ef5350)' }};
+                            background: {{ !deltaReservations ? 'linear-gradient(135deg,#1565c0,#1e88e5)' : deltaReservations.positive ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#dc2626,#ef4444)' }};
                             box-shadow:0 6px 20px rgba(0,0,0,.3);
                             transition:transform .18s, box-shadow .18s;"
                      t-on-click="ouvrirReservations"
@@ -116,7 +116,7 @@
 
                 <!-- 2. Chiffre d'affaires -->
                 <div t-attf-style="border-radius:18px; border:none; cursor:pointer; color:#fff;
-                            background: {{ !deltaCa ? 'linear-gradient(135deg,#2e7d32,#43a047)' : deltaCa.positive ? 'linear-gradient(135deg,#2e7d32,#43a047)' : 'linear-gradient(135deg,#c62828,#ef5350)' }};
+                            background: {{ !deltaCa ? 'linear-gradient(135deg,#16a34a,#22c55e)' : deltaCa.positive ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#dc2626,#ef4444)' }};
                             box-shadow:0 6px 20px rgba(0,0,0,.3);
                             transition:transform .18s, box-shadow .18s;"
                      t-on-click="ouvrirChiffreAffaire"
@@ -148,7 +148,7 @@
 
                 <!-- 3. Trésorerie -->
                 <div t-attf-style="border-radius:18px; border:none; color:#fff;
-                            background: {{ !deltaTresorerie ? 'linear-gradient(135deg,#880e4f,#ad1457)' : deltaTresorerie.positive ? 'linear-gradient(135deg,#2e7d32,#43a047)' : 'linear-gradient(135deg,#c62828,#ef5350)' }};
+                            background: {{ !deltaTresorerie ? 'linear-gradient(135deg,#880e4f,#ad1457)' : deltaTresorerie.positive ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#dc2626,#ef4444)' }};
                             box-shadow:0 6px 20px rgba(0,0,0,.3);
                             transition:transform .18s, box-shadow .18s;"
                      onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
@@ -181,7 +181,7 @@
 
                 <!-- 4. Panier Moyen -->
                 <div t-attf-style="border-radius:18px; border:none; cursor:pointer; color:#fff;
-                            background: {{ !deltaPanier ? 'linear-gradient(135deg,#e65100,#fb8c00)' : deltaPanier.positive ? 'linear-gradient(135deg,#2e7d32,#43a047)' : 'linear-gradient(135deg,#c62828,#ef5350)' }};
+                            background: {{ !deltaPanier ? 'linear-gradient(135deg,#e65100,#fb8c00)' : deltaPanier.positive ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#dc2626,#ef4444)' }};
                             box-shadow:0 6px 20px rgba(0,0,0,.3);
                             transition:transform .18s, box-shadow .18s;"
                      t-on-click="ouvrirChiffreAffaire"
@@ -213,7 +213,7 @@
 
                 <!-- 5. Dépenses  (logique inversée : baisse = vert, hausse = rouge) -->
                 <div t-attf-style="border-radius:18px; border:none; cursor:pointer; color:#fff;
-                            background: {{ !deltaDepense ? 'linear-gradient(135deg,#b71c1c,#ef5350)' : deltaDepense.positive ? 'linear-gradient(135deg,#c62828,#ef5350)' : 'linear-gradient(135deg,#2e7d32,#43a047)' }};
+                            background: {{ !deltaDepense ? 'linear-gradient(135deg,#b71c1c,#ef5350)' : deltaDepense.positive ? 'linear-gradient(135deg,#dc2626,#ef4444)' : 'linear-gradient(135deg,#16a34a,#22c55e)' }};
                             box-shadow:0 6px 20px rgba(0,0,0,.3);
                             transition:transform .18s, box-shadow .18s;"
                      t-on-click="ouvrirDepenses"
@@ -245,7 +245,7 @@
 
                 <!-- 6. Balance -->
                 <div t-attf-style="border-radius:18px; border:none; color:#fff;
-                            background: {{ !deltaBalance ? 'linear-gradient(135deg,#3949ab,#7986cb)' : deltaBalance.positive ? 'linear-gradient(135deg,#2e7d32,#43a047)' : 'linear-gradient(135deg,#c62828,#ef5350)' }};
+                            background: {{ !deltaBalance ? 'linear-gradient(135deg,#3949ab,#7986cb)' : deltaBalance.positive ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#dc2626,#ef4444)' }};
                             box-shadow:0 6px 20px rgba(0,0,0,.3);
                             transition:transform .18s, box-shadow .18s;"
                      onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
@@ -278,7 +278,7 @@
 
                 <!-- 7. Taux de remplissage -->
                 <div t-attf-style="border-radius:18px; border:none; color:#fff;
-                            background: {{ !deltaTaux ? 'linear-gradient(135deg,#00838f,#00acc1)' : deltaTaux.positive ? 'linear-gradient(135deg,#2e7d32,#43a047)' : 'linear-gradient(135deg,#c62828,#ef5350)' }};
+                            background: {{ !deltaTaux ? 'linear-gradient(135deg,#00838f,#00acc1)' : deltaTaux.positive ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#dc2626,#ef4444)' }};
                             box-shadow:0 6px 20px rgba(0,0,0,.3);
                             transition:transform .18s, box-shadow .18s;
                             grid-column: 1 / 2;"
