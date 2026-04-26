@@ -182,6 +182,12 @@ export class DashboardStatistiques extends Component {
             ),
         ]);
 
+    // ── Detail réservations sommées ──
+    const detailRes = await this.orm.searchRead("reservation",
+        this._buildDomain(debutStr, finStr),
+        ["name", "total_reduit_euro", "montant_paye", "status", "create_date", "ranking"],
+    );
+
     const rowRes   = resResult[0] ?? {};
     const count    = rowRes.__count           ?? 0;
     const caEuro   = rowRes.total_reduit_euro ?? 0;
@@ -190,20 +196,27 @@ export class DashboardStatistiques extends Component {
 
     // ======= DEBUG =======
     console.log("======= DEBUG _fetchPeriod =======");
-    console.log("📅 Période          :", debutStr, "→", finStr);
-    console.log("📋 resResult brut   :", resResult);
-    console.log("📋 rowRes           :", rowRes);
-    console.log("📋 Nb réservations  :", count);
-    console.log("💶 CA Euro (somme)  :", caEuro);
-    console.log("💰 Payé Euro (somme):", payeEuro);
-    console.log("🔄 Taux change      :", taux);
-    console.log("💵 CA DA calculé    :", caEuro * taux);
-    console.log("💵 Tréso DA calculé :", payeEuro * taux);
-    console.log("💸 depResult brut   :", depResult);
-    console.log("💸 Dépense DA       :", (depResult[0] ?? {}).montant_da ?? 0);
-    console.log("🚗 Nb véhicules     :", vehiculesResult.length);
-    console.log("📆 Nb jours période :", this._nbJours(debut, fin));
-    console.log("📋 Réservations dates:", resDatesList);
+    console.log("📅 Période           :", debutStr, "→", finStr);
+    console.log("🔄 Taux change       :", taux);
+    console.log("📋 Nb réservations   :", count);
+    console.log(" ");
+    console.log("📋 DETAIL RESERVATIONS SOMMÉES :");
+    console.table(detailRes.map(r => ({
+        Nom           : r.name,
+        Ranking       : r.ranking,
+        CA_Euro       : r.total_reduit_euro,
+        Payé_Euro     : r.montant_paye,
+        Status        : r.status,
+        Date_création : r.create_date,
+    })));
+    console.log("💶 TOTAL CA EURO     :", detailRes.reduce((s, r) => s + (r.total_reduit_euro || 0), 0));
+    console.log("💰 TOTAL PAYÉ EURO   :", detailRes.reduce((s, r) => s + (r.montant_paye      || 0), 0));
+    console.log("💵 CA DA calculé     :", caEuro   * taux);
+    console.log("💵 Tréso DA calculé  :", payeEuro * taux);
+    console.log(" ");
+    console.log("💸 Dépenses DA       :", (depResult[0] ?? {}).montant_da ?? 0);
+    console.log("🚗 Nb véhicules      :", vehiculesResult.length);
+    console.log("📆 Nb jours période  :", this._nbJours(debut, fin));
     console.log("==================================");
     // =====================
 
