@@ -105,15 +105,14 @@
                         <t t-if="deltaReservations">
                             <div style="margin-top:8px; display:inline-block;
                                         padding:2px 10px; border-radius:20px;
-                                        font-size:12px; font-weight:700;
-                                        background:rgba(255,255,255,.2);">
+                                        font-size:13px; font-weight:800;
+                                        background:rgba(0,0,0,.18);">
                                 <t t-if="deltaReservations.positive">
-                                    ▲ +<t t-esc="deltaReservations.val"/>
+                                    <span style="color:#00e676;">▲ +<t t-esc="deltaReservations.val"/></span>
                                 </t>
                                 <t t-else="">
-                                    <span style="color:#ff8a80;">▼ <t t-esc="deltaReservations.val"/></span>
+                                    <span style="color:#b71c1c;">▼ <t t-esc="deltaReservations.val"/></span>
                                 </t>
-                                <span style="font-size:10px; opacity:.8;"> vs N-1</span>
                             </div>
                         </t>
                     </div>
@@ -142,15 +141,14 @@
                         <t t-if="deltaCa">
                             <div style="margin-top:8px; display:inline-block;
                                         padding:2px 10px; border-radius:20px;
-                                        font-size:12px; font-weight:700;
-                                        background:rgba(255,255,255,.2);">
+                                        font-size:13px; font-weight:800;
+                                        background:rgba(0,0,0,.18);">
                                 <t t-if="deltaCa.positive">
-                                    ▲ +<t t-esc="deltaCa.val"/> DA
+                                    <span style="color:#00e676;">▲ +<t t-esc="deltaCa.val"/> DA</span>
                                 </t>
                                 <t t-else="">
-                                    <span style="color:#ff8a80;">▼ <t t-esc="deltaCa.val"/> DA</span>
+                                    <span style="color:#b71c1c;">▼ <t t-esc="deltaCa.val"/> DA</span>
                                 </t>
-                                <span style="font-size:10px; opacity:.8;"> vs N-1</span>
                             </div>
                         </t>
                     </div>
@@ -178,15 +176,14 @@
                         <t t-if="deltaTresorerie">
                             <div style="margin-top:8px; display:inline-block;
                                         padding:2px 10px; border-radius:20px;
-                                        font-size:12px; font-weight:700;
-                                        background:rgba(255,255,255,.2);">
+                                        font-size:13px; font-weight:800;
+                                        background:rgba(0,0,0,.18);">
                                 <t t-if="deltaTresorerie.positive">
-                                    ▲ +<t t-esc="deltaTresorerie.val"/> DA
+                                    <span style="color:#00e676;">▲ +<t t-esc="deltaTresorerie.val"/> DA</span>
                                 </t>
                                 <t t-else="">
-                                    <span style="color:#ffe0b2;">▼ <t t-esc="deltaTresorerie.val"/> DA</span>
+                                    <span style="color:#b71c1c;">▼ <t t-esc="deltaTresorerie.val"/> DA</span>
                                 </t>
-                                <span style="font-size:10px; opacity:.8;"> vs N-1</span>
                             </div>
                         </t>
                     </div>
@@ -215,15 +212,14 @@
                         <t t-if="deltaPanier">
                             <div style="margin-top:8px; display:inline-block;
                                         padding:2px 10px; border-radius:20px;
-                                        font-size:12px; font-weight:700;
-                                        background:rgba(0,0,0,.12); color:#4a3200;">
+                                        font-size:13px; font-weight:800;
+                                        background:rgba(0,0,0,.12);">
                                 <t t-if="deltaPanier.positive">
-                                    <span style="color:#2e7d32;">▲ +<t t-esc="deltaPanier.val"/> DA</span>
+                                    <span style="color:#1b5e20;">▲ +<t t-esc="deltaPanier.val"/> DA</span>
                                 </t>
                                 <t t-else="">
-                                    <span style="color:#c62828;">▼ <t t-esc="deltaPanier.val"/> DA</span>
+                                    <span style="color:#b71c1c;">▼ <t t-esc="deltaPanier.val"/> DA</span>
                                 </t>
-                                <span style="font-size:10px; opacity:.7;"> vs N-1</span>
                             </div>
                         </t>
                     </div>
@@ -252,16 +248,14 @@
                         <t t-if="deltaDepense">
                             <div style="margin-top:8px; display:inline-block;
                                         padding:2px 10px; border-radius:20px;
-                                        font-size:12px; font-weight:700;
-                                        background:rgba(255,255,255,.2);">
-                                <!-- Pour les dépenses : hausse = mauvais → on inverse les couleurs -->
+                                        font-size:13px; font-weight:800;
+                                        background:rgba(0,0,0,.18);">
                                 <t t-if="deltaDepense.positive">
-                                    <span style="color:#ff8a80;">▲ +<t t-esc="deltaDepense.val"/> DA</span>
+                                    <span style="color:#b71c1c;">▲ +<t t-esc="deltaDepense.val"/> DA</span>
                                 </t>
                                 <t t-else="">
-                                    <span style="color:#b9f6ca;">▼ <t t-esc="deltaDepense.val"/> DA</span>
+                                    <span style="color:#00e676;">▼ <t t-esc="deltaDepense.val"/> DA</span>
                                 </t>
-                                <span style="font-size:10px; opacity:.8;"> vs N-1</span>
                             </div>
                         </t>
                     </div>
@@ -289,15 +283,14 @@
                         <t t-if="deltaBalance">
                             <div style="margin-top:8px; display:inline-block;
                                         padding:2px 10px; border-radius:20px;
-                                        font-size:12px; font-weight:700;
-                                        background:rgba(255,255,255,.2);">
+                                        font-size:13px; font-weight:800;
+                                        background:rgba(0,0,0,.18);">
                                 <t t-if="deltaBalance.positive">
-                                    ▲ +<t t-esc="deltaBalance.val"/> DA
+                                    <span style="color:#00e676;">▲ +<t t-esc="deltaBalance.val"/> DA</span>
                                 </t>
                                 <t t-else="">
-                                    <span style="color:#ff8a80;">▼ <t t-esc="deltaBalance.val"/> DA</span>
+                                    <span style="color:#b71c1c;">▼ <t t-esc="deltaBalance.val"/> DA</span>
                                 </t>
-                                <span style="font-size:10px; opacity:.8;"> vs N-1</span>
                             </div>
                         </t>
                     </div>
@@ -331,15 +324,14 @@
                         <t t-if="deltaTaux">
                             <div style="margin-top:8px; display:inline-block;
                                         padding:2px 10px; border-radius:20px;
-                                        font-size:12px; font-weight:700;
-                                        background:rgba(255,255,255,.2);">
+                                        font-size:13px; font-weight:800;
+                                        background:rgba(0,0,0,.18);">
                                 <t t-if="deltaTaux.positive">
-                                    ▲ +<t t-esc="deltaTaux.val"/> %
+                                    <span style="color:#00e676;">▲ +<t t-esc="deltaTaux.val"/> %</span>
                                 </t>
                                 <t t-else="">
-                                    <span style="color:#ff8a80;">▼ <t t-esc="deltaTaux.val"/> %</span>
+                                    <span style="color:#b71c1c;">▼ <t t-esc="deltaTaux.val"/> %</span>
                                 </t>
-                                <span style="font-size:10px; opacity:.8;"> vs N-1</span>
                             </div>
                         </t>
                     </div>
