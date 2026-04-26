@@ -6,108 +6,194 @@
             <!-- ═══════════════════════════════════════════
                  Bandeau filtre
             ═══════════════════════════════════════════ -->
-            <div class="d-flex align-items-center gap-2 mb-4 flex-wrap"
-                 style="background:linear-gradient(135deg,#f8f9fa,#eef0f3);
-                        border-radius:14px; padding:14px 18px;
-                        border:1px solid #dee2e6;
-                        box-shadow:0 2px 8px rgba(0,0,0,.06);">
+<!-- ═══════════════════════════════════════════
+     Bandeau filtre — Version Pro
+═══════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════
+     Bandeau filtre — Version Pro
+═══════════════════════════════════════════ -->
+<div style="background:#fff;
+            border-radius:16px;
+            padding:16px 24px;
+            margin-bottom:20px;
+            border:1px solid #e2e8f0;
+            box-shadow:0 4px 16px rgba(0,0,0,.07);
+            display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
 
-                <span style="font-weight:700; color:#333; font-size:14px; letter-spacing:.3px;">
-                    📅 Période :
-                </span>
-
-                <div class="d-flex align-items-center gap-1">
-                    <label style="font-size:12px; color:#666; white-space:nowrap;">Du</label>
-                    <input type="date"
-                           class="form-control form-control-sm"
-                           style="width:145px; border-radius:8px; border:1px solid #ccc;"
-                           t-att-value="state.date_debut"
-                           t-on-change="onDateDebutChange"/>
-                </div>
-
-                <div class="d-flex align-items-center gap-1">
-                    <label style="font-size:12px; color:#666; white-space:nowrap;">Au</label>
-                    <input type="date"
-                           class="form-control form-control-sm"
-                           style="width:145px; border-radius:8px; border:1px solid #ccc;"
-                           t-att-value="state.date_fin"
-                           t-on-change="onDateFinChange"/>
-                </div>
-
-                <div class="d-flex align-items-center gap-1">
-                    <label style="font-size:12px; color:#666; white-space:nowrap;">Zone</label>
-                    <select class="form-select form-select-sm"
-                            style="width:190px; border-radius:8px; border:1px solid #ccc;"
-                            t-on-change="updateSelectedZone">
-                        <option value="">Toutes les zones</option>
-                        <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
-                            <option t-att-value="zone.id"
-                                    t-att-selected="state.selected_zone == zone.id"
-                                    t-esc="zone.name"/>
-                        </t>
-                    </select>
-                </div>
-
-                <button class="btn btn-sm btn-primary"
-                        style="border-radius:8px; font-size:13px; padding:5px 14px;
-                               background:linear-gradient(135deg,#1565c0,#6a1b9a);
-                               border:none; box-shadow:0 2px 6px rgba(21,101,192,.4);"
-                        t-on-click="appliquerFiltre"
-                        t-att-disabled="state.loading">
-                    <t t-if="state.loading">⏳ Chargement…</t>
-                    <t t-else="">🔍 Appliquer</t>
-                </button>
-
-                <button class="btn btn-sm btn-outline-secondary"
-                        style="border-radius:8px; font-size:13px; padding:5px 14px;"
-                        t-on-click="reinitialiserMois"
-                        t-att-disabled="state.loading">
-                    🔄 Mois actuel
-                </button>
-
-                <span t-if="labelPeriode"
-                      style="font-size:12px; color:#888; margin-left:4px; font-style:italic;">
-                    (<t t-esc="labelPeriode"/>)
-                </span>
+    <!-- Icône + Titre -->
+    <div style="display:flex; align-items:center; gap:8px; margin-right:8px;">
+        <div style="background:linear-gradient(135deg,#1565c0,#6a1b9a);
+                    border-radius:10px; width:36px; height:36px;
+                    display:flex; align-items:center; justify-content:center;
+                    font-size:18px; box-shadow:0 2px 8px rgba(21,101,192,.35);">
+            📅
+        </div>
+        <div>
+            <div style="font-weight:700; color:#1e293b; font-size:13px; line-height:1.2;">
+                Période
             </div>
+            <div style="font-size:11px; color:#94a3b8; line-height:1.2;">
+                Filtrer les données
+            </div>
+        </div>
+    </div>
 
-            <!-- ═══════════════════════════════════════════
-                 Grille KPI  —  3 colonnes égales
+    <!-- Séparateur vertical -->
+    <div style="width:1px; height:36px; background:#e2e8f0; margin:0 4px;"/>
+
+    <!-- Du + Flèche + Au + Zone  sur une seule ligne -->
+    <div style="display:flex; align-items:center; gap:8px;">
+
+        <!-- Label + Input Du -->
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; font-weight:600; color:#64748b;
+                         text-transform:uppercase; letter-spacing:.6px; white-space:nowrap;">
+                Du
+            </span>
+            <input type="date"
+                   class="form-control form-control-sm"
+                   style="width:148px; border-radius:8px;
+                          border:1.5px solid #e2e8f0;
+                          font-size:13px; color:#1e293b;
+                          background:#f8fafc;
+                          box-shadow:inset 0 1px 3px rgba(0,0,0,.04);"
+                   t-att-value="state.date_debut"
+                   t-on-change="onDateDebutChange"/>
+        </div>
+
+        <!-- Flèche -->
+        <div style="color:#94a3b8; font-size:16px;">→</div>
+
+        <!-- Label + Input Au -->
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; font-weight:600; color:#64748b;
+                         text-transform:uppercase; letter-spacing:.6px; white-space:nowrap;">
+                Au
+            </span>
+            <input type="date"
+                   class="form-control form-control-sm"
+                   style="width:148px; border-radius:8px;
+                          border:1.5px solid #e2e8f0;
+                          font-size:13px; color:#1e293b;
+                          background:#f8fafc;
+                          box-shadow:inset 0 1px 3px rgba(0,0,0,.04);"
+                   t-att-value="state.date_fin"
+                   t-on-change="onDateFinChange"/>
+        </div>
+
+        <!-- Séparateur vertical -->
+        <div style="width:1px; height:36px; background:#e2e8f0; margin:0 4px;"/>
+
+        <!-- Label + Select Zone -->
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; font-weight:600; color:#64748b;
+                         text-transform:uppercase; letter-spacing:.6px; white-space:nowrap;">
+                Zone
+            </span>
+            <select class="form-select form-select-sm"
+                    style="width:200px; border-radius:8px;
+                           border:1.5px solid #e2e8f0;
+                           font-size:13px; color:#1e293b;
+                           background:#f8fafc;
+                           box-shadow:inset 0 1px 3px rgba(0,0,0,.04);"
+                    t-on-change="updateSelectedZone">
+                <option value="">🌍 Toutes les zones</option>
+                <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+                    <option t-att-value="zone.id"
+                            t-att-selected="state.selected_zone == zone.id"
+                            t-esc="zone.name"/>
+                </t>
+            </select>
+        </div>
+
+    </div>
+
+    <!-- Séparateur vertical -->
+    <div style="width:1px; height:36px; background:#e2e8f0; margin:0 4px;"/>
+
+    <!-- Boutons -->
+    <div style="display:flex; align-items:center; gap:8px;">
+
+        <!-- Appliquer -->
+        <button style="display:flex; align-items:center; gap:6px;
+                       padding:8px 18px; border-radius:9px; border:none;
+                       background:linear-gradient(135deg,#1565c0,#6a1b9a);
+                       color:#fff; font-size:13px; font-weight:600;
+                       box-shadow:0 3px 10px rgba(21,101,192,.4);
+                       cursor:pointer; transition:opacity .2s, transform .15s;"
+                t-on-click="appliquerFiltre"
+                t-att-disabled="state.loading"
+                onmouseenter="this.style.transform='translateY(-2px)'"
+                onmouseleave="this.style.transform=''">
+            <t t-if="state.loading">
+                <span style="font-size:14px;">⏳</span> Chargement…
+            </t>
+            <t t-else="">
+                <span style="font-size:14px;">🔍</span> Appliquer
+            </t>
+        </button>
+
+        <!-- Mois actuel -->
+        <button style="display:flex; align-items:center; gap:6px;
+                       padding:8px 16px; border-radius:9px;
+                       border:1.5px solid #e2e8f0;
+                       background:#f8fafc; color:#475569;
+                       font-size:13px; font-weight:600;
+                       cursor:pointer; transition:background .2s, transform .15s;
+                       box-shadow:0 2px 6px rgba(0,0,0,.05);"
+                t-on-click="reinitialiserMois"
+                t-att-disabled="state.loading"
+                onmouseenter="this.style.background='#e2e8f0';this.style.transform='translateY(-2px)'"
+                onmouseleave="this.style.background='#f8fafc';this.style.transform=''">
+            <span style="font-size:14px;">🔄</span> Mois actuel
+        </button>
+    </div>
+
+    <!-- Badge période -->
+    <t t-if="labelPeriode">
+        <div style="margin-left:auto; display:flex; align-items:center; gap:6px;
+                    background:linear-gradient(135deg,#eff6ff,#f5f3ff);
+                    border:1px solid #c7d2fe; border-radius:10px;
+                    padding:6px 14px;">
+            <span style="font-size:13px;">📌</span>
+            <span style="font-size:12px; font-weight:600; color:#4338ca;">
+                <t t-esc="labelPeriode"/>
+            </span>
+        </div>
+    </t>
+
+</div>            <!-- ═══════════════════════════════════════════
+                 LIGNE 1 — 4 cartes
             ═══════════════════════════════════════════ -->
-            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
-
-                <!-- ══════ LIGNE 1 ══════ -->
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:16px;">
 
                 <!-- 1. Réservations confirmées -->
-                <div t-attf-style="border-radius:18px; border:none; cursor:pointer; color:#fff;
-                            background: {{ !deltaReservations ? 'linear-gradient(135deg,#1565c0,#1e88e5)' : deltaReservations.positive ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#dc2626,#ef4444)' }};
-                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+                <div style="border-radius:18px; border:none; cursor:pointer;
+                            color:#1a3a5c;
+                            background:linear-gradient(135deg,#dbeafe,#bfdbfe);
+                            box-shadow:0 6px 20px rgba(0,0,0,.1);
                             transition:transform .18s, box-shadow .18s;"
                      t-on-click="ouvrirReservations"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
-                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
-                        <div style="font-size:52px; opacity:.95; line-height:1;">📋</div>
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.2)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.1)'">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 18px;">
+                        <div style="font-size:42px; opacity:.95; line-height:1;">📋</div>
                         <div style="text-align:right;">
-                            <div style="font-size:38px; font-weight:900; letter-spacing:-1px; line-height:1;">
+                            <div style="font-size:32px; font-weight:900; letter-spacing:-1px; line-height:1;">
                                 <t t-esc="state.reservations_confirmer"/>
                             </div>
-                            <div style="font-size:13px; font-weight:600; opacity:.9; margin-top:4px;">
+                            <div style="font-size:12px; font-weight:600; opacity:.8; margin-top:4px;">
                                 Réservations Confirmées
                             </div>
-                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                            <div style="font-size:10px; opacity:.55; margin-top:2px;">
                                 <t t-esc="labelPeriode"/>
                             </div>
                             <t t-if="deltaReservations">
-                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
-                                            border-radius:20px; font-size:13px; font-weight:800;
-                                            background:rgba(255,255,255,.85); color:#111;">
-                                    <t t-if="deltaReservations.positive">
-                                        ▲ +<t t-esc="deltaReservations.val"/>
-                                    </t>
-                                    <t t-else="">
-                                        ▼ <t t-esc="deltaReservations.val"/>
-                                    </t>
+                                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;
+                                                   border-radius:20px; font-size:12px; font-weight:800;
+                                                   background:{{ deltaReservations.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
+                                    <t t-if="deltaReservations.positive">▲ +<t t-esc="deltaReservations.val"/></t>
+                                    <t t-else="">▼ <t t-esc="deltaReservations.val"/></t>
                                 </div>
                             </t>
                         </div>
@@ -115,29 +201,30 @@
                 </div>
 
                 <!-- 2. Chiffre d'affaires -->
-                <div t-attf-style="border-radius:18px; border:none; cursor:pointer; color:#fff;
-                            background: {{ !deltaCa ? 'linear-gradient(135deg,#16a34a,#22c55e)' : deltaCa.positive ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#dc2626,#ef4444)' }};
-                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+                <div style="border-radius:18px; border:none; cursor:pointer;
+                            color:#14532d;
+                            background:linear-gradient(135deg,#dcfce7,#bbf7d0);
+                            box-shadow:0 6px 20px rgba(0,0,0,.1);
                             transition:transform .18s, box-shadow .18s;"
                      t-on-click="ouvrirChiffreAffaire"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
-                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
-                        <div style="font-size:52px; opacity:.95; line-height:1;">💶</div>
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.2)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.1)'">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 18px;">
+                        <div style="font-size:42px; opacity:.95; line-height:1;">💶</div>
                         <div style="text-align:right;">
-                            <div style="font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1;">
+                            <div style="font-size:26px; font-weight:900; letter-spacing:-1px; line-height:1;">
                                 <t t-esc="Math.round(state.total_ca_da)"/> DA
                             </div>
-                            <div style="font-size:13px; font-weight:600; opacity:.9; margin-top:4px;">
+                            <div style="font-size:12px; font-weight:600; opacity:.8; margin-top:4px;">
                                 Chiffre d'affaires
                             </div>
-                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                            <div style="font-size:10px; opacity:.55; margin-top:2px;">
                                 <t t-esc="labelPeriode"/>
                             </div>
                             <t t-if="deltaCa">
-                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
-                                            border-radius:20px; font-size:13px; font-weight:800;
-                                            background:rgba(255,255,255,.85); color:#111;">
+                                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;
+                                                   border-radius:20px; font-size:12px; font-weight:800;
+                                                   background:{{ deltaCa.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
                                     <t t-if="deltaCa.positive">▲ +<t t-esc="deltaCa.val"/> DA</t>
                                     <t t-else="">▼ <t t-esc="deltaCa.val"/> DA</t>
                                 </div>
@@ -147,28 +234,29 @@
                 </div>
 
                 <!-- 3. Trésorerie -->
-                <div t-attf-style="border-radius:18px; border:none; color:#fff;
-                            background: {{ !deltaTresorerie ? 'linear-gradient(135deg,#880e4f,#ad1457)' : deltaTresorerie.positive ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#dc2626,#ef4444)' }};
-                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+                <div style="border-radius:18px; border:none;
+                            color:#6b0f3a;
+                            background:linear-gradient(135deg,#fce7f3,#fbcfe8);
+                            box-shadow:0 6px 20px rgba(0,0,0,.1);
                             transition:transform .18s, box-shadow .18s;"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
-                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
-                        <div style="font-size:52px; opacity:.95; line-height:1;">💰</div>
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.2)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.1)'">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 18px;">
+                        <div style="font-size:42px; opacity:.95; line-height:1;">💰</div>
                         <div style="text-align:right;">
-                            <div style="font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1;">
+                            <div style="font-size:26px; font-weight:900; letter-spacing:-1px; line-height:1;">
                                 <t t-esc="Math.round(state.total_tresorerie_da)"/> DA
                             </div>
-                            <div style="font-size:13px; font-weight:600; opacity:.9; margin-top:4px;">
+                            <div style="font-size:12px; font-weight:600; opacity:.8; margin-top:4px;">
                                 Trésorerie
                             </div>
-                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                            <div style="font-size:10px; opacity:.55; margin-top:2px;">
                                 <t t-esc="labelPeriode"/>
                             </div>
                             <t t-if="deltaTresorerie">
-                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
-                                            border-radius:20px; font-size:13px; font-weight:800;
-                                            background:rgba(255,255,255,.85); color:#111;">
+                                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;
+                                                   border-radius:20px; font-size:12px; font-weight:800;
+                                                   background:{{ deltaTresorerie.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
                                     <t t-if="deltaTresorerie.positive">▲ +<t t-esc="deltaTresorerie.val"/> DA</t>
                                     <t t-else="">▼ <t t-esc="deltaTresorerie.val"/> DA</t>
                                 </div>
@@ -177,32 +265,31 @@
                     </div>
                 </div>
 
-                <!-- ══════ LIGNE 2 ══════ -->
-
                 <!-- 4. Panier Moyen -->
-                <div t-attf-style="border-radius:18px; border:none; cursor:pointer; color:#fff;
-                            background: {{ !deltaPanier ? 'linear-gradient(135deg,#e65100,#fb8c00)' : deltaPanier.positive ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#dc2626,#ef4444)' }};
-                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+                <div style="border-radius:18px; border:none; cursor:pointer;
+                            color:#7c2d00;
+                            background:linear-gradient(135deg,#ffedd5,#fed7aa);
+                            box-shadow:0 6px 20px rgba(0,0,0,.1);
                             transition:transform .18s, box-shadow .18s;"
                      t-on-click="ouvrirChiffreAffaire"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
-                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
-                        <div style="font-size:52px; opacity:.95; line-height:1;">🛒</div>
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.2)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.1)'">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 18px;">
+                        <div style="font-size:42px; opacity:.95; line-height:1;">🛒</div>
                         <div style="text-align:right;">
-                            <div style="font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1;">
+                            <div style="font-size:26px; font-weight:900; letter-spacing:-1px; line-height:1;">
                                 <t t-esc="Math.round(state.panier_moyen_da)"/> DA
                             </div>
-                            <div style="font-size:13px; font-weight:600; opacity:.9; margin-top:4px;">
+                            <div style="font-size:12px; font-weight:600; opacity:.8; margin-top:4px;">
                                 Panier Moyen
                             </div>
-                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                            <div style="font-size:10px; opacity:.55; margin-top:2px;">
                                 <t t-esc="labelPeriode"/>
                             </div>
                             <t t-if="deltaPanier">
-                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
-                                            border-radius:20px; font-size:13px; font-weight:800;
-                                            background:rgba(255,255,255,.85); color:#111;">
+                                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;
+                                                   border-radius:20px; font-size:12px; font-weight:800;
+                                                   background:{{ deltaPanier.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
                                     <t t-if="deltaPanier.positive">▲ +<t t-esc="deltaPanier.val"/> DA</t>
                                     <t t-else="">▼ <t t-esc="deltaPanier.val"/> DA</t>
                                 </div>
@@ -211,30 +298,38 @@
                     </div>
                 </div>
 
-                <!-- 5. Dépenses  (logique inversée : baisse = vert, hausse = rouge) -->
-                <div t-attf-style="border-radius:18px; border:none; cursor:pointer; color:#fff;
-                            background: {{ !deltaDepense ? 'linear-gradient(135deg,#b71c1c,#ef5350)' : deltaDepense.positive ? 'linear-gradient(135deg,#dc2626,#ef4444)' : 'linear-gradient(135deg,#16a34a,#22c55e)' }};
-                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+            </div><!-- fin ligne 1 -->
+
+            <!-- ═══════════════════════════════════════════
+                 LIGNE 2 — 3 cartes
+            ═══════════════════════════════════════════ -->
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+
+                <!-- 5. Dépenses (logique inversée) -->
+                <div style="border-radius:18px; border:none; cursor:pointer;
+                            color:#7f1d1d;
+                            background:linear-gradient(135deg,#fee2e2,#fecaca);
+                            box-shadow:0 6px 20px rgba(0,0,0,.1);
                             transition:transform .18s, box-shadow .18s;"
                      t-on-click="ouvrirDepenses"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.2)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.1)'">
                     <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
                         <div style="font-size:52px; opacity:.95; line-height:1;">💸</div>
                         <div style="text-align:right;">
                             <div style="font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1;">
                                 <t t-esc="Math.round(state.total_depense_da)"/> DA
                             </div>
-                            <div style="font-size:13px; font-weight:600; opacity:.9; margin-top:4px;">
+                            <div style="font-size:13px; font-weight:600; opacity:.8; margin-top:4px;">
                                 Dépenses
                             </div>
-                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                            <div style="font-size:11px; opacity:.55; margin-top:2px;">
                                 <t t-esc="labelPeriode"/>
                             </div>
                             <t t-if="deltaDepense">
-                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
-                                            border-radius:20px; font-size:13px; font-weight:800;
-                                            background:rgba(255,255,255,.85); color:#111;">
+                                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 12px;
+                                                   border-radius:20px; font-size:13px; font-weight:800;
+                                                   background:{{ deltaDepense.positive ? '#dc2626' : '#16a34a' }}; color:#fff;">
                                     <t t-if="deltaDepense.positive">▲ +<t t-esc="deltaDepense.val"/> DA</t>
                                     <t t-else="">▼ <t t-esc="deltaDepense.val"/> DA</t>
                                 </div>
@@ -244,28 +339,29 @@
                 </div>
 
                 <!-- 6. Balance -->
-                <div t-attf-style="border-radius:18px; border:none; color:#fff;
-                            background: {{ !deltaBalance ? 'linear-gradient(135deg,#3949ab,#7986cb)' : deltaBalance.positive ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#dc2626,#ef4444)' }};
-                            box-shadow:0 6px 20px rgba(0,0,0,.3);
+                <div style="border-radius:18px; border:none;
+                            color:#1e1b4b;
+                            background:linear-gradient(135deg,#e0e7ff,#c7d2fe);
+                            box-shadow:0 6px 20px rgba(0,0,0,.1);
                             transition:transform .18s, box-shadow .18s;"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.2)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.1)'">
                     <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
                         <div style="font-size:52px; opacity:.95; line-height:1;">⚖️</div>
                         <div style="text-align:right;">
                             <div style="font-size:30px; font-weight:900; letter-spacing:-1px; line-height:1;">
                                 <t t-esc="Math.round(balance)"/> DA
                             </div>
-                            <div style="font-size:13px; font-weight:600; opacity:.9; margin-top:4px;">
+                            <div style="font-size:13px; font-weight:600; opacity:.8; margin-top:4px;">
                                 Balance
                             </div>
-                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                            <div style="font-size:11px; opacity:.55; margin-top:2px;">
                                 <t t-esc="labelPeriode"/>
                             </div>
                             <t t-if="deltaBalance">
-                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
-                                            border-radius:20px; font-size:13px; font-weight:800;
-                                            background:rgba(255,255,255,.85); color:#111;">
+                                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 12px;
+                                                   border-radius:20px; font-size:13px; font-weight:800;
+                                                   background:{{ deltaBalance.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
                                     <t t-if="deltaBalance.positive">▲ +<t t-esc="deltaBalance.val"/> DA</t>
                                     <t t-else="">▼ <t t-esc="deltaBalance.val"/> DA</t>
                                 </div>
@@ -274,37 +370,35 @@
                     </div>
                 </div>
 
-                <!-- ══════ LIGNE 3 ══════ -->
-
                 <!-- 7. Taux de remplissage -->
-                <div t-attf-style="border-radius:18px; border:none; color:#fff;
-                            background: {{ !deltaTaux ? 'linear-gradient(135deg,#00838f,#00acc1)' : deltaTaux.positive ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#dc2626,#ef4444)' }};
-                            box-shadow:0 6px 20px rgba(0,0,0,.3);
-                            transition:transform .18s, box-shadow .18s;
-                            grid-column: 1 / 2;"
-                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.45)'"
-                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.3)'">
+                <div style="border-radius:18px; border:none;
+                            color:#164e4e;
+                            background:linear-gradient(135deg,#cffafe,#a5f3fc);
+                            box-shadow:0 6px 20px rgba(0,0,0,.1);
+                            transition:transform .18s, box-shadow .18s;"
+                     onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 10px 28px rgba(0,0,0,.2)'"
+                     onmouseleave="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(0,0,0,.1)'">
                     <div style="display:flex; align-items:center; justify-content:space-between; padding:20px 24px;">
                         <div style="font-size:52px; opacity:.95; line-height:1;">📊</div>
                         <div style="text-align:right; flex:1; margin-left:16px;">
                             <div style="font-size:34px; font-weight:900; letter-spacing:-1px; line-height:1;">
                                 <t t-esc="state.taux_remplissage"/> %
                             </div>
-                            <div style="background:rgba(255,255,255,.2); border-radius:10px;
+                            <div style="background:rgba(0,0,0,.1); border-radius:10px;
                                         height:6px; margin:8px 0; overflow:hidden;">
                                 <div t-attf-style="width:{{state.taux_remplissage}}%; height:100%;
-                                                   background:#fff; border-radius:10px; transition:width .6s;"/>
+                                                   background:#0e7490; border-radius:10px; transition:width .6s;"/>
                             </div>
-                            <div style="font-size:13px; font-weight:600; opacity:.9;">
+                            <div style="font-size:13px; font-weight:600; opacity:.8;">
                                 Taux de remplissage
                             </div>
-                            <div style="font-size:11px; opacity:.65; margin-top:2px;">
+                            <div style="font-size:11px; opacity:.55; margin-top:2px;">
                                 <t t-esc="labelPeriode"/>
                             </div>
                             <t t-if="deltaTaux">
-                                <div style="margin-top:8px; display:inline-block; padding:3px 12px;
-                                            border-radius:20px; font-size:13px; font-weight:800;
-                                            background:rgba(255,255,255,.85); color:#111;">
+                                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 12px;
+                                                   border-radius:20px; font-size:13px; font-weight:800;
+                                                   background:{{ deltaTaux.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
                                     <t t-if="deltaTaux.positive">▲ +<t t-esc="deltaTaux.val"/> %</t>
                                     <t t-else="">▼ <t t-esc="deltaTaux.val"/> %</t>
                                 </div>
@@ -313,7 +407,8 @@
                     </div>
                 </div>
 
-            </div><!-- fin grille -->
+            </div><!-- fin ligne 2 -->
+
         </div>
     </t>
 </templates>
