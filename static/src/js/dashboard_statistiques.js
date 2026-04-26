@@ -91,7 +91,6 @@ export class DashboardStatistiques extends Component {
         const debut = this._parseDebut(dateDebutStr);
         const fin   = this._parseFin(dateFinStr);
 
-        // On garde mois et jour, on recule l'année de 1
         const prevDebut = new Date(debut.getFullYear()-1, debut.getMonth(), debut.getDate(),  0,  0,  0);
         const prevFin   = new Date(fin.getFullYear()-1,   fin.getMonth(),   fin.getDate(),   23, 59, 59);
 
@@ -146,110 +145,108 @@ export class DashboardStatistiques extends Component {
 
     // ─────────────────────────────────────────
     //  Chargement des données pour UNE période
+    //  ✅ searchRead + reduce pour CA et tréso
+    //     (évite le bug readGroup sur computed fields)
     // ─────────────────────────────────────────
 
     async _fetchPeriod(debutStr, finStr) {
-    const debut = this._parseDebut(debutStr);
-    const fin   = this._parseFin(finStr);
+        const debut = this._parseDebut(debutStr);
+        const fin   = this._parseFin(finStr);
 
-    const [resResult, depResult, tauxResult, vehiculesResult, resDatesList] =
-        await Promise.all([
+        const [detailRes, depResult, tauxResult, vehiculesResult, resDatesList] =
+            await Promise.all([
 
-            this.orm.readGroup("reservation",
-                this._buildDomain(debutStr, finStr),
-                ["total_reduit_euro:sum", "montant_paye:sum"], []
-            ),
+                // ✅ searchRead à la place du readGroup
+                //    → somme manuelle fiable sur les computed fields
+                this.orm.searchRead("reservation",
+                    this._buildDomain(debutStr, finStr),
+                    ["name", "total_reduit_euro", "montant_paye", "status", "create_date"]
+                ),
 
-            this.orm.readGroup("depense.record",
-                this._buildDomainDepense(debutStr, finStr),
-                ["montant_da:sum"], []
-            ),
+                this.orm.readGroup("depense.record",
+                    this._buildDomainDepense(debutStr, finStr),
+                    ["montant_da:sum"], []
+                ),
 
-            this.orm.searchRead("taux.change",
-                [["id", "=", 2]], ["montant"], { limit: 1 }
-            ),
+                this.orm.searchRead("taux.change",
+                    [["id", "=", 2]], ["montant"], { limit: 1 }
+                ),
 
-            this.orm.searchRead("vehicule",
-                this.state.selected_zone
-                    ? [["zone", "=", parseInt(this.state.selected_zone)], ["active_test", "=", true]]
-                    : [["active_test", "=", true]],
-                ["id"]
-            ),
+                this.orm.searchRead("vehicule",
+                    this.state.selected_zone
+                        ? [["zone", "=", parseInt(this.state.selected_zone)], ["active_test", "=", true]]
+                        : [["active_test", "=", true]],
+                    ["id"]
+                ),
 
-            this.orm.searchRead("reservation",
-                this._buildDomainDates(debutStr, finStr),
-                ["date_heure_debut", "date_heure_fin"]
-            ),
-        ]);
+                this.orm.searchRead("reservation",
+                    this._buildDomainDates(debutStr, finStr),
+                    ["date_heure_debut", "date_heure_fin"]
+                ),
+            ]);
 
-    // ── Detail réservations sommées ──
-    const detailRes = await this.orm.searchRead("reservation",
-        this._buildDomain(debutStr, finStr),
-        ["name", "total_reduit_euro", "montant_paye", "status", "create_date"],
-    );
+        // ✅ Calcul manuel depuis le détail
+        const count    = detailRes.length;
+        const caEuro   = detailRes.reduce((s, r) => s + (r.total_reduit_euro || 0), 0);
+        const payeEuro = detailRes.reduce((s, r) => s + (r.montant_paye      || 0), 0);
+        const taux     = tauxResult[0]?.montant ?? 1;
 
-    const rowRes   = resResult[0] ?? {};
-    const count    = rowRes.__count           ?? 0;
-    const caEuro   = rowRes.total_reduit_euro ?? 0;
-    const payeEuro = rowRes.montant_paye      ?? 0;
-    const taux     = tauxResult[0]?.montant   ?? 1;
+        // ── DEBUG ──
+        console.log("======= DEBUG _fetchPeriod =======");
+        console.log("📅 Période           :", debutStr, "→", finStr);
+        console.log("🔄 Taux change       :", taux);
+        console.log("📋 Nb réservations   :", count);
+        console.log(" ");
+        console.log("📋 DETAIL RESERVATIONS :");
+        console.table(detailRes.map((r, index) => ({
+            "N°"          : index + 1,
+            Nom           : r.name,
+            CA_Euro       : r.total_reduit_euro,
+            Payé_Euro     : r.montant_paye,
+            Status        : r.status,
+            Date_création : r.create_date,
+        })));
+        console.log("💶 TOTAL CA EURO     :", caEuro);
+        console.log("💰 TOTAL PAYÉ EURO   :", payeEuro);
+        console.log("💵 CA DA calculé     :", caEuro   * taux);
+        console.log("💵 Tréso DA calculé  :", payeEuro * taux);
+        console.log(" ");
+        console.log("💸 Dépenses DA       :", (depResult[0] ?? {}).montant_da ?? 0);
+        console.log("🚗 Nb véhicules      :", vehiculesResult.length);
+        console.log("📆 Nb jours période  :", this._nbJours(debut, fin));
+        console.log("==================================");
+        // ──────────
 
-    // ======= DEBUG =======
-    console.log("======= DEBUG _fetchPeriod =======");
-    console.log("📅 Période           :", debutStr, "→", finStr);
-    console.log("🔄 Taux change       :", taux);
-    console.log("📋 Nb réservations   :", count);
-    console.log(" ");
-    console.log("📋 DETAIL RESERVATIONS SOMMÉES :");
-    console.table(detailRes.map((r, index) => ({
-        "N°"          : index + 1,
-        Nom           : r.name,
-        CA_Euro       : r.total_reduit_euro,
-        Payé_Euro     : r.montant_paye,
-        Status        : r.status,
-        Date_création : r.create_date,
-    })));
-    console.log("💶 TOTAL CA EURO     :", detailRes.reduce((s, r) => s + (r.total_reduit_euro || 0), 0));
-    console.log("💰 TOTAL PAYÉ EURO   :", detailRes.reduce((s, r) => s + (r.montant_paye      || 0), 0));
-    console.log("💵 CA DA calculé     :", caEuro   * taux);
-    console.log("💵 Tréso DA calculé  :", payeEuro * taux);
-    console.log(" ");
-    console.log("💸 Dépenses DA       :", (depResult[0] ?? {}).montant_da ?? 0);
-    console.log("🚗 Nb véhicules      :", vehiculesResult.length);
-    console.log("📆 Nb jours période  :", this._nbJours(debut, fin));
-    console.log("==================================");
-    // =====================
+        const ca_da         = caEuro   * taux;
+        const tresorerie_da = payeEuro * taux;
+        const panier_da     = count > 0 ? (caEuro / count) * taux : 0;
+        const depense_da    = (depResult[0] ?? {}).montant_da ?? 0;
 
-    const ca_da         = caEuro   * taux;
-    const tresorerie_da = payeEuro * taux;
-    const panier_da     = count > 0 ? (caEuro / count) * taux : 0;
-    const depense_da    = (depResult[0] ?? {}).montant_da ?? 0;
+        // ── Taux de remplissage ──
+        const nbJoursPeriode = this._nbJours(debut, fin);
+        const nbVehicules    = vehiculesResult.length;
+        let taux_remplissage = 0;
 
-    // Taux de remplissage
-    const nbJoursPeriode = this._nbJours(debut, fin);
-    const nbVehicules    = vehiculesResult.length;
-    let taux_remplissage = 0;
+        if (nbVehicules > 0 && nbJoursPeriode > 0) {
+            let totalJoursReserves = 0;
+            for (const r of resDatesList) {
+                const deb = new Date(r.date_heure_debut);
+                const fn  = new Date(r.date_heure_fin);
+                const startIntersect = deb < debut ? debut : deb;
+                const endIntersect   = fn  > fin   ? fin   : fn;
+                const jours = Math.ceil((endIntersect - startIntersect) / (1000*60*60*24));
+                if (jours > 0) totalJoursReserves += jours;
+            }
+            const tauxCalc = (totalJoursReserves / (nbVehicules * nbJoursPeriode)) * 100;
+            taux_remplissage = Math.min(100, Math.round(tauxCalc));
 
-    if (nbVehicules > 0 && nbJoursPeriode > 0) {
-        let totalJoursReserves = 0;
-        for (const r of resDatesList) {
-            const deb = new Date(r.date_heure_debut);
-            const fn  = new Date(r.date_heure_fin);
-            const startIntersect = deb < debut ? debut : deb;
-            const endIntersect   = fn  > fin   ? fin   : fn;
-            const jours = Math.ceil((endIntersect - startIntersect) / (1000*60*60*24));
-            if (jours > 0) totalJoursReserves += jours;
+            console.log("📊 Total jours réservés :", totalJoursReserves);
+            console.log("📊 Total jours dispo    :", nbVehicules * nbJoursPeriode);
+            console.log("📊 Taux remplissage     :", taux_remplissage, "%");
         }
-        const tauxCalc = (totalJoursReserves / (nbVehicules * nbJoursPeriode)) * 100;
-        taux_remplissage = Math.min(100, Math.round(tauxCalc));
 
-        console.log("📊 Total jours réservés :", totalJoursReserves);
-        console.log("📊 Total jours dispo    :", nbVehicules * nbJoursPeriode);
-        console.log("📊 Taux remplissage     :", taux_remplissage, "%");
+        return { count, ca_da, tresorerie_da, panier_da, depense_da, taux_remplissage };
     }
-
-    return { count, ca_da, tresorerie_da, panier_da, depense_da, taux_remplissage };
-}
 
     // ─────────────────────────────────────────
     //  loadData : charge N et N-1 en parallèle
@@ -325,11 +322,6 @@ export class DashboardStatistiques extends Component {
     //  Helpers delta (pour le template)
     // ─────────────────────────────────────────
 
-    /**
-     * Retourne { val, positive } ou null si pas de données N-1
-     * val : valeur arrondie (avec signe)
-     * positive : true si hausse, false si baisse
-     */
     _delta(current, prev) {
         if (prev === null || prev === undefined) return null;
         const d = Math.round(current - prev);
@@ -350,28 +342,31 @@ export class DashboardStatistiques extends Component {
 
     ouvrirReservations() {
         this.action.doAction({
-            type: "ir.actions.act_window",
-            name: `Réservations Confirmées — ${this.labelPeriode}`,
-            res_model: "reservation", view_mode: "list,form",
-            domain: this._buildDomain(this.state.date_debut, this.state.date_fin),
+            type      : "ir.actions.act_window",
+            name      : `Réservations Confirmées — ${this.labelPeriode}`,
+            res_model : "reservation",
+            view_mode : "list,form",
+            domain    : this._buildDomain(this.state.date_debut, this.state.date_fin),
         });
     }
 
     ouvrirChiffreAffaire() {
         this.action.doAction({
-            type: "ir.actions.act_window",
-            name: `Chiffre d'affaires — ${this.labelPeriode}`,
-            res_model: "reservation", view_mode: "list,form",
-            domain: this._buildDomain(this.state.date_debut, this.state.date_fin),
+            type      : "ir.actions.act_window",
+            name      : `Chiffre d'affaires — ${this.labelPeriode}`,
+            res_model : "reservation",
+            view_mode : "list,form",
+            domain    : this._buildDomain(this.state.date_debut, this.state.date_fin),
         });
     }
 
     ouvrirDepenses() {
         this.action.doAction({
-            type: "ir.actions.act_window",
-            name: `Dépenses Validées — ${this.labelPeriode}`,
-            res_model: "depense.record", view_mode: "list,form",
-            domain: this._buildDomainDepense(this.state.date_debut, this.state.date_fin),
+            type      : "ir.actions.act_window",
+            name      : `Dépenses Validées — ${this.labelPeriode}`,
+            res_model : "depense.record",
+            view_mode : "list,form",
+            domain    : this._buildDomainDepense(this.state.date_debut, this.state.date_fin),
         });
     }
 }
