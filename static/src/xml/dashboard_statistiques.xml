@@ -262,7 +262,7 @@
         <div class="dash-card-body-sm">
             <div class="dash-card-titre">Chiffre d'affaires</div>
             <div class="dash-card-valeur">
-                <t t-esc="fmt(state.total_ca_da)"/> DA
+                <t t-esc="caFormatted"/> DA
             </div>
             <t t-if="deltaCa">
                 <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;

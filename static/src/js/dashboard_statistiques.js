@@ -350,6 +350,12 @@ export class DashboardStatistiques extends Component {
             domain: this._buildDomainDepense(this.state.date_debut, this.state.date_fin),
         });
     }
+
+    get caFormatted()          { return Math.round(this.state.total_ca_da).toLocaleString("fr-FR"); }
+    get tresorerieFormatted()  { return Math.round(this.state.total_tresorerie_da).toLocaleString("fr-FR"); }
+    get panierFormatted()      { return Math.round(this.state.panier_moyen_da).toLocaleString("fr-FR"); }
+    get depenseFormatted()     { return Math.round(this.state.total_depense_da).toLocaleString("fr-FR"); }
+    get balanceFormatted()     { return Math.round(this.balance).toLocaleString("fr-FR"); }
 }
 
 DashboardStatistiques.template = "dashboard_analytics.DashboardStatistiques";
