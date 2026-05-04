@@ -351,7 +351,7 @@ export class DashboardStatistiques extends Component {
         });
     }
 
-    get caFormatted()          { return Math.round(this.state.total_ca_da).toLocaleString("fr-FR"); }
+    get caFormatted()          { return Math.round(this.state.total_ca_da).toLocaleString("en-US"); }
     get tresorerieFormatted()  { return Math.round(this.state.total_tresorerie_da).toLocaleString("fr-FR"); }
     get panierFormatted()      { return Math.round(this.state.panier_moyen_da).toLocaleString("fr-FR"); }
     get depenseFormatted()     { return Math.round(this.state.total_depense_da).toLocaleString("fr-FR"); }
