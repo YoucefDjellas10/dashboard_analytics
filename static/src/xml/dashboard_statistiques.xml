@@ -281,7 +281,7 @@
         <div class="dash-card-body-sm">
             <div class="dash-card-titre">Trésorerie</div>
             <div class="dash-card-valeur">
-                <t t-esc="fmt(state.total_tresorerie_da)"/> DA
+                <t t-esc="tresorerieFormatted"/> DA
             </div>
             <t t-if="deltaTresorerie">
                 <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;
@@ -301,7 +301,7 @@
         <div class="dash-card-body-sm">
             <div class="dash-card-titre">Panier Moyen</div>
             <div class="dash-card-valeur">
-                <t t-esc="fmt(state.panier_moyen_da)"/> DA
+                <t t-esc="panierFormatted"/> DA
             </div>
             <t t-if="deltaPanier">
                 <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;
@@ -326,7 +326,7 @@
         <div class="dash-card-body-lg">
             <div class="dash-card-titre">Dépenses</div>
             <div class="dash-card-valeur">
-                <t t-esc="fmt(state.total_depense_da)"/> DA
+                <t t-esc="depenseFormatted"/> DA
             </div>
             <t t-if="deltaDepense">
                 <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 12px;
@@ -345,7 +345,7 @@
         <div class="dash-card-body-lg">
             <div class="dash-card-titre">Balance</div>
             <div class="dash-card-valeur">
-                <t t-esc="fmt(balance)"/> DA
+                <t t-esc="balanceFormatted"/> DA
             </div>
             <t t-if="deltaBalance">
                 <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 12px;
