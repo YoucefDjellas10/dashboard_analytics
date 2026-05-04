@@ -295,18 +295,26 @@ export class DashboardStatistiques extends Component {
      * positive : true si hausse, false si baisse
      */
     _delta(current, prev) {
-        if (prev === null || prev === undefined) return null;
-        const d = Math.round(current - prev);
-        return { val: d, positive: d >= 0 };
+    if (prev === null || prev === undefined) return null;
+    if (prev === 0 && current === 0) return null;
+
+    let pct;
+    if (prev === 0) {
+        pct = 100;
+    } else {
+        pct = Math.round(((current - prev) / prev) * 100);
     }
+
+    if (pct === 0) return null;
+    return { val: Math.abs(pct), positive: pct >= 0 };
+}
 
     get deltaReservations()  { return this._delta(this.state.reservations_confirmer, this.state.prev_reservations); }
     get deltaCa()            { return this._delta(this.state.total_ca_da,            this.state.prev_ca_da); }
     get deltaTresorerie()    { return this._delta(this.state.total_tresorerie_da,    this.state.prev_tresorerie_da); }
     get deltaPanier()        { return this._delta(this.state.panier_moyen_da,        this.state.prev_panier_moyen_da); }
     get deltaDepense()       { return this._delta(this.state.total_depense_da,       this.state.prev_depense_da); }
-    get deltaTaux()          { return this._delta(this.state.taux_remplissage,       this.state.prev_taux_remplissage); }
-    get deltaBalance()       { return this._delta(this.balance,                      this.prevBalance); }
+    get deltaTaux() { return null; }    get deltaBalance()       { return this._delta(this.balance,                      this.prevBalance); }
 
     // ─────────────────────────────────────────
     //  Actions
@@ -329,6 +337,10 @@ export class DashboardStatistiques extends Component {
             domain: this._buildDomain(this.state.date_debut, this.state.date_fin),
         });
     }
+    fmt(n) {
+    return Math.round(n).toLocaleString("fr-FR");
+    }
+
 
     ouvrirDepenses() {
         this.action.doAction({
