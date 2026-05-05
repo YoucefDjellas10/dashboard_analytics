@@ -152,12 +152,29 @@ export class DashboardStatistiques extends Component {
         const debut = this._parseDebut(debutStr);
         const fin   = this._parseFin(finStr);
 
-        const [resResult, depResult, tauxResult, vehiculesResult, resDatesList] =
+        const revenueDomain = [
+            '|',
+            '&', ['create_date', '>=', this._formatORM(debut)],
+                 ['create_date', '<=', this._formatORM(fin)],
+            '&', ['create_date', '=', false],
+            '&', ['reservation.create_date', '>=', this._formatORM(debut)],
+                 ['reservation.create_date', '<=', this._formatORM(fin)],
+        ];
+        if (this.state.selected_zone)
+            revenueDomain.push(['zone', '=', parseInt(this.state.selected_zone)]);
+
+        const refundDomain = [
+            ['date', '>=', this._formatORM(debut)],
+            ['date', '<=', this._formatORM(fin)],
+            ['status', '=', 'effectuer'],
+        ];
+
+        const [resResult, depResult, tauxResult, vehiculesResult, resDatesList, revenueResult, refundResult] =
             await Promise.all([
 
                 this.orm.readGroup("reservation",
                     this._buildDomain(debutStr, finStr),
-                    ["total_reduit_euro:sum", "montant_paye:sum"], []
+                    ["total_reduit_euro:sum"], []
                 ),
 
                 this.orm.readGroup("depense.record",
@@ -180,16 +197,30 @@ export class DashboardStatistiques extends Component {
                     this._buildDomainDates(debutStr, finStr),
                     ["date_heure_debut", "date_heure_fin"]
                 ),
+
+                this.orm.readGroup("revenue.record",
+                    revenueDomain,
+                    ["montant_dzd:sum", "montant:sum"], []
+                ),
+
+                this.orm.readGroup("refund.table",
+                    refundDomain,
+                    ["amount:sum"], []
+                ),
             ]);
 
         const rowRes   = resResult[0] ?? {};
         const count    = rowRes.__count           ?? 0;
         const caEuro   = rowRes.total_reduit_euro ?? 0;
-        const payeEuro = rowRes.montant_paye      ?? 0;
         const taux     = tauxResult[0]?.montant   ?? 1;
 
-        const ca_da         = caEuro   * taux;
-        const tresorerie_da = payeEuro * taux;
+        const ca_da         = caEuro * taux;
+        const revRow        = revenueResult[0] ?? {};
+        const sum_dzd       = revRow.montant_dzd ?? 0;
+        const sum_eur       = revRow.montant     ?? 0;
+        const refundRow     = refundResult[0]  ?? {};
+        const sum_refund    = refundRow.amount  ?? 0;
+        const tresorerie_da = (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
         const panier_da     = count > 0 ? (caEuro / count) * taux : 0;
         const depense_da    = (depResult[0] ?? {}).montant_da ?? 0;
 
@@ -351,11 +382,11 @@ export class DashboardStatistiques extends Component {
         });
     }
 
-    get caFormatted()          { return Math.round(this.state.total_ca_da).toLocaleString("en-US"); }
-    get tresorerieFormatted()  { return Math.round(this.state.total_tresorerie_da).toLocaleString("en-US"); }
-    get panierFormatted()      { return Math.round(this.state.panier_moyen_da).toLocaleString("en-US"); }
-    get depenseFormatted()     { return Math.round(this.state.total_depense_da).toLocaleString("en-US"); }
-    get balanceFormatted()     { return Math.round(this.balance).toLocaleString("en-US"); }
+    get caFormatted()          { return Math.round(this.state.total_ca_da).toLocaleString("fr-FR"); }
+    get tresorerieFormatted()  { return Math.round(this.state.total_tresorerie_da).toLocaleString("fr-FR"); }
+    get panierFormatted()      { return Math.round(this.state.panier_moyen_da).toLocaleString("fr-FR"); }
+    get depenseFormatted()     { return Math.round(this.state.total_depense_da).toLocaleString("fr-FR"); }
+    get balanceFormatted()     { return Math.round(this.balance).toLocaleString("fr-FR"); }
 }
 
 DashboardStatistiques.template = "dashboard_analytics.DashboardStatistiques";
