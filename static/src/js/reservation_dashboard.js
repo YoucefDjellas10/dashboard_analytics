@@ -14,9 +14,10 @@ export class ReservationDashboard extends Component {
             loading       : false,
             zones         : [],
             selected_zone : "",
-            rows          : [], // [{ mois, label, count_n1, count_n }]
+            rows          : [],
             annee_n       : new Date().getFullYear(),
             annee_n1      : new Date().getFullYear() - 1,
+            pie_data      : [], // [{ zone_name, count }]
         });
 
         onWillStart(() => this._loadZones().then(() => this.loadData()));
@@ -102,11 +103,12 @@ export class ReservationDashboard extends Component {
             this.state.rows = rows;
 
         } finally {
+            await this._loadPieData();
             this.state.loading = false;
-            // Render chart après mise à jour du DOM
             setTimeout(() => {
                 this._renderChart();
                 this._renderChartLine();
+                this._renderChartPie();
             }, 50);
         }
     }
@@ -306,7 +308,94 @@ _renderChart() {
         }
     }
 
-    get totalN1() { return this.state.rows.reduce((s, r) => s + r.count_n1, 0); }    get totalN()  { return this.state.rows.reduce((s, r) => s + r.count_n,  0); }
+    async _loadPieData() {
+        const n     = this.state.annee_n;
+        const debut = new Date(n, 0,  1,  0,  0,  0);
+        const fin   = new Date(n, 11, 31, 23, 59, 59);
+
+        const zones = await this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" });
+
+        const promises = zones.map(z =>
+            this.orm.readGroup("reservation", [
+                ["status",      "=",  "confirmee"],
+                ["create_date", ">=", this._formatORM(debut)],
+                ["create_date", "<=", this._formatORM(fin)],
+                ["zone",        "=",  z.id],
+            ], ["id:count"], [])
+        );
+
+        const results = await Promise.all(promises);
+
+        this.state.pie_data = zones.map((z, i) => ({
+            zone_name : z.name,
+            count     : results[i][0]?.__count ?? 0,
+        })).filter(r => r.count > 0);
+    }
+
+    _renderChartPie() {
+        const canvas = document.getElementById("rd-chart-pie");
+        if (!canvas) return;
+
+        if (this._chartPie) {
+            this._chartPie.destroy();
+            this._chartPie = null;
+        }
+
+        const labels = this.state.pie_data.map(r => r.zone_name);
+        const data   = this.state.pie_data.map(r => r.count);
+
+        const COLORS = [
+            "rgba(21,101,192,0.85)",
+            "rgba(106,27,154,0.85)",
+            "rgba(22,163,74,0.85)",
+            "rgba(220,38,38,0.85)",
+            "rgba(234,179,8,0.85)",
+            "rgba(14,116,144,0.85)",
+            "rgba(249,115,22,0.85)",
+            "rgba(99,102,241,0.85)",
+        ];
+
+        const draw = () => {
+            this._chartPie = new Chart(canvas, {
+                type : "pie",
+                data : {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor : COLORS.slice(0, labels.length),
+                        borderWidth     : 2,
+                        borderColor     : "#fff",
+                    }],
+                },
+                options: {
+                    responsive : true,
+                    plugins    : {
+                        legend: {
+                            position : "right",
+                            labels   : { font: { weight: "600" }, padding: 16 },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.label} : ${ctx.parsed} réservations`,
+                            },
+                        },
+                    },
+                },
+            });
+        };
+
+        if (window.Chart) {
+            draw();
+        } else {
+            const script = document.createElement("script");
+            script.src   = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            script.onload = draw;
+            document.head.appendChild(script);
+        }
+    }
+
+    get totalN1() { return this.state.rows.reduce((s, r) => s + r.count_n1, 0); }
+    get totalN()  { return this.state.rows.reduce((s, r) => s + r.count_n,  0); }
     get totalDelta() {
         if (this.totalN1 === 0) return this.totalN > 0 ? 100 : null;
         return Math.round(((this.totalN - this.totalN1) / this.totalN1) * 100);
