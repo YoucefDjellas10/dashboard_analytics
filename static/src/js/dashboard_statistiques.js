@@ -369,9 +369,7 @@ export class DashboardStatistiques extends Component {
         });
     }
     fmt(n) {
-    return new Intl.NumberFormat("fr-FR")
-        .format(n || 0)
-        .replace(/\u00A0/g, " "); // remplace espace spécial
+    return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 
 
@@ -384,11 +382,11 @@ export class DashboardStatistiques extends Component {
         });
     }
 
-    get caFormatted()          { return Math.round(this.state.total_ca_da).toLocaleString("fr-FR"); }
-    get tresorerieFormatted()  { return Math.round(this.state.total_tresorerie_da).toLocaleString("fr-FR"); }
-    get panierFormatted()      { return Math.round(this.state.panier_moyen_da).toLocaleString("fr-FR"); }
-    get depenseFormatted()     { return Math.round(this.state.total_depense_da).toLocaleString("fr-FR"); }
-    get balanceFormatted()     { return Math.round(this.balance).toLocaleString("fr-FR"); }
+    get caFormatted()         { return this.fmt(this.state.total_ca_da); }
+    get tresorerieFormatted() { return this.fmt(this.state.total_tresorerie_da); }
+    get panierFormatted()     { return this.fmt(this.state.panier_moyen_da); }
+    get depenseFormatted()    { return this.fmt(this.state.total_depense_da); }
+    get balanceFormatted()    { return this.fmt(this.balance); }
 }
 
 DashboardStatistiques.template = "dashboard_analytics.DashboardStatistiques";
