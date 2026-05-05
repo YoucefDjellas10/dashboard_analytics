@@ -104,7 +104,10 @@ export class ReservationDashboard extends Component {
         } finally {
             this.state.loading = false;
             // Render chart après mise à jour du DOM
-            setTimeout(() => this._renderChart(), 50);
+            setTimeout(() => {
+                this._renderChart();
+                this._renderChartLine();
+            }, 50);
         }
     }
 
@@ -213,9 +216,92 @@ _renderChart() {
         };
 
         // Si Chart.js déjà chargé
+        // Si Chart.js déjà chargé
         if (window.Chart) {
             script.onload();
         } else {
+            document.head.appendChild(script);
+        }
+    }
+
+    _renderChartLine() {
+        const canvas = document.getElementById("rd-chart-line");
+        if (!canvas) return;
+
+        if (this._chartLine) {
+            this._chartLine.destroy();
+            this._chartLine = null;
+        }
+
+        const labels = this.state.rows.map(r => r.label);
+        const dataN1 = this.state.rows.map(r => r.count_n1);
+        const dataN  = this.state.rows.map(r => r.count_n);
+
+        const draw = () => {
+            this._chartLine = new Chart(canvas, {
+                type: "line",
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label           : String(this.state.annee_n1),
+                            data            : dataN1,
+                            borderColor     : "rgba(21, 101, 192, 1)",
+                            backgroundColor : "rgba(21, 101, 192, 0.1)",
+                            borderWidth     : 3,
+                            pointRadius     : 5,
+                            pointHoverRadius: 7,
+                            fill            : true,
+                            tension         : 0.4,
+                        },
+                        {
+                            label           : String(this.state.annee_n),
+                            data            : dataN,
+                            borderColor     : "rgba(106, 27, 154, 1)",
+                            backgroundColor : "rgba(106, 27, 154, 0.1)",
+                            borderWidth     : 3,
+                            pointRadius     : 5,
+                            pointHoverRadius: 7,
+                            fill            : true,
+                            tension         : 0.4,
+                        },
+                    ],
+                },
+                options: {
+                    responsive          : true,
+                    maintainAspectRatio : true,
+                    plugins: {
+                        legend: {
+                            position : "top",
+                            labels   : { font: { weight: "bold" } },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.dataset.label} : ${ctx.parsed.y} réservations`,
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            grid : { display: false },
+                            ticks: { font: { weight: "600" } },
+                        },
+                        y: {
+                            beginAtZero : true,
+                            grid        : { color: "rgba(0,0,0,.06)" },
+                            ticks       : { stepSize: 1, font: { weight: "600" } },
+                        },
+                    },
+                },
+            });
+        };
+
+        if (window.Chart) {
+            draw();
+        } else {
+            const script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            script.onload = draw;
             document.head.appendChild(script);
         }
     }

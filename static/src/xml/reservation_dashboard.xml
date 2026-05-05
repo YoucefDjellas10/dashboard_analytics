@@ -229,6 +229,14 @@
             <canvas id="rd-chart" style="width:100%; max-height:400px;"/>
         </div>
 
+        <!-- Graphique courbe -->
+        <div class="rd-table-wrapper" style="margin-top:20px; padding:24px;">
+            <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
+                📈 Évolution mensuelle — <t t-esc="state.annee_n1"/> vs <t t-esc="state.annee_n"/>
+            </div>
+            <canvas id="rd-chart-line" style="width:100%; max-height:400px;"/>
+        </div>
+
     </t>
 
         </div>
