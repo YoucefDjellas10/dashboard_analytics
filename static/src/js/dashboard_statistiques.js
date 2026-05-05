@@ -352,13 +352,10 @@ export class DashboardStatistiques extends Component {
     // ─────────────────────────────────────────
 
     ouvrirReservations() {
-        this.action.doAction({
-            type: "ir.actions.act_window",
-            name: `Réservations Confirmées — ${this.labelPeriode}`,
-            res_model: "reservation", view_mode: "list,form",
-            domain: this._buildDomain(this.state.date_debut, this.state.date_fin),
-        });
-    }
+    this.action.doAction(
+        "dashboard_analytics.action_reservation_dashboard"
+    );
+}
 
     ouvrirChiffreAffaire() {
         this.action.doAction({

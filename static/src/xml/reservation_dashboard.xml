@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="dashboard_analytics.ReservationDashboard">
+<div style="padding:16px; background:#f1f5f9;">
+<style>
+  .o_action {
+    overflow-y: auto !important;
+    height: 100% !important;
+}
+
+.o_view_controller {
+    overflow-y: auto !important;
+    height: 100% !important;
+}
+
+.o_action_manager {
+    overflow-y: auto !important;
+}
+.rd-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    background:#fff;
+    border-radius:16px;
+    padding:16px 24px;
+    margin-bottom:20px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+}
+.rd-title {
+    font-size:20px;
+    font-weight:800;
+    color:#1e293b;
+}
+.rd-select-zone {
+    width:220px;
+    border-radius:8px;
+    border:1.5px solid #e2e8f0;
+    font-size:13px;
+    color:#1e293b;
+    background:#f8fafc;
+    padding:7px 12px;
+}
+.rd-table-wrapper {
+    background:#fff;
+    border-radius:16px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+    overflow:hidden;
+}
+.rd-table {
+    width:100%;
+    border-collapse:collapse;
+}
+.rd-table thead tr {
+    background:linear-gradient(135deg,#1565c0,#6a1b9a);
+    color:#fff;
+}
+.rd-table th {
+    padding:14px 20px;
+    font-size:13px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.6px;
+    text-align:center;
+}
+.rd-table th:first-child { text-align:left; }
+.rd-table td {
+    padding:13px 20px;
+    font-size:14px;
+    text-align:center;
+    border-bottom:1px solid #f1f5f9;
+    color:#1e293b;
+}
+.rd-table td:first-child {
+    text-align:left;
+    font-weight:700;
+    color:#475569;
+}
+.rd-table tbody tr:hover td {
+    background:#f8fafc;
+}
+.rd-table tfoot tr {
+    background:linear-gradient(135deg,#f8fafc,#f1f5f9);
+    font-weight:800;
+}
+.rd-table tfoot td {
+    border-top:2px solid #e2e8f0;
+    font-size:14px;
+}
+.rd-clickable {
+    cursor:pointer;
+    color:#1565c0;
+    font-weight:700;
+    text-decoration:underline dotted;
+}
+.rd-clickable:hover { color:#6a1b9a; }
+.rd-badge {
+    display:inline-block;
+    padding:3px 10px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:800;
+    color:#fff;
+}
+.rd-badge-up   { background:#16a34a; }
+.rd-badge-down { background:#dc2626; }
+.rd-badge-null { background:#94a3b8; }
+.rd-btn-retour {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:8px 18px;
+    border-radius:9px;
+    border:1.5px solid #e2e8f0;
+    background:#f8fafc;
+    color:#475569;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .2s, transform .15s;
+}
+.rd-btn-retour:hover {
+    background:#e2e8f0;
+    transform:translateY(-2px);
+}
+</style>
+
+<!-- Header -->
+<div class="rd-header">
+
+    <div style="display:flex; align-items:center; gap:10px;">
+        <button class="rd-btn-retour" t-on-click="retourDashboard">
+            ← Retour
+        </button>
+        <div class="rd-title">
+            📅 Comparaison mensuelle des réservations
+        </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Zone</span>
+        <select class="rd-select-zone form-select form-select-sm"
+                t-on-change="updateSelectedZone">
+            <option value="">🌍 Toutes les zones</option>
+            <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+                <option t-att-value="zone.id"
+                        t-att-selected="state.selected_zone == zone.id"
+                        t-esc="zone.name"/>
+            </t>
+        </select>
+    </div>
+
+</div>
+
+<!-- Loading -->
+<t t-if="state.loading">
+    <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">
+        ⏳ Chargement…
+    </div>
+</t>
+
+<!-- Tableau -->
+<t t-else="">
+    <div class="rd-table-wrapper">
+        <table class="rd-table">
+            <thead>
+                <tr>
+                    <th>Mois</th>
+                    <th><t t-esc="state.annee_n1"/></th>
+                    <th><t t-esc="state.annee_n"/></th>
+                    <th>Évolution</th>
+                </tr>
+            </thead>
+            <tbody>
+                <t t-foreach="state.rows" t-as="row" t-key="row.mois">
+                    <tr>
+                        <td><t t-esc="row.label"/></td>
+
+                        <td class="rd-clickable"
+                            t-on-click="() => ouvrirMois(state.annee_n1, row.mois)">
+                            <t t-esc="row.count_n1"/>
+                        </td>
+
+                        <td class="rd-clickable"
+                            t-on-click="() => ouvrirMois(state.annee_n, row.mois)">
+                            <t t-esc="row.count_n"/>
+                        </td>
+
+                        <td>
+                            <t t-if="row.delta !== null">
+                                <span t-attf-class="rd-badge {{ row.delta >= 0 ? 'rd-badge-up' : 'rd-badge-down' }}">
+                                    <t t-if="row.delta >= 0">▲ +<t t-esc="row.delta"/> %</t>
+                                    <t t-else="">▼ <t t-esc="row.delta"/> %</t>
+                                </span>
+                            </t>
+                            <t t-else="">
+                                <span class="rd-badge rd-badge-null">—</span>
+                            </t>
+                        </td>
+                    </tr>
+                </t>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>Total</td>
+                    <td><t t-esc="totalN1"/></td>
+                    <td><t t-esc="totalN"/></td>
+                    <td>
+                        <t t-if="totalDelta !== null">
+                            <span t-attf-class="rd-badge {{ totalDelta >= 0 ? 'rd-badge-up' : 'rd-badge-down' }}">
+                                <t t-if="totalDelta >= 0">▲ +<t t-esc="totalDelta"/> %</t>
+                                <t t-else="">▼ <t t-esc="totalDelta"/> %</t>
+                            </span>
+                        </t>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</t>
+
+        </div>
+    </t>
+</templates>

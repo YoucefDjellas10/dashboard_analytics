@@ -12,8 +12,10 @@
     'assets': {
         'web.assets_backend': [
             'dashboard_analytics/static/src/js/dashboard_statistiques.js',
+            'dashboard_analytics/static/src/js/reservation_dashboard.js',
             'dashboard_analytics/static/src/css/dashboard_statistiques.css',
             'dashboard_analytics/static/src/xml/dashboard_statistiques.xml',
+            'dashboard_analytics/static/src/xml/reservation_dashboard.xml',
         ],
     },
     'installable': True,
