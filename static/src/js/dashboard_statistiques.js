@@ -369,8 +369,10 @@ export class DashboardStatistiques extends Component {
         });
     }
     fmt(n) {
-    return Math.round(n).toLocaleString("fr-FR");
-    }
+    return new Intl.NumberFormat("fr-FR")
+        .format(n || 0)
+        .replace(/\u00A0/g, " "); // remplace espace spécial
+}
 
 
     ouvrirDepenses() {
