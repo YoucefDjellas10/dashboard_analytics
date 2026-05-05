@@ -10,14 +10,24 @@ export class ReservationDashboard extends Component {
         this.orm    = useService("orm");
         this.action = useService("action");
 
+        const currentYear = new Date().getFullYear();
+
+        // Générer la liste des années (5 ans en arrière jusqu'à l'année actuelle)
+        const years = [];
+        for (let y = currentYear; y >= currentYear - 5; y--) {
+            years.push(y);
+        }
+
         this.state = useState({
             loading       : false,
             zones         : [],
             selected_zone : "",
             rows          : [],
-            annee_n       : new Date().getFullYear(),
-            annee_n1      : new Date().getFullYear() - 1,
-            pie_data      : [], // [{ zone_name, count }]
+            annee_n       : currentYear,
+            annee_n1      : currentYear - 1,
+            pie_data      : [],
+            pie_data_n1   : [],
+            years         : years,
         });
 
         onWillStart(() => this._loadZones().then(() => this.loadData()));
@@ -68,7 +78,6 @@ export class ReservationDashboard extends Component {
                 "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
             ];
 
-            // 24 requêtes en parallèle (12 mois x 2 années)
             const promises = [];
             for (let m = 1; m <= 12; m++) {
                 promises.push(this.orm.readGroup("reservation", this._buildDomain(n1, m), ["id:count"], []));
@@ -79,11 +88,10 @@ export class ReservationDashboard extends Component {
 
             const rows = [];
             for (let m = 1; m <= 12; m++) {
-                const idx     = (m - 1) * 2;
-                const count_n1 = results[idx][0]?.__count     ?? 0;
-                const count_n  = results[idx+1][0]?.__count   ?? 0;
+                const idx      = (m - 1) * 2;
+                const count_n1 = results[idx][0]?.__count   ?? 0;
+                const count_n  = results[idx+1][0]?.__count ?? 0;
 
-                // delta %
                 let delta = null;
                 if (count_n1 > 0) {
                     delta = Math.round(((count_n - count_n1) / count_n1) * 100);
@@ -91,24 +99,19 @@ export class ReservationDashboard extends Component {
                     delta = 100;
                 }
 
-                rows.push({
-                    mois    : m,
-                    label   : MOIS_LABELS[m - 1],
-                    count_n1,
-                    count_n,
-                    delta,
-                });
+                rows.push({ mois: m, label: MOIS_LABELS[m - 1], count_n1, count_n, delta });
             }
 
             this.state.rows = rows;
 
         } finally {
-            await this._loadPieData();
+            await Promise.all([this._loadPieData(), this._loadPieDataN1()]);
             this.state.loading = false;
             setTimeout(() => {
                 this._renderChart();
                 this._renderChartLine();
                 this._renderChartPie();
+                this._renderChartPieN1();
             }, 50);
         }
     }
@@ -122,6 +125,13 @@ export class ReservationDashboard extends Component {
         this.loadData();
     }
 
+    updateSelectedYear(ev) {
+        const annee_n = parseInt(ev.target.value);
+        this.state.annee_n  = annee_n;
+        this.state.annee_n1 = annee_n - 1;
+        this.loadData();
+    }
+
     retourDashboard() {
         this.action.doAction("dashboard_analytics.action_dashboard_statistiques");
     }
@@ -129,7 +139,6 @@ export class ReservationDashboard extends Component {
     ouvrirMois(annee, mois) {
         const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
         const fin   = new Date(annee, mois,     0, 23, 59, 59);
-        const fmt   = (d) => `${d.getFullYear()}-${this._pad(d.getMonth()+1)}-${this._pad(d.getDate())}`;
         const label = `${this.state.rows[mois-1]?.label} ${annee}`;
 
         const domain = [
@@ -149,11 +158,10 @@ export class ReservationDashboard extends Component {
         });
     }
 
-_renderChart() {
+    _renderChart() {
         const canvas = document.getElementById("rd-chart");
         if (!canvas) return;
 
-        // Détruire l'ancien chart s'il existe
         if (this._chart) {
             this._chart.destroy();
             this._chart = null;
@@ -172,15 +180,15 @@ _renderChart() {
                     labels,
                     datasets: [
                         {
-                            label       : String(this.state.annee_n1),
-                            data        : dataN1,
+                            label           : String(this.state.annee_n1),
+                            data            : dataN1,
                             backgroundColor : "rgba(21, 101, 192, 0.75)",
                             borderRadius    : 6,
                             borderSkipped   : false,
                         },
                         {
-                            label       : String(this.state.annee_n),
-                            data        : dataN,
+                            label           : String(this.state.annee_n),
+                            data            : dataN,
                             backgroundColor : "rgba(106, 27, 154, 0.75)",
                             borderRadius    : 6,
                             borderSkipped   : false,
@@ -188,7 +196,7 @@ _renderChart() {
                     ],
                 },
                 options: {
-                    responsive    : true,
+                    responsive         : true,
                     maintainAspectRatio: true,
                     plugins: {
                         legend: {
@@ -217,8 +225,6 @@ _renderChart() {
             });
         };
 
-        // Si Chart.js déjà chargé
-        // Si Chart.js déjà chargé
         if (window.Chart) {
             script.onload();
         } else {
@@ -332,6 +338,30 @@ _renderChart() {
         })).filter(r => r.count > 0);
     }
 
+    async _loadPieDataN1() {
+        const n1    = this.state.annee_n1;
+        const debut = new Date(n1, 0,  1,  0,  0,  0);
+        const fin   = new Date(n1, 11, 31, 23, 59, 59);
+
+        const zones = await this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" });
+
+        const promises = zones.map(z =>
+            this.orm.readGroup("reservation", [
+                ["status",      "=",  "confirmee"],
+                ["create_date", ">=", this._formatORM(debut)],
+                ["create_date", "<=", this._formatORM(fin)],
+                ["zone",        "=",  z.id],
+            ], ["id:count"], [])
+        );
+
+        const results = await Promise.all(promises);
+
+        this.state.pie_data_n1 = zones.map((z, i) => ({
+            zone_name : z.name,
+            count     : results[i][0]?.__count ?? 0,
+        })).filter(r => r.count > 0);
+    }
+
     _renderChartPie() {
         const canvas = document.getElementById("rd-chart-pie");
         if (!canvas) return;
@@ -371,7 +401,69 @@ _renderChart() {
                     responsive : true,
                     plugins    : {
                         legend: {
-                            position : "right",
+                            position : "bottom",
+                            labels   : { font: { weight: "600" }, padding: 16 },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.label} : ${ctx.parsed} réservations`,
+                            },
+                        },
+                    },
+                },
+            });
+        };
+
+        if (window.Chart) {
+            draw();
+        } else {
+            const script = document.createElement("script");
+            script.src   = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            script.onload = draw;
+            document.head.appendChild(script);
+        }
+    }
+
+    _renderChartPieN1() {
+        const canvas = document.getElementById("rd-chart-pie-n1");
+        if (!canvas) return;
+
+        if (this._chartPieN1) {
+            this._chartPieN1.destroy();
+            this._chartPieN1 = null;
+        }
+
+        const labels = this.state.pie_data_n1.map(r => r.zone_name);
+        const data   = this.state.pie_data_n1.map(r => r.count);
+
+        const COLORS = [
+            "rgba(21,101,192,0.85)",
+            "rgba(106,27,154,0.85)",
+            "rgba(22,163,74,0.85)",
+            "rgba(220,38,38,0.85)",
+            "rgba(234,179,8,0.85)",
+            "rgba(14,116,144,0.85)",
+            "rgba(249,115,22,0.85)",
+            "rgba(99,102,241,0.85)",
+        ];
+
+        const draw = () => {
+            this._chartPieN1 = new Chart(canvas, {
+                type : "pie",
+                data : {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor : COLORS.slice(0, labels.length),
+                        borderWidth     : 2,
+                        borderColor     : "#fff",
+                    }],
+                },
+                options: {
+                    responsive : true,
+                    plugins    : {
+                        legend: {
+                            position : "bottom",
                             labels   : { font: { weight: "600" }, padding: 16 },
                         },
                         tooltip: {
