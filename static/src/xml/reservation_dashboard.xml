@@ -242,10 +242,9 @@
             <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
                 🥧 Réservations par zone — <t t-esc="state.annee_n"/>
             </div>
-            <div style="max-width:500px; margin:0 auto;">
-                <canvas id="rd-chart-pie" style="width:100%; max-height:400px;"/>
-            </div>
-        </div>
+<div style="max-width:800px; margin:0 auto;">
+                <canvas id="rd-chart-pie" style="width:100%; max-height:600px;"/>
+            </div>        </div>
 
     </t>
 
