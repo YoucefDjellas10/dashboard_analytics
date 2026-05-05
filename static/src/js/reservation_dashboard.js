@@ -103,6 +103,8 @@ export class ReservationDashboard extends Component {
 
         } finally {
             this.state.loading = false;
+            // Render chart après mise à jour du DOM
+            setTimeout(() => this._renderChart(), 50);
         }
     }
 
@@ -142,8 +144,83 @@ export class ReservationDashboard extends Component {
         });
     }
 
-    get totalN1() { return this.state.rows.reduce((s, r) => s + r.count_n1, 0); }
-    get totalN()  { return this.state.rows.reduce((s, r) => s + r.count_n,  0); }
+_renderChart() {
+        const canvas = document.getElementById("rd-chart");
+        if (!canvas) return;
+
+        // Détruire l'ancien chart s'il existe
+        if (this._chart) {
+            this._chart.destroy();
+            this._chart = null;
+        }
+
+        const labels   = this.state.rows.map(r => r.label);
+        const dataN1   = this.state.rows.map(r => r.count_n1);
+        const dataN    = this.state.rows.map(r => r.count_n);
+
+        const script = document.createElement("script");
+        script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+        script.onload = () => {
+            this._chart = new Chart(canvas, {
+                type: "bar",
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label       : String(this.state.annee_n1),
+                            data        : dataN1,
+                            backgroundColor : "rgba(21, 101, 192, 0.75)",
+                            borderRadius    : 6,
+                            borderSkipped   : false,
+                        },
+                        {
+                            label       : String(this.state.annee_n),
+                            data        : dataN,
+                            backgroundColor : "rgba(106, 27, 154, 0.75)",
+                            borderRadius    : 6,
+                            borderSkipped   : false,
+                        },
+                    ],
+                },
+                options: {
+                    responsive    : true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position : "top",
+                            labels   : { font: { weight: "bold" } },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.dataset.label} : ${ctx.parsed.y} réservations`,
+                            },
+                        },
+                        datalabels: false,
+                    },
+                    scales: {
+                        x: {
+                            grid : { display: false },
+                            ticks: { font: { weight: "600" } },
+                        },
+                        y: {
+                            beginAtZero : true,
+                            grid        : { color: "rgba(0,0,0,.06)" },
+                            ticks       : { stepSize: 1, font: { weight: "600" } },
+                        },
+                    },
+                },
+            });
+        };
+
+        // Si Chart.js déjà chargé
+        if (window.Chart) {
+            script.onload();
+        } else {
+            document.head.appendChild(script);
+        }
+    }
+
+    get totalN1() { return this.state.rows.reduce((s, r) => s + r.count_n1, 0); }    get totalN()  { return this.state.rows.reduce((s, r) => s + r.count_n,  0); }
     get totalDelta() {
         if (this.totalN1 === 0) return this.totalN > 0 ? 100 : null;
         return Math.round(((this.totalN - this.totalN1) / this.totalN1) * 100);
