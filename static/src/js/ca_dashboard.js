@@ -62,47 +62,27 @@ export class CaDashboard extends Component {
         return domain;
     }
 
-    _buildRevenueDomain(annee, mois) {
+    async _fetchMoisCA(annee, mois) {
         const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
         const fin   = new Date(annee, mois,     0, 23, 59, 59);
+
         const domain = [
-            '|',
-            '&', ['create_date', '>=', this._formatORM(debut)],
-                 ['create_date', '<=', this._formatORM(fin)],
-            '&', ['create_date', '=', false],
-            '&', ['reservation.create_date', '>=', this._formatORM(debut)],
-                 ['reservation.create_date', '<=', this._formatORM(fin)],
+            ["status",      "=",  "confirmee"],
+            ["create_date", ">=", this._formatORM(debut)],
+            ["create_date", "<=", this._formatORM(fin)],
         ];
         if (this.state.selected_zone)
-            domain.push(['zone', '=', parseInt(this.state.selected_zone)]);
-        return domain;
-    }
+            domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
 
-    _buildRefundDomain(annee, mois) {
-        const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
-        const fin   = new Date(annee, mois,     0, 23, 59, 59);
-        return [
-            ['date', '>=', this._formatORM(debut)],
-            ['date', '<=', this._formatORM(fin)],
-            ['status', '=', 'effectuer'],
-        ];
-    }
-
-    async _fetchMoisCA(annee, mois) {
-        const [tauxResult, revenueResult, refundResult] = await Promise.all([
+        const [resResult, tauxResult] = await Promise.all([
+            this.orm.readGroup("reservation", domain, ["total_reduit_euro:sum"], []),
             this.orm.searchRead("taux.change", [["id", "=", 2]], ["montant"], { limit: 1 }),
-            this.orm.readGroup("revenue.record", this._buildRevenueDomain(annee, mois), ["montant_dzd:sum", "montant:sum"], []),
-            this.orm.readGroup("refund.table",   this._buildRefundDomain(annee, mois),  ["amount:sum"], []),
         ]);
 
-        const taux       = tauxResult[0]?.montant ?? 1;
-        const revRow     = revenueResult[0] ?? {};
-        const sum_dzd    = revRow.montant_dzd ?? 0;
-        const sum_eur    = revRow.montant     ?? 0;
-        const refundRow  = refundResult[0]  ?? {};
-        const sum_refund = refundRow.amount  ?? 0;
+        const caEuro = (resResult[0] ?? {}).total_reduit_euro ?? 0;
+        const taux   = tauxResult[0]?.montant ?? 1;
 
-        return (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
+        return caEuro * taux;
     }
 
     async loadData() {
@@ -230,36 +210,22 @@ export class CaDashboard extends Component {
         const debut = new Date(annee, 0,  1,  0,  0,  0);
         const fin   = new Date(annee, 11, 31, 23, 59, 59);
 
-        const revenueDomain = [
-            '|',
-            '&', ['create_date', '>=', this._formatORM(debut)],
-                 ['create_date', '<=', this._formatORM(fin)],
-            '&', ['create_date', '=', false],
-            '&', ['reservation.create_date', '>=', this._formatORM(debut)],
-                 ['reservation.create_date', '<=', this._formatORM(fin)],
-            ['zone', '=', zoneId],
+        const domain = [
+            ["status",      "=",  "confirmee"],
+            ["create_date", ">=", this._formatORM(debut)],
+            ["create_date", "<=", this._formatORM(fin)],
+            ["zone",        "=",  zoneId],
         ];
 
-        const refundDomain = [
-            ['date', '>=', this._formatORM(debut)],
-            ['date', '<=', this._formatORM(fin)],
-            ['status', '=', 'effectuer'],
-        ];
-
-        const [tauxResult, revenueResult, refundResult] = await Promise.all([
+        const [resResult, tauxResult] = await Promise.all([
+            this.orm.readGroup("reservation", domain, ["total_reduit_euro:sum"], []),
             this.orm.searchRead("taux.change", [["id", "=", 2]], ["montant"], { limit: 1 }),
-            this.orm.readGroup("revenue.record", revenueDomain, ["montant_dzd:sum", "montant:sum"], []),
-            this.orm.readGroup("refund.table",   refundDomain,  ["amount:sum"], []),
         ]);
 
-        const taux       = tauxResult[0]?.montant ?? 1;
-        const revRow     = revenueResult[0] ?? {};
-        const sum_dzd    = revRow.montant_dzd ?? 0;
-        const sum_eur    = revRow.montant     ?? 0;
-        const refundRow  = refundResult[0]  ?? {};
-        const sum_refund = refundRow.amount  ?? 0;
+        const caEuro = (resResult[0] ?? {}).total_reduit_euro ?? 0;
+        const taux   = tauxResult[0]?.montant ?? 1;
 
-        return (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
+        return caEuro * taux;
     }
 
     _renderChart() {
