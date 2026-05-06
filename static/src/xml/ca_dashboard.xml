@@ -142,7 +142,7 @@
             ← Retour
         </button>
         <div class="ca-title">
-            💰 Comparaison mensuelle du Chiffre d'affaires
+           Comparaison mensuelle du Chiffre d'affaires
         </div>
     </div>
 
@@ -259,14 +259,14 @@
 
         <div class="ca-table-wrapper" style="padding:24px;">
             <div class="ca-pie-title">
-                🥧 CA par zone — <t t-esc="state.annee_n1"/>
+               Chiffre d'affaire — <t t-esc="state.annee_n1"/>
             </div>
             <canvas id="ca-chart-pie-n1" style="width:100%; max-height:500px;"/>
         </div>
 
         <div class="ca-table-wrapper" style="padding:24px;">
             <div class="ca-pie-title">
-                🥧 CA par zone — <t t-esc="state.annee_n"/>
+              Chiffre d'affaire — <t t-esc="state.annee_n"/>
             </div>
             <canvas id="ca-chart-pie" style="width:100%; max-height:500px;"/>
         </div>
