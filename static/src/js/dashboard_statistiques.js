@@ -358,13 +358,8 @@ export class DashboardStatistiques extends Component {
 }
 
     ouvrirChiffreAffaire() {
-        this.action.doAction({
-            type: "ir.actions.act_window",
-            name: `Chiffre d'affaires — ${this.labelPeriode}`,
-            res_model: "reservation", view_mode: "list,form",
-            domain: this._buildDomain(this.state.date_debut, this.state.date_fin),
-        });
-    }
+    this.action.doAction("dashboard_analytics.action_ca_dashboard");
+}
     fmt(n) {
     return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
