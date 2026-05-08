@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="dashboard_analytics.TauxRemplissageDashboard">
+<div style="padding:16px; background:#f1f5f9;">
+<style>
+.o_action { overflow-y:auto !important; height:100% !important; }
+.o_view_controller { overflow-y:auto !important; height:100% !important; }
+.o_action_manager { overflow-y:auto !important; }
+
+.tx-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    background:#fff;
+    border-radius:16px;
+    padding:16px 24px;
+    margin-bottom:20px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+}
+.tx-title {
+    font-size:20px;
+    font-weight:800;
+    color:#1e293b;
+}
+.tx-select-zone,
+.tx-select-year {
+    border-radius:8px;
+    border:1.5px solid #e2e8f0;
+    font-size:13px;
+    color:#1e293b;
+    background:#f8fafc;
+    padding:7px 12px;
+}
+.tx-select-zone { width:220px; }
+.tx-select-year { width:120px; font-weight:700; }
+.tx-table-wrapper {
+    background:#fff;
+    border-radius:16px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+    overflow:hidden;
+}
+.tx-table {
+    width:100%;
+    border-collapse:collapse;
+}
+.tx-table thead tr {
+    background:linear-gradient(135deg,#0e4f4f,#0e7490);
+    color:#fff;
+}
+.tx-table th {
+    padding:14px 20px;
+    font-size:13px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.6px;
+    text-align:center;
+}
+.tx-table th:first-child { text-align:left; }
+.tx-table td {
+    padding:13px 20px;
+    font-size:14px;
+    text-align:center;
+    border-bottom:1px solid #f1f5f9;
+    color:#1e293b;
+}
+.tx-table td:first-child {
+    text-align:left;
+    font-weight:700;
+    color:#475569;
+}
+.tx-table tbody tr:hover td { background:#f8fafc; }
+.tx-table tfoot tr {
+    background:linear-gradient(135deg,#f8fafc,#f1f5f9);
+    font-weight:800;
+}
+.tx-table tfoot td {
+    border-top:2px solid #e2e8f0;
+    font-size:14px;
+}
+.tx-clickable {
+    cursor:pointer;
+    font-weight:700;
+    text-decoration:underline dotted;
+}
+.tx-btn-retour {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:8px 18px;
+    border-radius:9px;
+    border:1.5px solid #e2e8f0;
+    background:#f8fafc;
+    color:#475569;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .2s, transform .15s;
+}
+.tx-btn-retour:hover {
+    background:#e2e8f0;
+    transform:translateY(-2px);
+}
+.tx-progress-bg {
+    background:rgba(0,0,0,.08);
+    border-radius:10px;
+    height:8px;
+    overflow:hidden;
+    margin-top:6px;
+    min-width:120px;
+}
+.tx-legend {
+    display:flex;
+    align-items:center;
+    gap:20px;
+    flex-wrap:wrap;
+    padding:12px 20px;
+    background:#f8fafc;
+    border-top:1px solid #e2e8f0;
+    font-size:12px;
+    font-weight:600;
+}
+.tx-legend-dot {
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    display:inline-block;
+    margin-right:5px;
+}
+</style>
+
+<div class="tx-header">
+
+    <div style="display:flex; align-items:center; gap:10px;">
+        <button class="tx-btn-retour" t-on-click="retourDashboard">
+            ← Retour
+        </button>
+        <div class="tx-title">
+            🚗 Taux de remplissage — <t t-esc="state.annee_n"/>
+        </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Année</span>
+            <select class="tx-select-year form-select form-select-sm"
+                    t-on-change="updateSelectedYear">
+                <t t-foreach="state.years" t-as="year" t-key="year">
+                    <option t-att-value="year"
+                            t-att-selected="state.annee_n == year"
+                            t-esc="year"/>
+                </t>
+            </select>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Zone</span>
+            <select class="tx-select-zone form-select form-select-sm"
+                    t-on-change="updateSelectedZone">
+                <option value="">🌍 Toutes les zones</option>
+                <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+                    <option t-att-value="zone.id"
+                            t-att-selected="state.selected_zone == zone.id"
+                            t-esc="zone.name"/>
+                </t>
+            </select>
+        </div>
+
+    </div>
+
+</div>
+
+<t t-if="state.loading">
+    <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">
+        ⏳ Chargement…
+    </div>
+</t>
+
+<t t-else="">
+
+    <!-- Carte moyenne annuelle -->
+    <div style="display:flex; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
+        <div style="background:linear-gradient(135deg,#cffafe,#a5f3fc); border-radius:16px;
+                    padding:20px 28px; border:none; box-shadow:0 6px 20px rgba(0,0,0,.1);
+                    flex:1; min-width:200px;">
+            <div style="font-size:14px; font-weight:700; color:#164e4e; margin-bottom:6px;">
+                Moyenne annuelle <t t-esc="state.annee_n"/>
+            </div>
+            <div style="font-size:36px; font-weight:900; color:#0e7490; line-height:1;">
+                <t t-esc="moyenneTaux"/> %
+            </div>
+            <div style="background:rgba(0,0,0,.1); border-radius:10px; height:8px; margin-top:10px; overflow:hidden;">
+                <div t-attf-style="width:{{moyenneTaux}}%; height:100%; background:#0e7490; border-radius:10px; transition:width .6s;"/>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau -->
+    <div class="tx-table-wrapper">
+        <table class="tx-table">
+            <thead>
+                <tr>
+                    <th>Mois</th>
+                    <th>Taux de remplissage</th>
+                    <th>Barre</th>
+                    <th>Réservations</th>
+                </tr>
+            </thead>
+            <tbody>
+                <t t-foreach="state.rows" t-as="row" t-key="row.mois">
+                    <tr>
+                        <td><t t-esc="row.label"/></td>
+
+                        <td>
+                            <span t-attf-style="font-size:16px; font-weight:900;
+                                color:{{ tauxColor(row.taux) }};">
+                                <t t-esc="row.taux"/> %
+                            </span>
+                        </td>
+
+                        <td style="min-width:160px;">
+                            <div class="tx-progress-bg">
+                                <div t-attf-style="width:{{row.taux}}%; height:100%;
+                                    background:{{ tauxColor(row.taux) }};
+                                    border-radius:10px; transition:width .6s;"/>
+                            </div>
+                        </td>
+
+                        <td>
+                            <span class="tx-clickable"
+                                  t-attf-style="color:{{ tauxColor(row.taux) }};"
+                                  t-on-click="() => ouvrirMois(row.mois)">
+                                Voir
+                            </span>
+                        </td>
+                    </tr>
+                </t>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>Moyenne</td>
+                    <td>
+                        <span t-attf-style="font-size:16px; font-weight:900;
+                            color:{{ tauxColor(moyenneTaux) }};">
+                            <t t-esc="moyenneTaux"/> %
+                        </span>
+                    </td>
+                    <td>
+                        <div class="tx-progress-bg">
+                            <div t-attf-style="width:{{moyenneTaux}}%; height:100%;
+                                background:{{ tauxColor(moyenneTaux) }};
+                                border-radius:10px;"/>
+                        </div>
+                    </td>
+                    <td/>
+                </tr>
+            </tfoot>
+        </table>
+
+        <!-- Légende couleurs -->
+        <div class="tx-legend">
+            <span><span class="tx-legend-dot" style="background:#16a34a;"/> ≥ 75 % — Excellent</span>
+            <span><span class="tx-legend-dot" style="background:#ca8a04;"/> 40–74 % — Moyen</span>
+            <span><span class="tx-legend-dot" style="background:#dc2626;"/> &lt; 40 % — Faible</span>
+        </div>
+    </div>
+
+    <!-- Graphique barres -->
+    <div class="tx-table-wrapper" style="margin-top:20px; padding:24px;">
+        <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
+            📊 Taux de remplissage mensuel — <t t-esc="state.annee_n"/>
+        </div>
+        <canvas id="tr-remplissage-chart" style="width:100%; max-height:400px;"/>
+    </div>
+
+    <!-- Graphique pie par zone -->
+    <div class="tx-table-wrapper" style="margin-top:20px; padding:24px;">
+        <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
+            🥧 Taux de remplissage par zone — <t t-esc="state.annee_n"/>
+        </div>
+        <canvas id="tr-remplissage-pie" style="width:100%; max-height:400px;"/>
+    </div>
+
+</t>
+
+</div>
+    </t>
+</templates>

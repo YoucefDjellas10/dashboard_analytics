@@ -365,14 +365,22 @@ export class DashboardStatistiques extends Component {
 }
 
 
+
+    ouvrirTresorerie() {
+    this.action.doAction("dashboard_analytics.action_tresorerie_dashboard");
+}
+    ouvrirTauxRemplissage() {
+    this.action.doAction("dashboard_analytics.action_taux_remplissage_dashboard");
+}
+    ouvrirPanierMoyen() {
+    this.action.doAction("dashboard_analytics.action_panier_moyen_dashboard");
+}
+    ouvrirBalance() {
+    this.action.doAction("dashboard_analytics.action_balance_dashboard");
+}
     ouvrirDepenses() {
-        this.action.doAction({
-            type: "ir.actions.act_window",
-            name: `Dépenses Validées — ${this.labelPeriode}`,
-            res_model: "depense.record", view_mode: "list,form",
-            domain: this._buildDomainDepense(this.state.date_debut, this.state.date_fin),
-        });
-    }
+    this.action.doAction("dashboard_analytics.action_depense_dashboard");
+}
 
     get caFormatted()         { return this.fmt(this.state.total_ca_da); }
     get tresorerieFormatted() { return this.fmt(this.state.total_tresorerie_da); }

@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="dashboard_analytics.DepenseDashboard">
+<div style="padding:16px; background:#f1f5f9;">
+<style>
+.o_action { overflow-y:auto !important; height:100% !important; }
+.o_view_controller { overflow-y:auto !important; height:100% !important; }
+.o_action_manager { overflow-y:auto !important; }
+
+.dep-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    background:#fff;
+    border-radius:16px;
+    padding:16px 24px;
+    margin-bottom:20px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+}
+.dep-title {
+    font-size:20px;
+    font-weight:800;
+    color:#1e293b;
+}
+.dep-select-zone,
+.dep-select-year {
+    border-radius:8px;
+    border:1.5px solid #e2e8f0;
+    font-size:13px;
+    color:#1e293b;
+    background:#f8fafc;
+    padding:7px 12px;
+}
+.dep-select-zone { width:220px; }
+.dep-select-year { width:120px; font-weight:700; }
+.dep-table-wrapper {
+    background:#fff;
+    border-radius:16px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+    overflow:hidden;
+}
+.dep-table {
+    width:100%;
+    border-collapse:collapse;
+}
+.dep-table thead tr {
+    background:linear-gradient(135deg,#7f1d1d,#dc2626);
+    color:#fff;
+}
+.dep-table th {
+    padding:14px 20px;
+    font-size:13px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.6px;
+    text-align:center;
+}
+.dep-table th:first-child { text-align:left; }
+.dep-table td {
+    padding:13px 20px;
+    font-size:14px;
+    text-align:center;
+    border-bottom:1px solid #f1f5f9;
+    color:#1e293b;
+}
+.dep-table td:first-child {
+    text-align:left;
+    font-weight:700;
+    color:#475569;
+}
+.dep-table tbody tr:hover td { background:#f8fafc; }
+.dep-table tfoot tr {
+    background:linear-gradient(135deg,#f8fafc,#f1f5f9);
+    font-weight:800;
+}
+.dep-table tfoot td {
+    border-top:2px solid #e2e8f0;
+    font-size:14px;
+}
+.dep-clickable {
+    cursor:pointer;
+    color:#dc2626;
+    font-weight:700;
+    text-decoration:underline dotted;
+}
+.dep-clickable:hover { color:#7f1d1d; }
+.dep-badge {
+    display:inline-block;
+    padding:3px 10px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:800;
+    color:#fff;
+}
+.dep-badge-up   { background:#dc2626; }
+.dep-badge-down { background:#16a34a; }
+.dep-badge-null { background:#94a3b8; }
+.dep-btn-retour {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:8px 18px;
+    border-radius:9px;
+    border:1.5px solid #e2e8f0;
+    background:#f8fafc;
+    color:#475569;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .2s, transform .15s;
+}
+.dep-btn-retour:hover {
+    background:#e2e8f0;
+    transform:translateY(-2px);
+}
+.dep-pie-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    margin-top:20px;
+}
+@media (max-width:900px) {
+    .dep-pie-grid { grid-template-columns:1fr; }
+}
+.dep-pie-title {
+    font-size:15px;
+    font-weight:800;
+    color:#1e293b;
+    margin-bottom:16px;
+    text-align:center;
+}
+</style>
+
+<div class="dep-header">
+
+    <div style="display:flex; align-items:center; gap:10px;">
+        <button class="dep-btn-retour" t-on-click="retourDashboard">
+            ← Retour
+        </button>
+        <div class="dep-title">
+            💸 Comparaison mensuelle des Dépenses
+        </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Année</span>
+            <select class="dep-select-year form-select form-select-sm"
+                    t-on-change="updateSelectedYear">
+                <t t-foreach="state.years" t-as="year" t-key="year">
+                    <option t-att-value="year"
+                            t-att-selected="state.annee_n == year"
+                            t-esc="year"/>
+                </t>
+            </select>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Zone</span>
+            <select class="dep-select-zone form-select form-select-sm"
+                    t-on-change="updateSelectedZone">
+                <option value="">🌍 Toutes les zones</option>
+                <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+                    <option t-att-value="zone.id"
+                            t-att-selected="state.selected_zone == zone.id"
+                            t-esc="zone.name"/>
+                </t>
+            </select>
+        </div>
+
+    </div>
+
+</div>
+
+<t t-if="state.loading">
+    <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">
+        ⏳ Chargement…
+    </div>
+</t>
+
+<t t-else="">
+    <div class="dep-table-wrapper">
+        <table class="dep-table">
+            <thead>
+                <tr>
+                    <th>Mois</th>
+                    <th><t t-esc="state.annee_n1"/> (DA)</th>
+                    <th><t t-esc="state.annee_n"/> (DA)</th>
+                    <th>Évolution</th>
+                </tr>
+            </thead>
+            <tbody>
+                <t t-foreach="state.rows" t-as="row" t-key="row.mois">
+                    <tr>
+                        <td><t t-esc="row.label"/></td>
+
+                        <td class="dep-clickable"
+                            t-on-click="() => ouvrirMois(state.annee_n1, row.mois)">
+                            <t t-if="row.dep_n1 > 0"><t t-esc="fmtRow(row.dep_n1)"/></t>
+                            <t t-else=""><span style="color:#94a3b8;">—</span></t>
+                        </td>
+
+                        <td class="dep-clickable"
+                            t-on-click="() => ouvrirMois(state.annee_n, row.mois)">
+                            <t t-if="row.dep_n > 0"><t t-esc="fmtRow(row.dep_n)"/></t>
+                            <t t-else=""><span style="color:#94a3b8;">—</span></t>
+                        </td>
+
+                        <td>
+                            <t t-if="row.delta !== null">
+                                <span t-attf-class="dep-badge {{ row.delta >= 0 ? 'dep-badge-up' : 'dep-badge-down' }}">
+                                    <t t-if="row.delta >= 0">▲ +<t t-esc="row.delta"/> %</t>
+                                    <t t-else="">▼ <t t-esc="row.delta"/> %</t>
+                                </span>
+                            </t>
+                            <t t-else="">
+                                <span class="dep-badge dep-badge-null">—</span>
+                            </t>
+                        </td>
+                    </tr>
+                </t>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>Total</td>
+                    <td><t t-esc="totalN1Fmt"/></td>
+                    <td><t t-esc="totalNFmt"/></td>
+                    <td>
+                        <t t-if="totalDelta !== null">
+                            <span t-attf-class="dep-badge {{ totalDelta >= 0 ? 'dep-badge-up' : 'dep-badge-down' }}">
+                                <t t-if="totalDelta >= 0">▲ +<t t-esc="totalDelta"/> %</t>
+                                <t t-else="">▼ <t t-esc="totalDelta"/> %</t>
+                            </span>
+                        </t>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="dep-table-wrapper" style="margin-top:20px; padding:24px;">
+        <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
+            📊 Comparaison mensuelle — <t t-esc="state.annee_n1"/> vs <t t-esc="state.annee_n"/>
+        </div>
+        <canvas id="dep-chart" style="width:100%; max-height:400px;"/>
+    </div>
+
+    <div class="dep-table-wrapper" style="margin-top:20px; padding:24px;">
+        <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
+            📈 Évolution mensuelle — <t t-esc="state.annee_n1"/> vs <t t-esc="state.annee_n"/>
+        </div>
+        <canvas id="dep-chart-line" style="width:100%; max-height:400px;"/>
+    </div>
+
+    <div class="dep-pie-grid">
+
+        <div class="dep-table-wrapper" style="padding:24px;">
+            <div class="dep-pie-title">
+                🥧 Dépenses par zone — <t t-esc="state.annee_n1"/>
+            </div>
+            <canvas id="dep-chart-pie-n1" style="width:100%; max-height:500px;"/>
+        </div>
+
+        <div class="dep-table-wrapper" style="padding:24px;">
+            <div class="dep-pie-title">
+                🥧 Dépenses par zone — <t t-esc="state.annee_n"/>
+            </div>
+            <canvas id="dep-chart-pie" style="width:100%; max-height:500px;"/>
+        </div>
+
+    </div>
+
+</t>
+
+</div>
+    </t>
+</templates>

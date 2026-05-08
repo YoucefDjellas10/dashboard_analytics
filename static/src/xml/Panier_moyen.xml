@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="dashboard_analytics.PanierMoyenDashboard">
+<div style="padding:16px; background:#f1f5f9;">
+<style>
+.o_action { overflow-y:auto !important; height:100% !important; }
+.o_view_controller { overflow-y:auto !important; height:100% !important; }
+.o_action_manager { overflow-y:auto !important; }
+
+.pm-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    background:#fff;
+    border-radius:16px;
+    padding:16px 24px;
+    margin-bottom:20px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+}
+.pm-title {
+    font-size:20px;
+    font-weight:800;
+    color:#1e293b;
+}
+.pm-select-zone,
+.pm-select-year {
+    border-radius:8px;
+    border:1.5px solid #e2e8f0;
+    font-size:13px;
+    color:#1e293b;
+    background:#f8fafc;
+    padding:7px 12px;
+}
+.pm-select-zone { width:220px; }
+.pm-select-year { width:120px; font-weight:700; }
+.pm-table-wrapper {
+    background:#fff;
+    border-radius:16px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+    overflow:hidden;
+}
+.pm-table {
+    width:100%;
+    border-collapse:collapse;
+}
+.pm-table thead tr {
+    background:linear-gradient(135deg,#7c2d00,#ea580c);
+    color:#fff;
+}
+.pm-table th {
+    padding:14px 20px;
+    font-size:13px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.6px;
+    text-align:center;
+}
+.pm-table th:first-child { text-align:left; }
+.pm-table td {
+    padding:13px 20px;
+    font-size:14px;
+    text-align:center;
+    border-bottom:1px solid #f1f5f9;
+    color:#1e293b;
+}
+.pm-table td:first-child {
+    text-align:left;
+    font-weight:700;
+    color:#475569;
+}
+.pm-table tbody tr:hover td { background:#f8fafc; }
+.pm-table tfoot tr {
+    background:linear-gradient(135deg,#f8fafc,#f1f5f9);
+    font-weight:800;
+}
+.pm-table tfoot td {
+    border-top:2px solid #e2e8f0;
+    font-size:14px;
+}
+.pm-clickable {
+    cursor:pointer;
+    color:#ea580c;
+    font-weight:700;
+    text-decoration:underline dotted;
+}
+.pm-clickable:hover { color:#7c2d00; }
+.pm-badge {
+    display:inline-block;
+    padding:3px 10px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:800;
+    color:#fff;
+}
+.pm-badge-up   { background:#16a34a; }
+.pm-badge-down { background:#dc2626; }
+.pm-badge-null { background:#94a3b8; }
+.pm-btn-retour {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:8px 18px;
+    border-radius:9px;
+    border:1.5px solid #e2e8f0;
+    background:#f8fafc;
+    color:#475569;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .2s, transform .15s;
+}
+.pm-btn-retour:hover {
+    background:#e2e8f0;
+    transform:translateY(-2px);
+}
+.pm-pie-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    margin-top:20px;
+}
+@media (max-width:900px) {
+    .pm-pie-grid { grid-template-columns:1fr; }
+}
+.pm-pie-title {
+    font-size:15px;
+    font-weight:800;
+    color:#1e293b;
+    margin-bottom:16px;
+    text-align:center;
+}
+</style>
+
+<div class="pm-header">
+
+    <div style="display:flex; align-items:center; gap:10px;">
+        <button class="pm-btn-retour" t-on-click="retourDashboard">
+            ← Retour
+        </button>
+        <div class="pm-title">
+            🛒 Comparaison mensuelle du Panier Moyen
+        </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Année</span>
+            <select class="pm-select-year form-select form-select-sm"
+                    t-on-change="updateSelectedYear">
+                <t t-foreach="state.years" t-as="year" t-key="year">
+                    <option t-att-value="year"
+                            t-att-selected="state.annee_n == year"
+                            t-esc="year"/>
+                </t>
+            </select>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Zone</span>
+            <select class="pm-select-zone form-select form-select-sm"
+                    t-on-change="updateSelectedZone">
+                <option value="">🌍 Toutes les zones</option>
+                <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+                    <option t-att-value="zone.id"
+                            t-att-selected="state.selected_zone == zone.id"
+                            t-esc="zone.name"/>
+                </t>
+            </select>
+        </div>
+
+    </div>
+
+</div>
+
+<t t-if="state.loading">
+    <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">
+        ⏳ Chargement…
+    </div>
+</t>
+
+<t t-else="">
+    <div class="pm-table-wrapper">
+        <table class="pm-table">
+            <thead>
+                <tr>
+                    <th>Mois</th>
+                    <th><t t-esc="state.annee_n1"/> (DA)</th>
+                    <th><t t-esc="state.annee_n"/> (DA)</th>
+                    <th>Évolution</th>
+                </tr>
+            </thead>
+            <tbody>
+                <t t-foreach="state.rows" t-as="row" t-key="row.mois">
+                    <tr>
+                        <td><t t-esc="row.label"/></td>
+
+                        <td class="pm-clickable"
+                            t-on-click="() => ouvrirMois(state.annee_n1, row.mois)">
+                            <t t-if="row.pm_n1 > 0"><t t-esc="fmtRow(row.pm_n1)"/></t>
+                            <t t-else=""><span style="color:#94a3b8;">—</span></t>
+                        </td>
+
+                        <td class="pm-clickable"
+                            t-on-click="() => ouvrirMois(state.annee_n, row.mois)">
+                            <t t-if="row.pm_n > 0"><t t-esc="fmtRow(row.pm_n)"/></t>
+                            <t t-else=""><span style="color:#94a3b8;">—</span></t>
+                        </td>
+
+                        <td>
+                            <t t-if="row.delta !== null">
+                                <span t-attf-class="pm-badge {{ row.delta >= 0 ? 'pm-badge-up' : 'pm-badge-down' }}">
+                                    <t t-if="row.delta >= 0">▲ +<t t-esc="row.delta"/> %</t>
+                                    <t t-else="">▼ <t t-esc="row.delta"/> %</t>
+                                </span>
+                            </t>
+                            <t t-else="">
+                                <span class="pm-badge pm-badge-null">—</span>
+                            </t>
+                        </td>
+                    </tr>
+                </t>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>Moyenne annuelle</td>
+                    <td><t t-esc="moyenneN1Fmt"/></td>
+                    <td><t t-esc="moyenneNFmt"/></td>
+                    <td>
+                        <t t-if="totalDelta !== null">
+                            <span t-attf-class="pm-badge {{ totalDelta >= 0 ? 'pm-badge-up' : 'pm-badge-down' }}">
+                                <t t-if="totalDelta >= 0">▲ +<t t-esc="totalDelta"/> %</t>
+                                <t t-else="">▼ <t t-esc="totalDelta"/> %</t>
+                            </span>
+                        </t>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="pm-table-wrapper" style="margin-top:20px; padding:24px;">
+        <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
+            📊 Comparaison mensuelle — <t t-esc="state.annee_n1"/> vs <t t-esc="state.annee_n"/>
+        </div>
+        <canvas id="pm-chart" style="width:100%; max-height:400px;"/>
+    </div>
+
+    <div class="pm-table-wrapper" style="margin-top:20px; padding:24px;">
+        <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
+            📈 Évolution mensuelle — <t t-esc="state.annee_n1"/> vs <t t-esc="state.annee_n"/>
+        </div>
+        <canvas id="pm-chart-line" style="width:100%; max-height:400px;"/>
+    </div>
+
+    <div class="pm-pie-grid">
+
+        <div class="pm-table-wrapper" style="padding:24px;">
+            <div class="pm-pie-title">
+                🥧 Panier Moyen par zone — <t t-esc="state.annee_n1"/>
+            </div>
+            <canvas id="pm-chart-pie-n1" style="width:100%; max-height:500px;"/>
+        </div>
+
+        <div class="pm-table-wrapper" style="padding:24px;">
+            <div class="pm-pie-title">
+                🥧 Panier Moyen par zone — <t t-esc="state.annee_n"/>
+            </div>
+            <canvas id="pm-chart-pie" style="width:100%; max-height:500px;"/>
+        </div>
+
+    </div>
+
+</t>
+
+</div>
+    </t>
+</templates>

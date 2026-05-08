@@ -276,28 +276,29 @@
     </div>
 
     <!-- 3. Trésorerie -->
-    <div class="dash-card" style="color:#6b0f3a;
-                background:linear-gradient(135deg,#fce7f3,#fbcfe8);">
-        <div class="dash-card-body-sm">
-            <div class="dash-card-titre">Trésorerie</div>
-            <div class="dash-card-valeur">
-                <t t-esc="tresorerieFormatted"/> DA
-            </div>
-            <t t-if="deltaTresorerie">
-                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;
-                                   border-radius:20px; font-size:12px; font-weight:800;
-                                   background:{{ deltaTresorerie.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
-                    <t t-if="deltaTresorerie.positive">▲ +<t t-esc="deltaTresorerie.val"/> %</t>
-                    <t t-else="">▼ <t t-esc="deltaTresorerie.val"/> %</t>
-                </div>
-            </t>
+<!-- 3. Trésorerie -->
+<div class="dash-card" style="cursor:pointer; color:#6b0f3a;
+            background:linear-gradient(135deg,#fce7f3,#fbcfe8);"
+     t-on-click="ouvrirTresorerie">
+    <div class="dash-card-body-sm">
+        <div class="dash-card-titre">Trésorerie</div>
+        <div class="dash-card-valeur">
+            <t t-esc="tresorerieFormatted"/> DA
         </div>
+        <t t-if="deltaTresorerie">
+            <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;
+                               border-radius:20px; font-size:12px; font-weight:800;
+                               background:{{ deltaTresorerie.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
+                <t t-if="deltaTresorerie.positive">▲ +<t t-esc="deltaTresorerie.val"/> %</t>
+                <t t-else="">▼ <t t-esc="deltaTresorerie.val"/> %</t>
+            </div>
+        </t>
     </div>
-
+</div>
     <!-- 4. Panier Moyen -->
     <div class="dash-card" style="cursor:pointer; color:#7c2d00;
-                background:linear-gradient(135deg,#ffedd5,#fed7aa);"
-         t-on-click="ouvrirChiffreAffaire">
+            background:linear-gradient(135deg,#ffedd5,#fed7aa);"
+     t-on-click="ouvrirPanierMoyen">
         <div class="dash-card-body-sm">
             <div class="dash-card-titre">Panier Moyen</div>
             <div class="dash-card-valeur">
@@ -340,40 +341,40 @@
     </div>
 
     <!-- 6. Balance -->
-    <div class="dash-card" style="color:#1e1b4b;
-                background:linear-gradient(135deg,#e0e7ff,#c7d2fe);">
-        <div class="dash-card-body-lg">
-            <div class="dash-card-titre">Balance</div>
-            <div class="dash-card-valeur">
-                <t t-esc="balanceFormatted"/> DA
-            </div>
-            <t t-if="deltaBalance">
-                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 12px;
-                                   border-radius:20px; font-size:13px; font-weight:800;
-                                   background:{{ deltaBalance.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
-                    <t t-if="deltaBalance.positive">▲ +<t t-esc="deltaBalance.val"/> %</t>
-                    <t t-else="">▼ <t t-esc="deltaBalance.val"/> %</t>
-                </div>
-            </t>
+<div class="dash-card" style="cursor:pointer; color:#1e1b4b;
+            background:linear-gradient(135deg,#e0e7ff,#c7d2fe);"
+     t-on-click="ouvrirBalance">
+    <div class="dash-card-body-lg">
+        <div class="dash-card-titre">Balance</div>
+        <div class="dash-card-valeur">
+            <t t-esc="balanceFormatted"/> DA
         </div>
+        <t t-if="deltaBalance">
+            <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 12px;
+                               border-radius:20px; font-size:13px; font-weight:800;
+                               background:{{ deltaBalance.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
+                <t t-if="deltaBalance.positive">▲ +<t t-esc="deltaBalance.val"/> %</t>
+                <t t-else="">▼ <t t-esc="deltaBalance.val"/> %</t>
+            </div>
+        </t>
     </div>
-
+</div>
     <!-- 7. Taux de remplissage — pas de delta -->
-    <div class="dash-card dash-taux-span2" style="color:#164e4e;
-                background:linear-gradient(135deg,#cffafe,#a5f3fc);">
-        <div class="dash-card-body-lg">
-            <div class="dash-card-titre">Taux de remplissage</div>
-            <div class="dash-card-valeur">
-                <t t-esc="state.taux_remplissage"/> %
-            </div>
-            <div style="background:rgba(0,0,0,.1); border-radius:10px;
-                        height:6px; margin:8px 0; overflow:hidden;">
-                <div t-attf-style="width:{{state.taux_remplissage}}%; height:100%;
-                                   background:#0e7490; border-radius:10px; transition:width .6s;"/>
-            </div>
+<div class="dash-card dash-taux-span2" style="cursor:pointer; color:#164e4e;
+            background:linear-gradient(135deg,#cffafe,#a5f3fc);"
+     t-on-click="ouvrirTauxRemplissage">
+    <div class="dash-card-body-lg">
+        <div class="dash-card-titre">Taux de remplissage</div>
+        <div class="dash-card-valeur">
+            <t t-esc="state.taux_remplissage"/> %
+        </div>
+        <div style="background:rgba(0,0,0,.1); border-radius:10px;
+                    height:6px; margin:8px 0; overflow:hidden;">
+            <div t-attf-style="width:{{state.taux_remplissage}}%; height:100%;
+                               background:#0e7490; border-radius:10px; transition:width .6s;"/>
         </div>
     </div>
-
+</div>
 </div><!-- fin ligne 2 -->
 
         </div>
