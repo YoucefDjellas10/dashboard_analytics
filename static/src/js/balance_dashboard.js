@@ -239,8 +239,8 @@ export class BalanceDashboard extends Component {
                 data: {
                     labels,
                     datasets: [
-                        { label: String(this.state.annee_n1), data: dataN1, backgroundColor: dataN1.map(v => v >= 0 ? "rgba(30,27,75,0.75)"  : "rgba(220,38,38,0.75)"),  borderRadius: 6, borderSkipped: false },
-                        { label: String(this.state.annee_n),  data: dataN,  backgroundColor: dataN.map(v =>  v >= 0 ? "rgba(99,102,241,0.75)" : "rgba(239,68,68,0.75)"),  borderRadius: 6, borderSkipped: false },
+                        { label: String(this.state.annee_n1), data: dataN1, backgroundColor: dataN1.map(v => v >= 0 ? "rgba(21,101,192,0.75)"  : "rgba(220,38,38,0.75)"),  borderRadius: 6, borderSkipped: false },
+                        { label: String(this.state.annee_n),  data: dataN,  backgroundColor: dataN.map(v =>  v >= 0 ? "rgba(106,27,154,0.75)" : "rgba(239,68,68,0.75)"),  borderRadius: 6, borderSkipped: false },
                     ],
                 },
                 options: {
@@ -281,8 +281,8 @@ export class BalanceDashboard extends Component {
                 data: {
                     labels,
                     datasets: [
-                        { label: String(this.state.annee_n1), data: dataN1, borderColor: "rgba(30,27,75,1)",   backgroundColor: "rgba(30,27,75,0.1)",   borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
-                        { label: String(this.state.annee_n),  data: dataN,  borderColor: "rgba(99,102,241,1)", backgroundColor: "rgba(99,102,241,0.1)", borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
+                        { label: String(this.state.annee_n1), data: dataN1, borderColor: "rgba(21,101,192,1)",   backgroundColor: "rgba(21,101,192,0.1)",   borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
+                        { label: String(this.state.annee_n),  data: dataN,  borderColor: "rgba(106,27,154,1)", backgroundColor: "rgba(106,27,154,0.1)", borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
                     ],
                 },
                 options: {
@@ -316,7 +316,7 @@ export class BalanceDashboard extends Component {
         const negative = this.state.pie_data.filter(r => r.balance < 0);
         const labels   = [...positive.map(r => r.zone_name), ...negative.map(r => `${r.zone_name} (déficit)`)];
         const data     = [...positive.map(r => Math.round(r.balance)), ...negative.map(r => Math.abs(Math.round(r.balance)))];
-        const COLORS   = ["rgba(99,102,241,0.85)","rgba(30,27,75,0.85)","rgba(22,163,74,0.85)","rgba(14,116,144,0.85)","rgba(234,179,8,0.85)","rgba(249,115,22,0.85)"];
+        const COLORS   = ["rgba(21,101,192,0.85)","rgba(106,27,154,0.85)","rgba(22,163,74,0.85)","rgba(14,116,144,0.85)","rgba(234,179,8,0.85)","rgba(249,115,22,0.85)"];
         const REDS     = ["rgba(220,38,38,0.85)","rgba(239,68,68,0.85)","rgba(248,113,113,0.85)"];
 
         const bgColors = [
@@ -349,7 +349,7 @@ export class BalanceDashboard extends Component {
         const negative = this.state.pie_data_n1.filter(r => r.balance < 0);
         const labels   = [...positive.map(r => r.zone_name), ...negative.map(r => `${r.zone_name} (déficit)`)];
         const data     = [...positive.map(r => Math.round(r.balance)), ...negative.map(r => Math.abs(Math.round(r.balance)))];
-        const COLORS   = ["rgba(99,102,241,0.85)","rgba(30,27,75,0.85)","rgba(22,163,74,0.85)","rgba(14,116,144,0.85)","rgba(234,179,8,0.85)","rgba(249,115,22,0.85)"];
+        const COLORS   = ["rgba(21,101,192,0.85)","rgba(106,27,154,0.85)","rgba(22,163,74,0.85)","rgba(14,116,144,0.85)","rgba(234,179,8,0.85)","rgba(249,115,22,0.85)"];
         const REDS     = ["rgba(220,38,38,0.85)","rgba(239,68,68,0.85)","rgba(248,113,113,0.85)"];
 
         const bgColors = [
