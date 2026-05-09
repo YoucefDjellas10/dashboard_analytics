@@ -209,8 +209,8 @@ export class PanierMoyenDashboard extends Component {
                 data: {
                     labels,
                     datasets: [
-                        { label: String(this.state.annee_n1), data: dataN1, backgroundColor: "rgba(124,45,0,0.75)",  borderRadius: 6, borderSkipped: false },
-                        { label: String(this.state.annee_n),  data: dataN,  backgroundColor: "rgba(234,88,12,0.75)", borderRadius: 6, borderSkipped: false },
+                        { label: String(this.state.annee_n1), data: dataN1, backgroundColor: "rgba(21,101,192,0.75)",  borderRadius: 6, borderSkipped: false },
+                        { label: String(this.state.annee_n),  data: dataN,  backgroundColor: "rgba(106,27,154,0.75)", borderRadius: 6, borderSkipped: false },
                     ],
                 },
                 options: {
@@ -251,8 +251,8 @@ export class PanierMoyenDashboard extends Component {
                 data: {
                     labels,
                     datasets: [
-                        { label: String(this.state.annee_n1), data: dataN1, borderColor: "rgba(124,45,0,1)",  backgroundColor: "rgba(124,45,0,0.1)",  borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
-                        { label: String(this.state.annee_n),  data: dataN,  borderColor: "rgba(234,88,12,1)", backgroundColor: "rgba(234,88,12,0.1)", borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
+                        { label: String(this.state.annee_n1), data: dataN1, borderColor: "rgba(21,101,192,1)",  backgroundColor: "rgba(21,101,192,0.1)",  borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
+                        { label: String(this.state.annee_n),  data: dataN,  borderColor: "rgba(106,27,154,1)", backgroundColor: "rgba(106,27,154,0.1)", borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
                     ],
                 },
                 options: {
@@ -284,7 +284,16 @@ export class PanierMoyenDashboard extends Component {
 
         const labels = this.state.pie_data.map(r => r.zone_name);
         const data   = this.state.pie_data.map(r => Math.round(r.panier));
-        const COLORS = ["rgba(124,45,0,0.85)","rgba(234,88,12,0.85)","rgba(22,163,74,0.85)","rgba(21,101,192,0.85)","rgba(234,179,8,0.85)","rgba(14,116,144,0.85)","rgba(106,27,154,0.85)","rgba(99,102,241,0.85)"];
+        const COLORS = [
+            "rgba(21,101,192,0.85)",
+            "rgba(106,27,154,0.85)",
+            "rgba(22,163,74,0.85)",
+            "rgba(220,38,38,0.85)",
+            "rgba(234,179,8,0.85)",
+            "rgba(14,116,144,0.85)",
+            "rgba(249,115,22,0.85)",
+            "rgba(99,102,241,0.85)",
+        ];
 
         const draw = () => {
             this._chartPie = new Chart(canvas, {
@@ -309,7 +318,16 @@ export class PanierMoyenDashboard extends Component {
 
         const labels = this.state.pie_data_n1.map(r => r.zone_name);
         const data   = this.state.pie_data_n1.map(r => Math.round(r.panier));
-        const COLORS = ["rgba(124,45,0,0.85)","rgba(234,88,12,0.85)","rgba(22,163,74,0.85)","rgba(21,101,192,0.85)","rgba(234,179,8,0.85)","rgba(14,116,144,0.85)","rgba(106,27,154,0.85)","rgba(99,102,241,0.85)"];
+        const COLORS = [
+            "rgba(21,101,192,0.85)",
+            "rgba(106,27,154,0.85)",
+            "rgba(22,163,74,0.85)",
+            "rgba(220,38,38,0.85)",
+            "rgba(234,179,8,0.85)",
+            "rgba(14,116,144,0.85)",
+            "rgba(249,115,22,0.85)",
+            "rgba(99,102,241,0.85)",
+        ];
 
         const draw = () => {
             this._chartPieN1 = new Chart(canvas, {
