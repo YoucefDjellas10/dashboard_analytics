@@ -373,10 +373,7 @@ export class DashboardStatistiques extends Component {
     this.action.doAction("dashboard_analytics.action_taux_remplissage_dashboard");
 }
     ouvrirPanierMoyen() {
-    this.action.doAction({
-    type: "ir.actions.client",
-    tag: "dashboard_analytics.action_panier_moyen_dashboard",
-});
+    this.action.doAction("dashboard_analytics.action_panier_moyen_dashboard");
 }
     ouvrirBalance() {
     this.action.doAction("dashboard_analytics.action_balance_dashboard");
