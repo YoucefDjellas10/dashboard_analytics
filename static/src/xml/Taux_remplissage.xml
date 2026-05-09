@@ -139,7 +139,7 @@
             ← Retour
         </button>
         <div class="tx-title">
-            🚗 Taux de remplissage — <t t-esc="state.annee_n"/>
+            Taux de remplissage — <t t-esc="state.annee_n"/>
         </div>
     </div>
 
@@ -201,72 +201,59 @@
 
     <!-- Tableau -->
     <div class="tx-table-wrapper">
-        <table class="tx-table">
-            <thead>
-                <tr>
-                    <th>Mois</th>
-                    <th>Taux de remplissage</th>
-                    <th>Barre</th>
-                    <th>Réservations</th>
-                </tr>
-            </thead>
-            <tbody>
-                <t t-foreach="state.rows" t-as="row" t-key="row.mois">
-                    <tr>
-                        <td><t t-esc="row.label"/></td>
+<table class="tx-table">
+    <thead>
+        <tr>
+            <th>Mois</th>
+            <th>Taux de remplissage</th>
+            <th>Barre</th>
+        </tr>
+    </thead>
 
-                        <td>
-                            <span t-attf-style="font-size:16px; font-weight:900;
-                                color:{{ tauxColor(row.taux) }};">
-                                <t t-esc="row.taux"/> %
-                            </span>
-                        </td>
+    <tbody>
+        <t t-foreach="state.rows" t-as="row" t-key="row.mois">
+            <tr>
+                <td><t t-esc="row.label"/></td>
 
-                        <td style="min-width:160px;">
-                            <div class="tx-progress-bg">
-                                <div t-attf-style="width:{{row.taux}}%; height:100%;
-                                    background:{{ tauxColor(row.taux) }};
-                                    border-radius:10px; transition:width .6s;"/>
-                            </div>
-                        </td>
+                <td>
+                    <span t-attf-style="font-size:16px; font-weight:900;
+                        color:{{ tauxColor(row.taux) }};">
+                        <t t-esc="row.taux"/> %
+                    </span>
+                </td>
 
-                        <td>
-                            <span class="tx-clickable"
-                                  t-attf-style="color:{{ tauxColor(row.taux) }};"
-                                  t-on-click="() => ouvrirMois(row.mois)">
-                                Voir
-                            </span>
-                        </td>
-                    </tr>
-                </t>
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td>Moyenne</td>
-                    <td>
-                        <span t-attf-style="font-size:16px; font-weight:900;
-                            color:{{ tauxColor(moyenneTaux) }};">
-                            <t t-esc="moyenneTaux"/> %
-                        </span>
-                    </td>
-                    <td>
-                        <div class="tx-progress-bg">
-                            <div t-attf-style="width:{{moyenneTaux}}%; height:100%;
-                                background:{{ tauxColor(moyenneTaux) }};
-                                border-radius:10px;"/>
-                        </div>
-                    </td>
-                    <td/>
-                </tr>
-            </tfoot>
-        </table>
+                <td style="min-width:160px;">
+                    <div class="tx-progress-bg">
+                        <div t-attf-style="width:{{row.taux}}%; height:100%;
+                            background:{{ tauxColor(row.taux) }};
+                            border-radius:10px; transition:width .6s;"/>
+                    </div>
+                </td>
+            </tr>
+        </t>
+    </tbody>
 
-        <!-- Légende couleurs -->
-        <div class="tx-legend">
-            <span><span class="tx-legend-dot" style="background:#16a34a;"/> ≥ 75 % — Excellent</span>
-            <span><span class="tx-legend-dot" style="background:#ca8a04;"/> 40–74 % — Moyen</span>
-            <span><span class="tx-legend-dot" style="background:#dc2626;"/> &lt; 40 % — Faible</span>
-        </div>
+    <tfoot>
+        <tr>
+            <td>Moyenne</td>
+
+            <td>
+                <span t-attf-style="font-size:16px; font-weight:900;
+                    color:{{ tauxColor(moyenneTaux) }};">
+                    <t t-esc="moyenneTaux"/> %
+                </span>
+            </td>
+
+            <td>
+                <div class="tx-progress-bg">
+                    <div t-attf-style="width:{{moyenneTaux}}%; height:100%;
+                        background:{{ tauxColor(moyenneTaux) }};
+                        border-radius:10px;"/>
+                </div>
+            </td>
+        </tr>
+    </tfoot>
+</table>
     </div>
 
     <!-- Graphique barres -->
@@ -280,7 +267,7 @@
     <!-- Graphique pie par zone -->
     <div class="tx-table-wrapper" style="margin-top:20px; padding:24px;">
         <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
-            🥧 Taux de remplissage par zone — <t t-esc="state.annee_n"/>
+             Taux de remplissage par zone — <t t-esc="state.annee_n"/>
         </div>
         <canvas id="tr-remplissage-pie" style="width:100%; max-height:400px;"/>
     </div>
