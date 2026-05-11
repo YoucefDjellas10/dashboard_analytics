@@ -134,6 +134,54 @@
     text-align:center;
 }
 </style>
+    <t t-if="state.modal">
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;"
+         t-on-click="fermerModal">
+        <div style="background:#fff;border-radius:16px;padding:28px 32px;min-width:480px;max-width:680px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);"
+             t-on-click.stop="">
+
+            <!-- Header modal -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                <div style="font-size:17px;font-weight:800;color:#1e293b;">
+                    📋 Détail — <t t-esc="state.modal.titre"/>
+                </div>
+                <button t-on-click="fermerModal"
+                        style="background:none;border:none;font-size:22px;cursor:pointer;color:#94a3b8;line-height:1;">✕</button>
+            </div>
+
+            <!-- Tableau détail -->
+            <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                    <tr style="background:linear-gradient(135deg,#7f1d1d,#dc2626);color:#fff;">
+                        <th style="padding:11px 16px;text-align:left;font-size:13px;font-weight:700;border-radius:8px 0 0 0;">Type de dépense</th>
+                        <th style="padding:11px 16px;text-align:right;font-size:13px;font-weight:700;border-radius:0 8px 0 0;">Montant (DA)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-foreach="state.modal.lignes" t-as="ligne" t-key="ligne.type">
+                        <tr style="border-bottom:1px solid #f1f5f9;">
+                            <td style="padding:11px 16px;font-size:14px;color:#475569;font-weight:600;">
+                                <t t-esc="ligne.type"/>
+                            </td>
+                            <td style="padding:11px 16px;font-size:14px;color:#1e293b;font-weight:700;text-align:right;">
+                                <t t-esc="fmtRow(ligne.montant)"/>
+                            </td>
+                        </tr>
+                    </t>
+                </tbody>
+                <tfoot>
+                    <tr style="background:#f8fafc;">
+                        <td style="padding:12px 16px;font-weight:800;font-size:14px;color:#1e293b;">Total</td>
+                        <td style="padding:12px 16px;font-weight:800;font-size:14px;color:#dc2626;text-align:right;">
+                            <t t-esc="fmtRow(state.modal.lignes.reduce((s,l) => s + l.montant, 0))"/>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+
+        </div>
+    </div>
+</t>
 
 <div class="dep-header">
 
@@ -172,6 +220,20 @@
                 </t>
             </select>
         </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+    <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">
+        Type
+    </span>
+    <select class="dep-select-zone form-select form-select-sm"
+            t-on-change="updateSelectedType">
+        <option value="">Tous les types</option>
+        <t t-foreach="state.types_depense" t-as="td" t-key="td.id">
+            <option t-att-value="td.id"
+                    t-att-selected="state.selected_type == td.id"
+                    t-esc="td.name"/>
+        </t>
+    </select>
+</div>
 
     </div>
 
@@ -274,6 +336,7 @@
         </div>
 
     </div>
+
 
 </t>
 

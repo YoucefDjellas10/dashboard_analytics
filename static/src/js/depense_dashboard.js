@@ -15,18 +15,28 @@ export class DepenseDashboard extends Component {
         for (let y = currentYear; y >= currentYear - 5; y--) years.push(y);
 
         this.state = useState({
-            loading       : false,
-            zones         : [],
-            selected_zone : "",
-            rows          : [],
-            annee_n       : currentYear,
-            annee_n1      : currentYear - 1,
-            pie_data      : [],
-            pie_data_n1   : [],
-            years         : years,
+            loading           : false,
+            zones             : [],
+            selected_zone     : "",
+            types_depense     : [],
+            selected_type     : "",
+            rows              : [],
+            annee_n           : currentYear,
+            annee_n1          : currentYear - 1,
+            pie_data          : [],
+            pie_data_n1       : [],
+            years             : years,
+            modal             : null,
         });
 
-        onWillStart(() => this._loadZones().then(() => this.loadData()));
+        // Bind explicite pour garantir le contexte dans les handlers OWL
+        this.ouvrirMois   = this.ouvrirMois.bind(this);
+        this.fermerModal  = this.fermerModal.bind(this);
+
+        onWillStart(() =>
+            Promise.all([this._loadZones(), this._loadTypesDepense()])
+                   .then(() => this.loadData())
+        );
     }
 
     _pad(n) { return String(n).padStart(2, "0"); }
@@ -46,6 +56,12 @@ export class DepenseDashboard extends Component {
         );
     }
 
+    async _loadTypesDepense() {
+        this.state.types_depense = await this.orm.searchRead(
+            "type.depens", [], ["id", "name"], { order: "name asc" }
+        );
+    }
+
     _fmt(n) {
         return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
     }
@@ -61,6 +77,8 @@ export class DepenseDashboard extends Component {
         ];
         if (this.state.selected_zone)
             domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
+        if (this.state.selected_type)
+            domain.push(["type_depense", "=", parseInt(this.state.selected_type)]);
 
         const result = await this.orm.readGroup("depense.record", domain, ["montant_da:sum"], []);
         return (result[0] ?? {}).montant_da ?? 0;
@@ -102,7 +120,7 @@ export class DepenseDashboard extends Component {
 
             const rows = [];
             for (let m = 1; m <= 12; m++) {
-                const idx  = (m - 1) * 2;
+                const idx    = (m - 1) * 2;
                 const dep_n1 = results[idx];
                 const dep_n  = results[idx + 1];
 
@@ -154,30 +172,51 @@ export class DepenseDashboard extends Component {
         this.loadData();
     }
 
+    updateSelectedType(ev) {
+        this.state.selected_type = ev.target.value;
+        this.loadData();
+    }
+
     retourDashboard() {
         this.action.doAction("dashboard_analytics.action_dashboard_statistiques");
     }
 
-    ouvrirMois(annee, mois) {
+    async ouvrirMois(annee, mois) {
+        const state = this.state;   // capture locale — évite la perte de contexte
+        const orm   = this.orm;
+
         const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
         const fin   = new Date(annee, mois,     0, 23, 59, 59);
-        const label = `${this.state.rows[mois-1]?.label} ${annee}`;
+        const label = `${state.rows[mois - 1]?.label} ${annee}`;
 
         const domain = [
             ["status",              "=",  "valide"],
             ["date_de_realisation", ">=", this._toDateStr(debut)],
             ["date_de_realisation", "<=", this._toDateStr(fin)],
         ];
-        if (this.state.selected_zone)
-            domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
+        if (state.selected_zone)
+            domain.push(["zone", "=", parseInt(state.selected_zone)]);
+        if (state.selected_type)
+            domain.push(["type_depense", "=", parseInt(state.selected_type)]);
 
-        this.action.doAction({
-            type      : "ir.actions.act_window",
-            name      : `Dépenses Validées — ${label}`,
-            res_model : "depense.record",
-            view_mode : "list,form",
+        const groups = await orm.readGroup(
+            "depense.record",
             domain,
-        });
+            ["montant_da:sum"],
+            ["type_depense"],
+            { orderby: "montant_da desc" }
+        );
+
+        const lignes = groups.map(g => ({
+            type    : g.type_depense ? g.type_depense[1] : "— Sans type —",
+            montant : g.montant_da ?? 0,
+        }));
+
+        state.modal = { titre: label, lignes };
+    }
+
+    fermerModal() {
+        this.state.modal = null;
     }
 
     _renderChart() {
