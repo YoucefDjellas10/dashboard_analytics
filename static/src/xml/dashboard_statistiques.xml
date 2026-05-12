@@ -39,12 +39,10 @@
 }
 .dash-card-body-sm { padding:20px 18px; text-align:right; }
 .dash-card-body-lg { padding:20px 24px; text-align:right; }
-.dash-card-titre   { font-size:14px; font-weight:700; margin-bottom:10px; line-height:1.3; }
-.dash-card-valeur  { font-size:22px; font-weight:900; letter-spacing:-1px; line-height:1; }
-.dash-card-annee   { font-size:11px; font-weight:500; opacity:0.55; margin-top:2px; }
+.dash-card-titre   { font-size:27px; font-weight:700; margin-bottom:6px; line-height:1.3; }
+.dash-card-valeur  { font-size:15px; font-weight:900; letter-spacing:-1px; line-height:1; }
 .dash-card-sep     { height:1px; background:rgba(0,0,0,0.12); margin:10px 0; }
-.dash-card-prev    { font-size:16px; font-weight:700; opacity:0.5; line-height:1; }
-.dash-card-prev-annee { font-size:11px; font-weight:500; opacity:0.4; margin-top:2px; }
+.dash-card-prev    { font-size:13px; font-weight:700; opacity:0.5; line-height:1; }
 .dash-filtres-dates {
     display:flex;
     align-items:center;
@@ -111,8 +109,8 @@
     .dash-taux-span2 {
         grid-column: span 2;
     }
-    .dash-card-titre { font-size:13px; }
-    .dash-card-valeur { font-size:18px; }
+    .dash-card-titre { font-size:16px; }
+    .dash-card-valeur { font-size:20px; }
     .dash-card-body-sm { padding:14px; }
     .dash-card-body-lg { padding:14px; }
 }
@@ -246,11 +244,9 @@
         <div class="dash-card-body-sm">
             <div class="dash-card-titre">Réservations Confirmées</div>
             <div class="dash-card-valeur"><t t-esc="state.reservations_confirmer"/></div>
-            <div class="dash-card-annee"><t t-esc="anneeActuelle"/></div>
             <t t-if="state.prev_reservations !== null">
                 <div class="dash-card-sep"/>
                 <div class="dash-card-prev"><t t-esc="state.prev_reservations"/></div>
-                <div class="dash-card-prev-annee"><t t-esc="anneePrecedente"/></div>
             </t>
             <t t-if="deltaReservations">
                 <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 10px;
@@ -270,11 +266,9 @@
         <div class="dash-card-body-sm">
             <div class="dash-card-titre">Chiffre d'affaires</div>
             <div class="dash-card-valeur"><t t-esc="caFormatted"/> DA</div>
-            <div class="dash-card-annee"><t t-esc="anneeActuelle"/></div>
             <t t-if="state.prev_ca_da !== null">
                 <div class="dash-card-sep"/>
                 <div class="dash-card-prev"><t t-esc="fmt(state.prev_ca_da)"/> DA</div>
-                <div class="dash-card-prev-annee"><t t-esc="anneePrecedente"/></div>
             </t>
             <t t-if="deltaCa">
                 <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 10px;
@@ -294,11 +288,9 @@
         <div class="dash-card-body-sm">
             <div class="dash-card-titre">Trésorerie</div>
             <div class="dash-card-valeur"><t t-esc="tresorerieFormatted"/> DA</div>
-            <div class="dash-card-annee"><t t-esc="anneeActuelle"/></div>
             <t t-if="state.prev_tresorerie_da !== null">
                 <div class="dash-card-sep"/>
                 <div class="dash-card-prev"><t t-esc="fmt(state.prev_tresorerie_da)"/> DA</div>
-                <div class="dash-card-prev-annee"><t t-esc="anneePrecedente"/></div>
             </t>
             <t t-if="deltaTresorerie">
                 <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 10px;
@@ -318,11 +310,9 @@
         <div class="dash-card-body-sm">
             <div class="dash-card-titre">Panier Moyen</div>
             <div class="dash-card-valeur"><t t-esc="panierFormatted"/> DA</div>
-            <div class="dash-card-annee"><t t-esc="anneeActuelle"/></div>
             <t t-if="state.prev_panier_moyen_da !== null">
                 <div class="dash-card-sep"/>
                 <div class="dash-card-prev"><t t-esc="fmt(state.prev_panier_moyen_da)"/> DA</div>
-                <div class="dash-card-prev-annee"><t t-esc="anneePrecedente"/></div>
             </t>
             <t t-if="deltaPanier">
                 <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 10px;
@@ -347,11 +337,9 @@
         <div class="dash-card-body-lg">
             <div class="dash-card-titre">Dépenses</div>
             <div class="dash-card-valeur"><t t-esc="depenseFormatted"/> DA</div>
-            <div class="dash-card-annee"><t t-esc="anneeActuelle"/></div>
             <t t-if="state.prev_depense_da !== null">
                 <div class="dash-card-sep"/>
                 <div class="dash-card-prev"><t t-esc="fmt(state.prev_depense_da)"/> DA</div>
-                <div class="dash-card-prev-annee"><t t-esc="anneePrecedente"/></div>
             </t>
             <t t-if="deltaDepense">
                 <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 12px;
@@ -371,11 +359,9 @@
         <div class="dash-card-body-lg">
             <div class="dash-card-titre">Balance</div>
             <div class="dash-card-valeur"><t t-esc="balanceFormatted"/> DA</div>
-            <div class="dash-card-annee"><t t-esc="anneeActuelle"/></div>
             <t t-if="prevBalance !== null">
                 <div class="dash-card-sep"/>
                 <div class="dash-card-prev"><t t-esc="fmt(prevBalance)"/> DA</div>
-                <div class="dash-card-prev-annee"><t t-esc="anneePrecedente"/></div>
             </t>
             <t t-if="deltaBalance">
                 <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 12px;
