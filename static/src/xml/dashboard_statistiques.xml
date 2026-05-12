@@ -39,8 +39,12 @@
 }
 .dash-card-body-sm { padding:20px 18px; text-align:right; }
 .dash-card-body-lg { padding:20px 24px; text-align:right; }
-.dash-card-titre   { font-size:27px; font-weight:700; margin-bottom:6px; line-height:1.3; }
-.dash-card-valeur  { font-size:15px; font-weight:900; letter-spacing:-1px; line-height:1; }
+.dash-card-titre   { font-size:14px; font-weight:700; margin-bottom:10px; line-height:1.3; }
+.dash-card-valeur  { font-size:22px; font-weight:900; letter-spacing:-1px; line-height:1; }
+.dash-card-annee   { font-size:11px; font-weight:500; opacity:0.55; margin-top:2px; }
+.dash-card-sep     { height:1px; background:rgba(0,0,0,0.12); margin:10px 0; }
+.dash-card-prev    { font-size:16px; font-weight:700; opacity:0.5; line-height:1; }
+.dash-card-prev-annee { font-size:11px; font-weight:500; opacity:0.4; margin-top:2px; }
 .dash-filtres-dates {
     display:flex;
     align-items:center;
@@ -107,8 +111,8 @@
     .dash-taux-span2 {
         grid-column: span 2;
     }
-    .dash-card-titre { font-size:16px; }
-    .dash-card-valeur { font-size:20px; }
+    .dash-card-titre { font-size:13px; }
+    .dash-card-valeur { font-size:18px; }
     .dash-card-body-sm { padding:14px; }
     .dash-card-body-lg { padding:14px; }
 }
@@ -241,11 +245,15 @@
          t-on-click="ouvrirReservations">
         <div class="dash-card-body-sm">
             <div class="dash-card-titre">Réservations Confirmées</div>
-            <div class="dash-card-valeur">
-                <t t-esc="state.reservations_confirmer"/>
-            </div>
+            <div class="dash-card-valeur"><t t-esc="state.reservations_confirmer"/></div>
+            <div class="dash-card-annee"><t t-esc="anneeActuelle"/></div>
+            <t t-if="state.prev_reservations !== null">
+                <div class="dash-card-sep"/>
+                <div class="dash-card-prev"><t t-esc="state.prev_reservations"/></div>
+                <div class="dash-card-prev-annee"><t t-esc="anneePrecedente"/></div>
+            </t>
             <t t-if="deltaReservations">
-                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;
+                <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 10px;
                                    border-radius:20px; font-size:12px; font-weight:800;
                                    background:{{ deltaReservations.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
                     <t t-if="deltaReservations.positive">▲ +<t t-esc="deltaReservations.val"/> %</t>
@@ -261,11 +269,15 @@
          t-on-click="ouvrirChiffreAffaire">
         <div class="dash-card-body-sm">
             <div class="dash-card-titre">Chiffre d'affaires</div>
-            <div class="dash-card-valeur">
-                <t t-esc="caFormatted"/> DA
-            </div>
+            <div class="dash-card-valeur"><t t-esc="caFormatted"/> DA</div>
+            <div class="dash-card-annee"><t t-esc="anneeActuelle"/></div>
+            <t t-if="state.prev_ca_da !== null">
+                <div class="dash-card-sep"/>
+                <div class="dash-card-prev"><t t-esc="fmt(state.prev_ca_da)"/> DA</div>
+                <div class="dash-card-prev-annee"><t t-esc="anneePrecedente"/></div>
+            </t>
             <t t-if="deltaCa">
-                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;
+                <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 10px;
                                    border-radius:20px; font-size:12px; font-weight:800;
                                    background:{{ deltaCa.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
                     <t t-if="deltaCa.positive">▲ +<t t-esc="deltaCa.val"/> %</t>
@@ -276,36 +288,44 @@
     </div>
 
     <!-- 3. Trésorerie -->
-<!-- 3. Trésorerie -->
-<div class="dash-card" style="cursor:pointer; color:#6b0f3a;
-            background:linear-gradient(135deg,#fce7f3,#fbcfe8);"
-     t-on-click="ouvrirTresorerie">
-    <div class="dash-card-body-sm">
-        <div class="dash-card-titre">Trésorerie</div>
-        <div class="dash-card-valeur">
-            <t t-esc="tresorerieFormatted"/> DA
+    <div class="dash-card" style="cursor:pointer; color:#6b0f3a;
+                background:linear-gradient(135deg,#fce7f3,#fbcfe8);"
+         t-on-click="ouvrirTresorerie">
+        <div class="dash-card-body-sm">
+            <div class="dash-card-titre">Trésorerie</div>
+            <div class="dash-card-valeur"><t t-esc="tresorerieFormatted"/> DA</div>
+            <div class="dash-card-annee"><t t-esc="anneeActuelle"/></div>
+            <t t-if="state.prev_tresorerie_da !== null">
+                <div class="dash-card-sep"/>
+                <div class="dash-card-prev"><t t-esc="fmt(state.prev_tresorerie_da)"/> DA</div>
+                <div class="dash-card-prev-annee"><t t-esc="anneePrecedente"/></div>
+            </t>
+            <t t-if="deltaTresorerie">
+                <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 10px;
+                                   border-radius:20px; font-size:12px; font-weight:800;
+                                   background:{{ deltaTresorerie.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
+                    <t t-if="deltaTresorerie.positive">▲ +<t t-esc="deltaTresorerie.val"/> %</t>
+                    <t t-else="">▼ <t t-esc="deltaTresorerie.val"/> %</t>
+                </div>
+            </t>
         </div>
-        <t t-if="deltaTresorerie">
-            <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;
-                               border-radius:20px; font-size:12px; font-weight:800;
-                               background:{{ deltaTresorerie.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
-                <t t-if="deltaTresorerie.positive">▲ +<t t-esc="deltaTresorerie.val"/> %</t>
-                <t t-else="">▼ <t t-esc="deltaTresorerie.val"/> %</t>
-            </div>
-        </t>
     </div>
-</div>
+
     <!-- 4. Panier Moyen -->
     <div class="dash-card" style="cursor:pointer; color:#7c2d00;
             background:linear-gradient(135deg,#ffedd5,#fed7aa);"
-     t-on-click="ouvrirPanierMoyen">
+         t-on-click="ouvrirPanierMoyen">
         <div class="dash-card-body-sm">
             <div class="dash-card-titre">Panier Moyen</div>
-            <div class="dash-card-valeur">
-                <t t-esc="panierFormatted"/> DA
-            </div>
+            <div class="dash-card-valeur"><t t-esc="panierFormatted"/> DA</div>
+            <div class="dash-card-annee"><t t-esc="anneeActuelle"/></div>
+            <t t-if="state.prev_panier_moyen_da !== null">
+                <div class="dash-card-sep"/>
+                <div class="dash-card-prev"><t t-esc="fmt(state.prev_panier_moyen_da)"/> DA</div>
+                <div class="dash-card-prev-annee"><t t-esc="anneePrecedente"/></div>
+            </t>
             <t t-if="deltaPanier">
-                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 10px;
+                <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 10px;
                                    border-radius:20px; font-size:12px; font-weight:800;
                                    background:{{ deltaPanier.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
                     <t t-if="deltaPanier.positive">▲ +<t t-esc="deltaPanier.val"/> %</t>
@@ -326,11 +346,15 @@
          t-on-click="ouvrirDepenses">
         <div class="dash-card-body-lg">
             <div class="dash-card-titre">Dépenses</div>
-            <div class="dash-card-valeur">
-                <t t-esc="depenseFormatted"/> DA
-            </div>
+            <div class="dash-card-valeur"><t t-esc="depenseFormatted"/> DA</div>
+            <div class="dash-card-annee"><t t-esc="anneeActuelle"/></div>
+            <t t-if="state.prev_depense_da !== null">
+                <div class="dash-card-sep"/>
+                <div class="dash-card-prev"><t t-esc="fmt(state.prev_depense_da)"/> DA</div>
+                <div class="dash-card-prev-annee"><t t-esc="anneePrecedente"/></div>
+            </t>
             <t t-if="deltaDepense">
-                <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 12px;
+                <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 12px;
                                    border-radius:20px; font-size:13px; font-weight:800;
                                    background:{{ deltaDepense.positive ? '#dc2626' : '#16a34a' }}; color:#fff;">
                     <t t-if="deltaDepense.positive">▲ +<t t-esc="deltaDepense.val"/> %</t>
@@ -341,40 +365,46 @@
     </div>
 
     <!-- 6. Balance -->
-<div class="dash-card" style="cursor:pointer; color:#1e1b4b;
-            background:linear-gradient(135deg,#e0e7ff,#c7d2fe);"
-     t-on-click="ouvrirBalance">
-    <div class="dash-card-body-lg">
-        <div class="dash-card-titre">Balance</div>
-        <div class="dash-card-valeur">
-            <t t-esc="balanceFormatted"/> DA
+    <div class="dash-card" style="cursor:pointer; color:#1e1b4b;
+                background:linear-gradient(135deg,#e0e7ff,#c7d2fe);"
+         t-on-click="ouvrirBalance">
+        <div class="dash-card-body-lg">
+            <div class="dash-card-titre">Balance</div>
+            <div class="dash-card-valeur"><t t-esc="balanceFormatted"/> DA</div>
+            <div class="dash-card-annee"><t t-esc="anneeActuelle"/></div>
+            <t t-if="prevBalance !== null">
+                <div class="dash-card-sep"/>
+                <div class="dash-card-prev"><t t-esc="fmt(prevBalance)"/> DA</div>
+                <div class="dash-card-prev-annee"><t t-esc="anneePrecedente"/></div>
+            </t>
+            <t t-if="deltaBalance">
+                <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 12px;
+                                   border-radius:20px; font-size:13px; font-weight:800;
+                                   background:{{ deltaBalance.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
+                    <t t-if="deltaBalance.positive">▲ +<t t-esc="deltaBalance.val"/> %</t>
+                    <t t-else="">▼ <t t-esc="deltaBalance.val"/> %</t>
+                </div>
+            </t>
         </div>
-        <t t-if="deltaBalance">
-            <div t-attf-style="margin-top:8px; display:inline-block; padding:3px 12px;
-                               border-radius:20px; font-size:13px; font-weight:800;
-                               background:{{ deltaBalance.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
-                <t t-if="deltaBalance.positive">▲ +<t t-esc="deltaBalance.val"/> %</t>
-                <t t-else="">▼ <t t-esc="deltaBalance.val"/> %</t>
+    </div>
+
+    <!-- 7. Taux de remplissage — pas de delta, pas de N-1 -->
+    <div class="dash-card dash-taux-span2" style="cursor:pointer; color:#164e4e;
+                background:linear-gradient(135deg,#cffafe,#a5f3fc);"
+         t-on-click="ouvrirTauxRemplissage">
+        <div class="dash-card-body-lg">
+            <div class="dash-card-titre">Taux de remplissage</div>
+            <div class="dash-card-valeur">
+                <t t-esc="state.taux_remplissage"/> %
             </div>
-        </t>
-    </div>
-</div>
-    <!-- 7. Taux de remplissage — pas de delta -->
-<div class="dash-card dash-taux-span2" style="cursor:pointer; color:#164e4e;
-            background:linear-gradient(135deg,#cffafe,#a5f3fc);"
-     t-on-click="ouvrirTauxRemplissage">
-    <div class="dash-card-body-lg">
-        <div class="dash-card-titre">Taux de remplissage</div>
-        <div class="dash-card-valeur">
-            <t t-esc="state.taux_remplissage"/> %
-        </div>
-        <div style="background:rgba(0,0,0,.1); border-radius:10px;
-                    height:6px; margin:8px 0; overflow:hidden;">
-            <div t-attf-style="width:{{state.taux_remplissage}}%; height:100%;
-                               background:#0e7490; border-radius:10px; transition:width .6s;"/>
+            <div style="background:rgba(0,0,0,.1); border-radius:10px;
+                        height:6px; margin:8px 0; overflow:hidden;">
+                <div t-attf-style="width:{{state.taux_remplissage}}%; height:100%;
+                                   background:#0e7490; border-radius:10px; transition:width .6s;"/>
+            </div>
         </div>
     </div>
-</div>
+
 </div><!-- fin ligne 2 -->
 
         </div>

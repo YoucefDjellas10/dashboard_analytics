@@ -381,6 +381,13 @@ export class DashboardStatistiques extends Component {
     ouvrirDepenses() {
     this.action.doAction("dashboard_analytics.action_depense_dashboard");
 }
+    get anneeActuelle() {
+    return this.state.date_debut ? this.state.date_debut.slice(0, 4) : "";
+}
+
+    get anneePrecedente() {
+    return this.state.date_debut ? String(parseInt(this.state.date_debut.slice(0, 4)) - 1) : "";
+}
 
     get caFormatted()         { return this.fmt(this.state.total_ca_da); }
     get tresorerieFormatted() { return this.fmt(this.state.total_tresorerie_da); }
