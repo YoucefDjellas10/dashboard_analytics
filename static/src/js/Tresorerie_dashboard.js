@@ -61,9 +61,10 @@ export class TresorerieDashboard extends Component {
     async _fetchMoisTresorerie(annee, mois) {
         const zoneId = this.state.selected_zone ? parseInt(this.state.selected_zone) : false;
 
+        // ── Délègue à action_search_revenues (même résultat que la page Finance) ──
         const result = await this.orm.call(
             "dashboard.statistiques",
-            "get_tresorerie_mois",
+            "get_tresorerie_mois_v2",
             [annee, mois],
             { zone_id: zoneId }
         );
@@ -72,12 +73,12 @@ export class TresorerieDashboard extends Component {
     }
 
     /**
-     * Appelle get_tresorerie_par_zone() côté Python pour les pie charts.
+     * Appelle get_tresorerie_par_zone_v2() côté Python pour les pie charts.
      */
     async _fetchZoneTresorerie(annee) {
         const result = await this.orm.call(
             "dashboard.statistiques",
-            "get_tresorerie_par_zone",
+            "get_tresorerie_par_zone_v2",
             [annee],
             {}
         );
