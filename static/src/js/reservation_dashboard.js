@@ -12,7 +12,6 @@ export class ReservationDashboard extends Component {
 
         const currentYear = new Date().getFullYear();
 
-        // Générer la liste des années (5 ans en arrière jusqu'à l'année actuelle)
         const years = [];
         for (let y = currentYear; y >= currentYear - 5; y--) {
             years.push(y);
@@ -78,20 +77,63 @@ export class ReservationDashboard extends Component {
                 "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
             ];
 
-            const promises = [];
-            for (let m = 1; m <= 12; m++) {
-                promises.push(this.orm.readGroup("reservation", this._buildDomain(n1, m), ["id:count"], []));
-                promises.push(this.orm.readGroup("reservation", this._buildDomain(n,  m), ["id:count"], []));
-            }
+            // 2 requêtes searchRead globales (toute l'année) pour récupérer les jours
+            // puis on regroupe côté JS par mois
+            const _buildDomainYear = (annee) => {
+                const debut = new Date(annee, 0,  1,  0,  0,  0);
+                const fin   = new Date(annee, 11, 31, 23, 59, 59);
+                const domain = [
+                    ["status",      "=",  "confirmee"],
+                    ["create_date", ">=", this._formatORM(debut)],
+                    ["create_date", "<=", this._formatORM(fin)],
+                ];
+                if (this.state.selected_zone)
+                    domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
+                return domain;
+            };
 
-            const results = await Promise.all(promises);
+            // Récupérer toutes les réservations des 2 années avec create_date + nbr_jour_reservation
+            const [recsN1, recsN] = await Promise.all([
+                this.orm.searchRead(
+                    "reservation",
+                    _buildDomainYear(n1),
+                    ["create_date", "nbr_jour_reservation"],
+                    { limit: 0 }
+                ),
+                this.orm.searchRead(
+                    "reservation",
+                    _buildDomainYear(n),
+                    ["create_date", "nbr_jour_reservation"],
+                    { limit: 0 }
+                ),
+            ]);
+
+            // Fonction utilitaire : grouper par mois
+            const groupByMonth = (recs) => {
+                const countArr = new Array(12).fill(0);
+                const joursArr = new Array(12).fill(0);
+                for (const r of recs) {
+                    if (!r.create_date) continue;
+                    const moisIdx = new Date(r.create_date).getMonth(); // 0-11
+                    countArr[moisIdx]++;
+                    joursArr[moisIdx] += (r.nbr_jour_reservation || 0);
+                }
+                return { countArr, joursArr };
+            };
+
+            const grpN1 = groupByMonth(recsN1);
+            const grpN  = groupByMonth(recsN);
 
             const rows = [];
             for (let m = 1; m <= 12; m++) {
-                const idx      = (m - 1) * 2;
-                const count_n1 = results[idx][0]?.__count   ?? 0;
-                const count_n  = results[idx+1][0]?.__count ?? 0;
+                const idx = m - 1;
 
+                const count_n1 = grpN1.countArr[idx];
+                const jours_n1 = grpN1.joursArr[idx];
+                const count_n  = grpN.countArr[idx];
+                const jours_n  = grpN.joursArr[idx];
+
+                // Évolution basée sur le nombre de réservations
                 let delta = null;
                 if (count_n1 > 0) {
                     delta = Math.round(((count_n - count_n1) / count_n1) * 100);
@@ -99,7 +141,20 @@ export class ReservationDashboard extends Component {
                     delta = 100;
                 }
 
-                rows.push({ mois: m, label: MOIS_LABELS[m - 1], count_n1, count_n, delta });
+                // Évolution basée sur le nombre de jours
+                let delta_jours = null;
+                if (jours_n1 > 0) {
+                    delta_jours = Math.round(((jours_n - jours_n1) / jours_n1) * 100);
+                } else if (jours_n > 0) {
+                    delta_jours = 100;
+                }
+
+                rows.push({
+                    mois: m, label: MOIS_LABELS[m - 1],
+                    count_n1, jours_n1,
+                    count_n,  jours_n,
+                    delta, delta_jours,
+                });
             }
 
             this.state.rows = rows;
@@ -375,14 +430,9 @@ export class ReservationDashboard extends Component {
         const data   = this.state.pie_data.map(r => r.count);
 
         const COLORS = [
-            "rgba(21,101,192,0.85)",
-            "rgba(106,27,154,0.85)",
-            "rgba(22,163,74,0.85)",
-            "rgba(220,38,38,0.85)",
-            "rgba(234,179,8,0.85)",
-            "rgba(14,116,144,0.85)",
-            "rgba(249,115,22,0.85)",
-            "rgba(99,102,241,0.85)",
+            "rgba(21,101,192,0.85)","rgba(106,27,154,0.85)","rgba(22,163,74,0.85)",
+            "rgba(220,38,38,0.85)","rgba(234,179,8,0.85)","rgba(14,116,144,0.85)",
+            "rgba(249,115,22,0.85)","rgba(99,102,241,0.85)",
         ];
 
         const draw = () => {
@@ -414,9 +464,8 @@ export class ReservationDashboard extends Component {
             });
         };
 
-        if (window.Chart) {
-            draw();
-        } else {
+        if (window.Chart) { draw(); }
+        else {
             const script = document.createElement("script");
             script.src   = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
             script.onload = draw;
@@ -437,14 +486,9 @@ export class ReservationDashboard extends Component {
         const data   = this.state.pie_data_n1.map(r => r.count);
 
         const COLORS = [
-            "rgba(21,101,192,0.85)",
-            "rgba(106,27,154,0.85)",
-            "rgba(22,163,74,0.85)",
-            "rgba(220,38,38,0.85)",
-            "rgba(234,179,8,0.85)",
-            "rgba(14,116,144,0.85)",
-            "rgba(249,115,22,0.85)",
-            "rgba(99,102,241,0.85)",
+            "rgba(21,101,192,0.85)","rgba(106,27,154,0.85)","rgba(22,163,74,0.85)",
+            "rgba(220,38,38,0.85)","rgba(234,179,8,0.85)","rgba(14,116,144,0.85)",
+            "rgba(249,115,22,0.85)","rgba(99,102,241,0.85)",
         ];
 
         const draw = () => {
@@ -476,9 +520,8 @@ export class ReservationDashboard extends Component {
             });
         };
 
-        if (window.Chart) {
-            draw();
-        } else {
+        if (window.Chart) { draw(); }
+        else {
             const script = document.createElement("script");
             script.src   = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
             script.onload = draw;
@@ -486,11 +529,22 @@ export class ReservationDashboard extends Component {
         }
     }
 
-    get totalN1() { return this.state.rows.reduce((s, r) => s + r.count_n1, 0); }
-    get totalN()  { return this.state.rows.reduce((s, r) => s + r.count_n,  0); }
+    // ─────────────────────────────────────────
+    //  Totaux (footer)
+    // ─────────────────────────────────────────
+
+    get totalN1()      { return this.state.rows.reduce((s, r) => s + r.count_n1, 0); }
+    get totalN()       { return this.state.rows.reduce((s, r) => s + r.count_n,  0); }
+    get totalJoursN1() { return this.state.rows.reduce((s, r) => s + r.jours_n1, 0); }
+    get totalJoursN()  { return this.state.rows.reduce((s, r) => s + r.jours_n,  0); }
+
     get totalDelta() {
         if (this.totalN1 === 0) return this.totalN > 0 ? 100 : null;
         return Math.round(((this.totalN - this.totalN1) / this.totalN1) * 100);
+    }
+    get totalDeltaJours() {
+        if (this.totalJoursN1 === 0) return this.totalJoursN > 0 ? 100 : null;
+        return Math.round(((this.totalJoursN - this.totalJoursN1) / this.totalJoursN1) * 100);
     }
 }
 

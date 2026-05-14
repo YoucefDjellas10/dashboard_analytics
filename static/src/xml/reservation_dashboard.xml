@@ -99,6 +99,41 @@
     text-decoration:underline dotted;
 }
 .rd-clickable:hover { color:#6a1b9a; }
+
+/* Cellule réservation : nombre + jours */
+.rd-cell-main {
+    font-size:14px;
+    font-weight:800;
+    color:#1565c0;
+}
+.rd-cell-jours {
+    font-size:12px;
+    font-weight:600;
+    color:#64748b;
+    margin-left:4px;
+}
+
+/* Évolution : deux badges côte à côte sur la même ligne */
+.rd-evo-wrap {
+    display:inline-flex;
+    flex-direction:row;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    flex-wrap:wrap;
+}
+.rd-evo-item {
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+}
+.rd-evo-label {
+    font-size:10px;
+    font-weight:600;
+    color:#94a3b8;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+}
 .rd-badge {
     display:inline-block;
     padding:3px 10px;
@@ -110,6 +145,7 @@
 .rd-badge-up   { background:#16a34a; }
 .rd-badge-down { background:#dc2626; }
 .rd-badge-null { background:#94a3b8; }
+
 .rd-btn-retour {
     display:flex;
     align-items:center;
@@ -148,7 +184,6 @@
 
 <!-- Header -->
 <div class="rd-header">
-
     <div style="display:flex; align-items:center; gap:10px;">
         <button class="rd-btn-retour" t-on-click="retourDashboard">
             ← Retour
@@ -159,8 +194,6 @@
     </div>
 
     <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-
-        <!-- Sélecteur Année -->
         <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Année</span>
             <select class="rd-select-year form-select form-select-sm"
@@ -172,8 +205,6 @@
                 </t>
             </select>
         </div>
-
-        <!-- Sélecteur Zone -->
         <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Zone</span>
             <select class="rd-select-zone form-select form-select-sm"
@@ -186,9 +217,7 @@
                 </t>
             </select>
         </div>
-
     </div>
-
 </div>
 
 <!-- Loading -->
@@ -213,28 +242,46 @@
             <tbody>
                 <t t-foreach="state.rows" t-as="row" t-key="row.mois">
                     <tr>
+                        <!-- Mois -->
                         <td><t t-esc="row.label"/></td>
 
+                        <!-- Colonne N-1 : nb réservations + jours sur la même ligne -->
                         <td class="rd-clickable"
                             t-on-click="() => ouvrirMois(state.annee_n1, row.mois)">
-                            <t t-esc="row.count_n1"/>
+                            <span class="rd-cell-main"><t t-esc="row.count_n1"/></span><span class="rd-cell-jours">(<t t-esc="row.jours_n1"/> jours)</span>
                         </td>
 
+                        <!-- Colonne N : nb réservations + jours sur la même ligne -->
                         <td class="rd-clickable"
                             t-on-click="() => ouvrirMois(state.annee_n, row.mois)">
-                            <t t-esc="row.count_n"/>
+                            <span class="rd-cell-main"><t t-esc="row.count_n"/></span><span class="rd-cell-jours">(<t t-esc="row.jours_n"/> jours)</span>
                         </td>
 
+                        <!-- Évolution : badges côte à côte sur la même ligne -->
                         <td>
-                            <t t-if="row.delta !== null">
-                                <span t-attf-class="rd-badge {{ row.delta >= 0 ? 'rd-badge-up' : 'rd-badge-down' }}">
-                                    <t t-if="row.delta >= 0">▲ +<t t-esc="row.delta"/> %</t>
-                                    <t t-else="">▼ <t t-esc="row.delta"/> %</t>
+                            <div class="rd-evo-wrap">
+                                <span class="rd-evo-item">
+                                    <span class="rd-evo-label">Résv.</span>
+                                    <t t-if="row.delta !== null">
+                                        <span t-attf-class="rd-badge {{ row.delta >= 0 ? 'rd-badge-up' : 'rd-badge-down' }}">
+                                            <t t-if="row.delta >= 0">▲ +<t t-esc="row.delta"/> %</t>
+                                            <t t-else="">▼ <t t-esc="row.delta"/> %</t>
+                                        </span>
+                                    </t>
+                                    <t t-else=""><span class="rd-badge rd-badge-null">—</span></t>
                                 </span>
-                            </t>
-                            <t t-else="">
-                                <span class="rd-badge rd-badge-null">—</span>
-                            </t>
+                                <span style="color:#e2e8f0;">|</span>
+                                <span class="rd-evo-item">
+                                    <span class="rd-evo-label">Jours</span>
+                                    <t t-if="row.delta_jours !== null">
+                                        <span t-attf-class="rd-badge {{ row.delta_jours >= 0 ? 'rd-badge-up' : 'rd-badge-down' }}">
+                                            <t t-if="row.delta_jours >= 0">▲ +<t t-esc="row.delta_jours"/> %</t>
+                                            <t t-else="">▼ <t t-esc="row.delta_jours"/> %</t>
+                                        </span>
+                                    </t>
+                                    <t t-else=""><span class="rd-badge rd-badge-null">—</span></t>
+                                </span>
+                            </div>
                         </td>
                     </tr>
                 </t>
@@ -242,60 +289,76 @@
             <tfoot>
                 <tr>
                     <td>Total</td>
-                    <td><t t-esc="totalN1"/></td>
-                    <td><t t-esc="totalN"/></td>
+                    <!-- Total N-1 -->
                     <td>
-                        <t t-if="totalDelta !== null">
-                            <span t-attf-class="rd-badge {{ totalDelta >= 0 ? 'rd-badge-up' : 'rd-badge-down' }}">
-                                <t t-if="totalDelta >= 0">▲ +<t t-esc="totalDelta"/> %</t>
-                                <t t-else="">▼ <t t-esc="totalDelta"/> %</t>
-                            </span>
-                        </t>
+                        <span class="rd-cell-main"><t t-esc="totalN1"/></span><span class="rd-cell-jours">(<t t-esc="totalJoursN1"/> jours)</span>
+                    </td>
+                    <!-- Total N -->
+                    <td>
+                        <span class="rd-cell-main"><t t-esc="totalN"/></span><span class="rd-cell-jours">(<t t-esc="totalJoursN"/> jours)</span>
+                    </td>
+                    <!-- Évolution totale -->
+                    <td>
+                        <div class="rd-evo-wrap">
+                            <div>
+                                <span class="rd-evo-label">Résv.</span>
+                                <t t-if="totalDelta !== null">
+                                    <span t-attf-class="rd-badge {{ totalDelta >= 0 ? 'rd-badge-up' : 'rd-badge-down' }}">
+                                        <t t-if="totalDelta >= 0">▲ +<t t-esc="totalDelta"/> %</t>
+                                        <t t-else="">▼ <t t-esc="totalDelta"/> %</t>
+                                    </span>
+                                </t>
+                            </div>
+                            <div>
+                                <span class="rd-evo-label">Jours</span>
+                                <t t-if="totalDeltaJours !== null">
+                                    <span t-attf-class="rd-badge {{ totalDeltaJours >= 0 ? 'rd-badge-up' : 'rd-badge-down' }}">
+                                        <t t-if="totalDeltaJours >= 0">▲ +<t t-esc="totalDeltaJours"/> %</t>
+                                        <t t-else="">▼ <t t-esc="totalDeltaJours"/> %</t>
+                                    </span>
+                                </t>
+                            </div>
+                        </div>
                     </td>
                 </tr>
             </tfoot>
         </table>
     </div>
 
-        <!-- Graphique barres -->
-        <div class="rd-table-wrapper" style="margin-top:20px; padding:24px;">
-            <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
-                📊 Comparaison mensuelle — <t t-esc="state.annee_n1"/> vs <t t-esc="state.annee_n"/>
-            </div>
-            <canvas id="rd-chart" style="width:100%; max-height:400px;"/>
+    <!-- Graphique barres -->
+    <div class="rd-table-wrapper" style="margin-top:20px; padding:24px;">
+        <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
+            📊 Comparaison mensuelle — <t t-esc="state.annee_n1"/> vs <t t-esc="state.annee_n"/>
         </div>
+        <canvas id="rd-chart" style="width:100%; max-height:400px;"/>
+    </div>
 
-        <!-- Graphique courbe -->
-        <div class="rd-table-wrapper" style="margin-top:20px; padding:24px;">
-            <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
-                📈 Évolution mensuelle — <t t-esc="state.annee_n1"/> vs <t t-esc="state.annee_n"/>
-            </div>
-            <canvas id="rd-chart-line" style="width:100%; max-height:400px;"/>
+    <!-- Graphique courbe -->
+    <div class="rd-table-wrapper" style="margin-top:20px; padding:24px;">
+        <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
+            📈 Évolution mensuelle — <t t-esc="state.annee_n1"/> vs <t t-esc="state.annee_n"/>
         </div>
+        <canvas id="rd-chart-line" style="width:100%; max-height:400px;"/>
+    </div>
 
-        <!-- Graphiques Pie côte à côte : N-1 | N -->
-        <div class="rd-pie-grid">
-
-            <!-- Pie N-1 -->
-            <div class="rd-table-wrapper" style="padding:24px;">
-                <div class="rd-pie-title">
-                    🥧 Réservations par zone — <t t-esc="state.annee_n1"/>
-                </div>
-                <canvas id="rd-chart-pie-n1" style="width:100%; max-height:500px;"/>
+    <!-- Graphiques Pie côte à côte -->
+    <div class="rd-pie-grid">
+        <div class="rd-table-wrapper" style="padding:24px;">
+            <div class="rd-pie-title">
+                🥧 Réservations par zone — <t t-esc="state.annee_n1"/>
             </div>
-
-            <!-- Pie N -->
-            <div class="rd-table-wrapper" style="padding:24px;">
-                <div class="rd-pie-title">
-                    🥧 Réservations par zone — <t t-esc="state.annee_n"/>
-                </div>
-                <canvas id="rd-chart-pie" style="width:100%; max-height:500px;"/>
+            <canvas id="rd-chart-pie-n1" style="width:100%; max-height:500px;"/>
+        </div>
+        <div class="rd-table-wrapper" style="padding:24px;">
+            <div class="rd-pie-title">
+                🥧 Réservations par zone — <t t-esc="state.annee_n"/>
             </div>
-
+            <canvas id="rd-chart-pie" style="width:100%; max-height:500px;"/>
         </div>
+    </div>
 
-    </t>
+</t>
 
-        </div>
+</div>
     </t>
 </templates>
