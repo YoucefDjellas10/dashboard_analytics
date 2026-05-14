@@ -15,12 +15,6 @@ class DashboardStatistiques(models.Model):
     total_clients = fields.Integer(string='Total Clients')
     total_commandes = fields.Integer(string='Total Commandes')
 
-    # ──────────────────────────────────────────────────────────────
-    # MÉTHODES PRINCIPALES — délèguent à action_search_revenues
-    # Résultat IDENTIQUE à la page Finance/Encaissement
-    # Formule : tresorerie = total_montant_dzd + (total_montant_eur × taux)
-    # ──────────────────────────────────────────────────────────────
-
     @api.model
     def get_tresorerie_mois_v2(self, annee, mois, zone_id=None):
         """
@@ -28,10 +22,11 @@ class DashboardStatistiques(models.Model):
         que la page Finance — et retourne :
             tresorerie = total_montant_dzd + (total_montant_eur × taux)
 
-        total_montant_eur est déjà net des remboursements (soustrait
-        dans action_search_revenues ligne : total_montant_eur - total_refunds_eur).
+        Taux identique à balance.py :
+            260 si annee < 2026
+            270 si annee >= 2026
 
-        Exemple : 144 799 DA + (37 896,5 € × taux)
+        Exemple : 185 783 + (38 087,5 × 270) = 10 469 408 DA ✅
         """
         debut  = datetime(annee, mois, 1)
         fin_dt = datetime(annee + 1, 1, 1) if mois == 12 else datetime(annee, mois + 1, 1)
@@ -50,10 +45,12 @@ class DashboardStatistiques(models.Model):
         )
 
         dzd  = result.get('total_montant_dzd', 0)
-        eur  = result.get('total_montant_eur', 0)  # net des remboursements €
-        taux = self._get_taux()
+        eur  = result.get('total_montant_eur', 0)  # déjà net des remboursements €
 
-        # 144 799 + (37 896,5 × taux)
+        # Même taux que balance.py : 260 avant 2026, 270 à partir de 2026
+        taux = 260 if annee < 2026 else 270
+
+        # 185 783 + (38 087,5 × 270) = 10 469 408 DA
         tresorerie = dzd + (eur * taux)
 
         return {
@@ -67,7 +64,6 @@ class DashboardStatistiques(models.Model):
     def get_tresorerie_par_zone_v2(self, annee):
         """
         Trésorerie annuelle par zone — pour les pie charts.
-        Même logique : délègue à action_search_revenues par mois.
         """
         zones  = self.env['zone'].search([], order='name asc')
         result = []
@@ -79,11 +75,3 @@ class DashboardStatistiques(models.Model):
             if total > 0:
                 result.append({'zone_name': zone.name, 'tresorerie': total})
         return result
-
-    # ──────────────────────────────────────────────────────────────
-    # UTILITAIRE
-    # ──────────────────────────────────────────────────────────────
-
-    def _get_taux(self):
-        taux_rec = self.env['taux.change'].search([('id', '=', 2)], limit=1)
-        return taux_rec.montant if taux_rec else 1
