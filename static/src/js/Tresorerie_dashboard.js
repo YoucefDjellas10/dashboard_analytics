@@ -15,33 +15,26 @@ export class TresorerieDashboard extends Component {
         for (let y = currentYear; y >= currentYear - 5; y--) years.push(y);
 
         this.state = useState({
-            loading      : false,
-            zones        : [],
-            selected_zone: "",
-            rows         : [],
-            annee_n      : currentYear,
-            annee_n1     : currentYear - 1,
-            pie_data     : [],
-            pie_data_n1  : [],
-            years        : years,
+            loading       : false,
+            zones         : [],
+            selected_zone : "",
+            rows          : [],
+            annee_n       : currentYear,
+            annee_n1      : currentYear - 1,
+            pie_data      : [],
+            pie_data_n1   : [],
+            years         : years,
         });
 
         onWillStart(() => this._loadZones().then(() => this.loadData()));
     }
 
-    // ─────────────────────────────────────────────
-    // UTILITAIRES
-    // ─────────────────────────────────────────────
+    _pad(n) { return String(n).padStart(2, "0"); }
 
-    _fmt(n) {
-        return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    _formatORM(d) {
+        return `${d.getFullYear()}-${this._pad(d.getMonth()+1)}-${this._pad(d.getDate())} `
+             + `${this._pad(d.getHours())}:${this._pad(d.getMinutes())}:${this._pad(d.getSeconds())}`;
     }
-
-    fmtRow(val) { return this._fmt(val); }
-
-    // ─────────────────────────────────────────────
-    // CHARGEMENT DES ZONES
-    // ─────────────────────────────────────────────
 
     async _loadZones() {
         this.state.zones = await this.orm.searchRead(
@@ -49,45 +42,194 @@ export class TresorerieDashboard extends Component {
         );
     }
 
-    // ─────────────────────────────────────────────
-    // FETCH TRÉSORERIE — DÉLÉGATION AU PYTHON
-    // ─────────────────────────────────────────────
+    _fmt(n) {
+        return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    }
 
-    /**
-     * Appelle get_tresorerie_mois() côté Python.
-     * Python gère les deux périodes (is_old / date_encaissement / fallback reservation).
-     * Retourne la trésorerie nette (float).
-     */
+    // Dates seuils (mêmes que Python)
+    get _dateReference() { return new Date(2025, 10, 1, 0, 0, 0); }   // 01/11/2025
+    get _dateTauxChange() { return new Date(2026,  0, 1, 0, 0, 0); }  // 01/01/2026
+
+    _getTaux(date) {
+        return date && date < this._dateTauxChange ? 260 : 270;
+    }
+
+    // Retourne la date effective d'un revenue (même logique que Python _get_display_date)
+    _getDisplayDate(rev) {
+        if (rev.date_encaissement) return new Date(rev.date_encaissement);
+        if (rev.create_date)       return new Date(rev.create_date);
+        if (rev["reservation.create_date"]) return new Date(rev["reservation.create_date"]);
+        return null;
+    }
+
     async _fetchMoisTresorerie(annee, mois) {
-        const zoneId = this.state.selected_zone ? parseInt(this.state.selected_zone) : false;
+        const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
+        const fin   = new Date(annee, mois,     0, 23, 59, 59);
 
-        // ── Délègue à action_search_revenues (même résultat que la page Finance) ──
-        const result = await this.orm.call(
-            "dashboard.statistiques",
-            "get_tresorerie_mois_v2",
-            [annee, mois],
-            { zone_id: zoneId }
+        // ── 1. Récupérer tous les revenues de la période ──────────────────────
+        // On récupère les champs nécessaires pour recalculer côté JS
+        const revDomain = [];
+        if (this.state.selected_zone)
+            revDomain.push(['zone', '=', parseInt(this.state.selected_zone)]);
+
+        const revenues = await this.orm.searchRead(
+            "revenue.record",
+            revDomain,
+            [
+                "id",
+                "date_encaissement",
+                "create_date",
+                "reservation",          // id de la réservation
+                "montant",              // montant en €
+                "montant_dzd",          // montant en DA
+                "is_old",
+            ],
+            { order: "id desc" }
         );
 
-        return result.tresorerie ?? 0;
-    }
+        // Pour avoir les create_date des réservations liées, on charge en une seule requête
+        const reservationIds = [...new Set(
+            revenues.map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation)
+                    .filter(Boolean)
+        )];
 
-    /**
-     * Appelle get_tresorerie_par_zone_v2() côté Python pour les pie charts.
-     */
-    async _fetchZoneTresorerie(annee) {
-        const result = await this.orm.call(
-            "dashboard.statistiques",
-            "get_tresorerie_par_zone_v2",
-            [annee],
-            {}
+        let reservationDates = {};
+        if (reservationIds.length) {
+            const resRecords = await this.orm.searchRead(
+                "reservation",
+                [["id", "in", reservationIds]],
+                ["id", "create_date"]
+            );
+            resRecords.forEach(r => { reservationDates[r.id] = r.create_date; });
+        }
+
+        // ── 2. Filtrer et calculer ─────────────────────────────────────────────
+        let total = 0;
+
+        for (const rev of revenues) {
+            // Résoudre la date effective
+            let displayDate = null;
+            if (rev.date_encaissement) {
+                displayDate = new Date(rev.date_encaissement);
+            } else if (rev.create_date) {
+                displayDate = new Date(rev.create_date);
+            } else {
+                const resId = Array.isArray(rev.reservation) ? rev.reservation[0] : rev.reservation;
+                const resDate = resId ? reservationDates[resId] : null;
+                if (resDate) displayDate = new Date(resDate);
+            }
+
+            // Avant 01/11/2025 → seulement is_old = true
+            if (displayDate && displayDate < this._dateReference) {
+                if (!rev.is_old) continue;
+            }
+
+            // Filtrage par période du mois
+            if (!displayDate || displayDate < debut || displayDate > fin) continue;
+
+            const taux = this._getTaux(displayDate);
+            total += (rev.montant_dzd || 0) + ((rev.montant || 0) * taux);
+        }
+
+        // ── 3. Déduire les remboursements de la période ───────────────────────
+        const refundDomain = [
+            ['date', '>=', this._formatORM(debut)],
+            ['date', '<=', this._formatORM(fin)],
+            ['status', '=', 'effectuer'],
+        ];
+
+        const refunds = await this.orm.searchRead(
+            "refund.table",
+            refundDomain,
+            ["id", "amount", "date"]
         );
-        return result; // [{ zone_name, tresorerie }, ...]
+
+        for (const refund of refunds) {
+            const refundDate = refund.date ? new Date(refund.date) : null;
+            const taux = this._getTaux(refundDate);
+            total -= (refund.amount || 0) * taux;
+        }
+
+        return total;
     }
 
-    // ─────────────────────────────────────────────
-    // CHARGEMENT PRINCIPAL
-    // ─────────────────────────────────────────────
+    async _fetchZoneTresorerie(annee, zoneId) {
+        const debut = new Date(annee, 0,  1,  0,  0,  0);
+        const fin   = new Date(annee, 11, 31, 23, 59, 59);
+
+        // ── 1. Revenues pour cette zone ───────────────────────────────────────
+        const revenues = await this.orm.searchRead(
+            "revenue.record",
+            [['zone', '=', zoneId]],
+            ["id", "date_encaissement", "create_date", "reservation", "montant", "montant_dzd", "is_old"],
+            { order: "id desc" }
+        );
+
+        const reservationIds = [...new Set(
+            revenues.map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation)
+                    .filter(Boolean)
+        )];
+
+        let reservationDates = {};
+        if (reservationIds.length) {
+            const resRecords = await this.orm.searchRead(
+                "reservation",
+                [["id", "in", reservationIds]],
+                ["id", "create_date"]
+            );
+            resRecords.forEach(r => { reservationDates[r.id] = r.create_date; });
+        }
+
+        let total = 0;
+
+        for (const rev of revenues) {
+            let displayDate = null;
+            if (rev.date_encaissement) {
+                displayDate = new Date(rev.date_encaissement);
+            } else if (rev.create_date) {
+                displayDate = new Date(rev.create_date);
+            } else {
+                const resId = Array.isArray(rev.reservation) ? rev.reservation[0] : rev.reservation;
+                const resDate = resId ? reservationDates[resId] : null;
+                if (resDate) displayDate = new Date(resDate);
+            }
+
+            if (displayDate && displayDate < this._dateReference) {
+                if (!rev.is_old) continue;
+            }
+
+            if (!displayDate || displayDate < debut || displayDate > fin) continue;
+
+            const taux = this._getTaux(displayDate);
+            total += (rev.montant_dzd || 0) + ((rev.montant || 0) * taux);
+        }
+
+        // ── 2. Remboursements pour cette zone ─────────────────────────────────
+        const refundDomain = [
+            ['date', '>=', this._formatORM(debut)],
+            ['date', '<=', this._formatORM(fin)],
+            ['status', '=', 'effectuer'],
+        ];
+
+        // Filtrer refunds par zone via les réservations
+        if (reservationIds.length) {
+            refundDomain.push(['reservation', 'in', reservationIds]);
+        }
+
+        const refunds = await this.orm.searchRead(
+            "refund.table",
+            refundDomain,
+            ["id", "amount", "date"]
+        );
+
+        for (const refund of refunds) {
+            const refundDate = refund.date ? new Date(refund.date) : null;
+            const taux = this._getTaux(refundDate);
+            total -= (refund.amount || 0) * taux;
+        }
+
+        return total;
+    }
 
     async loadData() {
         this.state.loading = true;
@@ -100,7 +242,6 @@ export class TresorerieDashboard extends Component {
                 "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
             ];
 
-            // 24 appels en parallèle (12 mois × 2 années)
             const promises = [];
             for (let m = 1; m <= 12; m++) {
                 promises.push(this._fetchMoisTresorerie(n1, m));
@@ -128,16 +269,8 @@ export class TresorerieDashboard extends Component {
             this.state.rows = rows;
 
         } finally {
-            // Pie charts en parallèle
-            const [pieN, pieN1] = await Promise.all([
-                this._fetchZoneTresorerie(this.state.annee_n),
-                this._fetchZoneTresorerie(this.state.annee_n1),
-            ]);
-            this.state.pie_data    = pieN;
-            this.state.pie_data_n1 = pieN1;
-
+            await Promise.all([this._loadPieData(), this._loadPieDataN1()]);
             this.state.loading = false;
-
             setTimeout(() => {
                 this._renderChart();
                 this._renderChartLine();
@@ -147,9 +280,17 @@ export class TresorerieDashboard extends Component {
         }
     }
 
-    // ─────────────────────────────────────────────
-    // HANDLERS UI
-    // ─────────────────────────────────────────────
+    async _loadPieData() {
+        const zones   = await this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" });
+        const results = await Promise.all(zones.map(z => this._fetchZoneTresorerie(this.state.annee_n, z.id)));
+        this.state.pie_data = zones.map((z, i) => ({ zone_name: z.name, tresorerie: results[i] })).filter(r => r.tresorerie > 0);
+    }
+
+    async _loadPieDataN1() {
+        const zones   = await this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" });
+        const results = await Promise.all(zones.map(z => this._fetchZoneTresorerie(this.state.annee_n1, z.id)));
+        this.state.pie_data_n1 = zones.map((z, i) => ({ zone_name: z.name, tresorerie: results[i] })).filter(r => r.tresorerie > 0);
+    }
 
     updateSelectedZone(ev) {
         this.state.selected_zone = ev.target.value;
@@ -168,88 +309,28 @@ export class TresorerieDashboard extends Component {
     }
 
     ouvrirMois(annee, mois) {
-        const label = `${this.state.rows[mois - 1]?.label} ${annee}`;
+        const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
+        const fin   = new Date(annee, mois,     0, 23, 59, 59);
+        const label = `${this.state.rows[mois-1]?.label} ${annee}`;
 
-        // On passe le filtre au vue liste via le contexte :
-        // la vue liste de revenue.record pourra filtrer selon la logique Python
+        const revenueDomain = [
+            '|',
+            '&', ['create_date', '>=', this._formatORM(debut)],
+                 ['create_date', '<=', this._formatORM(fin)],
+            '&', ['create_date', '=', false],
+            '&', ['reservation.create_date', '>=', this._formatORM(debut)],
+                 ['reservation.create_date', '<=', this._formatORM(fin)],
+        ];
+        if (this.state.selected_zone)
+            revenueDomain.push(['zone', '=', parseInt(this.state.selected_zone)]);
+
         this.action.doAction({
             type      : "ir.actions.act_window",
             name      : `Trésorerie — ${label}`,
             res_model : "revenue.record",
             view_mode : "list,form",
-            domain    : this._buildMoisDomain(annee, mois),
+            domain    : revenueDomain,
         });
-    }
-
-    /**
-     * Construit un domain lisible pour la vue liste (affichage seulement).
-     * On fait un 'ou' large : is_old + date_encaissement + create_date reservation.
-     */
-    _buildMoisDomain(annee, mois) {
-        const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
-        const fin   = new Date(annee, mois,     0, 23, 59, 59);
-
-        const fmt = (d) => {
-            const pad = (n) => String(n).padStart(2, "0");
-            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} `
-                 + `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-        };
-
-        const debutStr = fmt(debut);
-        const finStr   = fmt(fin);
-
-        const domain = [
-            '|',
-            // Période ancienne (is_old)
-            '&',
-            ['is_old', '=', true],
-            ['reservation.create_date', '>=', debutStr],
-            // Période récente
-            '|',
-            // date_encaissement renseignée
-            '&',
-            ['date_encaissement', '>=', debutStr],
-            ['date_encaissement', '<=', finStr],
-            // fallback sur create_date réservation
-            '&',
-            ['date_encaissement', '=', false],
-            ['reservation.create_date', '>=', debutStr],
-        ];
-
-        if (this.state.selected_zone) {
-            domain.push(['zone_encaissement', '=', parseInt(this.state.selected_zone)]);
-        }
-
-        return domain;
-    }
-
-    // ─────────────────────────────────────────────
-    // GETTERS TOTAUX
-    // ─────────────────────────────────────────────
-
-    get totalN1()    { return this.state.rows.reduce((s, r) => s + r.tr_n1, 0); }
-    get totalN()     { return this.state.rows.reduce((s, r) => s + r.tr_n,  0); }
-    get totalN1Fmt() { return this._fmt(this.totalN1); }
-    get totalNFmt()  { return this._fmt(this.totalN); }
-
-    get totalDelta() {
-        if (this.totalN1 === 0) return this.totalN > 0 ? 100 : null;
-        return Math.round(((this.totalN - this.totalN1) / this.totalN1) * 100);
-    }
-
-    // ─────────────────────────────────────────────
-    // CHARTS
-    // ─────────────────────────────────────────────
-
-    _loadChartJs(callback) {
-        if (window.Chart) {
-            callback();
-        } else {
-            const s = document.createElement("script");
-            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
-            s.onload = callback;
-            document.head.appendChild(s);
-        }
     }
 
     _renderChart() {
@@ -261,31 +342,18 @@ export class TresorerieDashboard extends Component {
         const dataN1 = this.state.rows.map(r => Math.round(r.tr_n1));
         const dataN  = this.state.rows.map(r => Math.round(r.tr_n));
 
-        this._loadChartJs(() => {
+        const draw = () => {
             this._chart = new Chart(canvas, {
                 type: "bar",
                 data: {
                     labels,
                     datasets: [
-                        {
-                            label          : String(this.state.annee_n1),
-                            data           : dataN1,
-                            backgroundColor: "rgba(21,101,192,0.75)",
-                            borderRadius   : 6,
-                            borderSkipped  : false,
-                        },
-                        {
-                            label          : String(this.state.annee_n),
-                            data           : dataN,
-                            backgroundColor: "rgba(106,27,154,0.75)",
-                            borderRadius   : 6,
-                            borderSkipped  : false,
-                        },
+                        { label: String(this.state.annee_n1), data: dataN1, backgroundColor: "rgba(21,101,192,0.75)",  borderRadius: 6, borderSkipped: false },
+                        { label: String(this.state.annee_n),  data: dataN,  backgroundColor: "rgba(106,27,154,0.75)",  borderRadius: 6, borderSkipped: false },
                     ],
                 },
                 options: {
-                    responsive         : true,
-                    maintainAspectRatio: true,
+                    responsive: true, maintainAspectRatio: true,
                     plugins: {
                         legend  : { position: "top", labels: { font: { weight: "bold" } } },
                         tooltip : { callbacks: { label: ctx => ` ${ctx.dataset.label} : ${this._fmt(ctx.parsed.y)} DA` } },
@@ -297,7 +365,14 @@ export class TresorerieDashboard extends Component {
                     },
                 },
             });
-        });
+        };
+
+        if (window.Chart) { draw(); } else {
+            const s = document.createElement("script");
+            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            s.onload = draw;
+            document.head.appendChild(s);
+        }
     }
 
     _renderChartLine() {
@@ -309,39 +384,18 @@ export class TresorerieDashboard extends Component {
         const dataN1 = this.state.rows.map(r => Math.round(r.tr_n1));
         const dataN  = this.state.rows.map(r => Math.round(r.tr_n));
 
-        this._loadChartJs(() => {
+        const draw = () => {
             this._chartLine = new Chart(canvas, {
                 type: "line",
                 data: {
                     labels,
                     datasets: [
-                        {
-                            label          : String(this.state.annee_n1),
-                            data           : dataN1,
-                            borderColor    : "rgba(21,101,192,1)",
-                            backgroundColor: "rgba(21,101,192,0.1)",
-                            borderWidth    : 3,
-                            pointRadius    : 5,
-                            pointHoverRadius: 7,
-                            fill           : true,
-                            tension        : 0.4,
-                        },
-                        {
-                            label          : String(this.state.annee_n),
-                            data           : dataN,
-                            borderColor    : "rgba(106,27,154,1)",
-                            backgroundColor: "rgba(106,27,154,0.1)",
-                            borderWidth    : 3,
-                            pointRadius    : 5,
-                            pointHoverRadius: 7,
-                            fill           : true,
-                            tension        : 0.4,
-                        },
+                        { label: String(this.state.annee_n1), data: dataN1, borderColor: "rgba(21,101,192,1)",  backgroundColor: "rgba(21,101,192,0.1)",  borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
+                        { label: String(this.state.annee_n),  data: dataN,  borderColor: "rgba(106,27,154,1)",  backgroundColor: "rgba(106,27,154,0.1)",  borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
                     ],
                 },
                 options: {
-                    responsive         : true,
-                    maintainAspectRatio: true,
+                    responsive: true, maintainAspectRatio: true,
                     plugins: {
                         legend  : { position: "top", labels: { font: { weight: "bold" } } },
                         tooltip : { callbacks: { label: ctx => ` ${ctx.dataset.label} : ${this._fmt(ctx.parsed.y)} DA` } },
@@ -352,7 +406,14 @@ export class TresorerieDashboard extends Component {
                     },
                 },
             });
-        });
+        };
+
+        if (window.Chart) { draw(); } else {
+            const s = document.createElement("script");
+            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            s.onload = draw;
+            document.head.appendChild(s);
+        }
     }
 
     _renderChartPie() {
@@ -362,39 +423,26 @@ export class TresorerieDashboard extends Component {
 
         const labels = this.state.pie_data.map(r => r.zone_name);
         const data   = this.state.pie_data.map(r => Math.round(r.tresorerie));
-
         const COLORS = [
-            "rgba(21,101,192,0.85)",
-            "rgba(106,27,154,0.85)",
-            "rgba(22,163,74,0.85)",
-            "rgba(220,38,38,0.85)",
-            "rgba(234,179,8,0.85)",
-            "rgba(14,116,144,0.85)",
-            "rgba(249,115,22,0.85)",
-            "rgba(99,102,241,0.85)",
+            "rgba(21,101,192,0.85)","rgba(106,27,154,0.85)","rgba(22,163,74,0.85)",
+            "rgba(220,38,38,0.85)","rgba(234,179,8,0.85)","rgba(14,116,144,0.85)",
+            "rgba(249,115,22,0.85)","rgba(99,102,241,0.85)",
         ];
 
-        this._loadChartJs(() => {
+        const draw = () => {
             this._chartPie = new Chart(canvas, {
                 type: "pie",
-                data: {
-                    labels,
-                    datasets: [{
-                        data,
-                        backgroundColor: COLORS.slice(0, labels.length),
-                        borderWidth    : 2,
-                        borderColor    : "#fff",
-                    }],
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend : { position: "bottom", labels: { font: { weight: "600" }, padding: 16 } },
-                        tooltip: { callbacks: { label: ctx => ` ${ctx.label} : ${this._fmt(ctx.parsed)} DA` } },
-                    },
-                },
+                data: { labels, datasets: [{ data, backgroundColor: COLORS.slice(0, labels.length), borderWidth: 2, borderColor: "#fff" }] },
+                options: { responsive: true, plugins: { legend: { position: "bottom", labels: { font: { weight: "600" }, padding: 16 } }, tooltip: { callbacks: { label: ctx => ` ${ctx.label} : ${this._fmt(ctx.parsed)} DA` } } } },
             });
-        });
+        };
+
+        if (window.Chart) { draw(); } else {
+            const s = document.createElement("script");
+            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            s.onload = draw;
+            document.head.appendChild(s);
+        }
     }
 
     _renderChartPieN1() {
@@ -404,40 +452,39 @@ export class TresorerieDashboard extends Component {
 
         const labels = this.state.pie_data_n1.map(r => r.zone_name);
         const data   = this.state.pie_data_n1.map(r => Math.round(r.tresorerie));
-
         const COLORS = [
-            "rgba(21,101,192,0.85)",
-            "rgba(106,27,154,0.85)",
-            "rgba(22,163,74,0.85)",
-            "rgba(220,38,38,0.85)",
-            "rgba(234,179,8,0.85)",
-            "rgba(14,116,144,0.85)",
-            "rgba(249,115,22,0.85)",
-            "rgba(99,102,241,0.85)",
+            "rgba(21,101,192,0.85)","rgba(106,27,154,0.85)","rgba(22,163,74,0.85)",
+            "rgba(220,38,38,0.85)","rgba(234,179,8,0.85)","rgba(14,116,144,0.85)",
+            "rgba(249,115,22,0.85)","rgba(99,102,241,0.85)",
         ];
 
-        this._loadChartJs(() => {
+        const draw = () => {
             this._chartPieN1 = new Chart(canvas, {
                 type: "pie",
-                data: {
-                    labels,
-                    datasets: [{
-                        data,
-                        backgroundColor: COLORS.slice(0, labels.length),
-                        borderWidth    : 2,
-                        borderColor    : "#fff",
-                    }],
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend : { position: "bottom", labels: { font: { weight: "600" }, padding: 16 } },
-                        tooltip: { callbacks: { label: ctx => ` ${ctx.label} : ${this._fmt(ctx.parsed)} DA` } },
-                    },
-                },
+                data: { labels, datasets: [{ data, backgroundColor: COLORS.slice(0, labels.length), borderWidth: 2, borderColor: "#fff" }] },
+                options: { responsive: true, plugins: { legend: { position: "bottom", labels: { font: { weight: "600" }, padding: 16 } }, tooltip: { callbacks: { label: ctx => ` ${ctx.label} : ${this._fmt(ctx.parsed)} DA` } } } },
             });
-        });
+        };
+
+        if (window.Chart) { draw(); } else {
+            const s = document.createElement("script");
+            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            s.onload = draw;
+            document.head.appendChild(s);
+        }
     }
+
+    get totalN1()    { return this.state.rows.reduce((s, r) => s + r.tr_n1, 0); }
+    get totalN()     { return this.state.rows.reduce((s, r) => s + r.tr_n,  0); }
+    get totalN1Fmt() { return this._fmt(this.totalN1); }
+    get totalNFmt()  { return this._fmt(this.totalN); }
+
+    get totalDelta() {
+        if (this.totalN1 === 0) return this.totalN > 0 ? 100 : null;
+        return Math.round(((this.totalN - this.totalN1) / this.totalN1) * 100);
+    }
+
+    fmtRow(val) { return this._fmt(val); }
 }
 
 TresorerieDashboard.template = "dashboard_analytics.TresorerieDashboard";
