@@ -46,28 +46,18 @@ export class TresorerieDashboard extends Component {
         return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
     }
 
-    // Dates seuils (mêmes que Python)
-    get _dateReference() { return new Date(2025, 10, 1, 0, 0, 0); }   // 01/11/2025
-    get _dateTauxChange() { return new Date(2026,  0, 1, 0, 0, 0); }  // 01/01/2026
-
-    _getTaux(date) {
-        return date && date < this._dateTauxChange ? 260 : 270;
-    }
-
-    // Retourne la date effective d'un revenue (même logique que Python _get_display_date)
-    _getDisplayDate(rev) {
-        if (rev.date_encaissement) return new Date(rev.date_encaissement);
-        if (rev.create_date)       return new Date(rev.create_date);
-        if (rev["reservation.create_date"]) return new Date(rev["reservation.create_date"]);
-        return null;
+    // Taux fixe par année — même logique que Python
+    _getTaux(annee) {
+        return annee < 2026 ? 260 : 270;
     }
 
     async _fetchMoisTresorerie(annee, mois) {
         const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
         const fin   = new Date(annee, mois,     0, 23, 59, 59);
+        const taux  = this._getTaux(annee);
+        const dateReference = new Date(2025, 10, 1, 0, 0, 0); // 01/11/2025
 
-        // ── 1. Récupérer tous les revenues de la période ──────────────────────
-        // On récupère les champs nécessaires pour recalculer côté JS
+        // ── 1. Revenues ───────────────────────────────────────────────────────
         const revDomain = [];
         if (this.state.selected_zone)
             revDomain.push(['zone', '=', parseInt(this.state.selected_zone)]);
@@ -75,19 +65,12 @@ export class TresorerieDashboard extends Component {
         const revenues = await this.orm.searchRead(
             "revenue.record",
             revDomain,
-            [
-                "id",
-                "date_encaissement",
-                "create_date",
-                "reservation",          // id de la réservation
-                "montant",              // montant en €
-                "montant_dzd",          // montant en DA
-                "is_old",
-            ],
+            ["id", "date_encaissement", "create_date", "reservation",
+             "montant", "montant_dzd", "is_old"],
             { order: "id desc" }
         );
 
-        // Pour avoir les create_date des réservations liées, on charge en une seule requête
+        // Charger les create_date des réservations en une seule requête
         const reservationIds = [...new Set(
             revenues.map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation)
                     .filter(Boolean)
@@ -103,7 +86,7 @@ export class TresorerieDashboard extends Component {
             resRecords.forEach(r => { reservationDates[r.id] = r.create_date; });
         }
 
-        // ── 2. Filtrer et calculer ─────────────────────────────────────────────
+        // ── 2. Filtrer et calculer ────────────────────────────────────────────
         let total = 0;
 
         for (const rev of revenues) {
@@ -114,24 +97,23 @@ export class TresorerieDashboard extends Component {
             } else if (rev.create_date) {
                 displayDate = new Date(rev.create_date);
             } else {
-                const resId = Array.isArray(rev.reservation) ? rev.reservation[0] : rev.reservation;
+                const resId  = Array.isArray(rev.reservation) ? rev.reservation[0] : rev.reservation;
                 const resDate = resId ? reservationDates[resId] : null;
                 if (resDate) displayDate = new Date(resDate);
             }
 
             // Avant 01/11/2025 → seulement is_old = true
-            if (displayDate && displayDate < this._dateReference) {
+            if (displayDate && displayDate < dateReference) {
                 if (!rev.is_old) continue;
             }
 
             // Filtrage par période du mois
             if (!displayDate || displayDate < debut || displayDate > fin) continue;
 
-            const taux = this._getTaux(displayDate);
             total += (rev.montant_dzd || 0) + ((rev.montant || 0) * taux);
         }
 
-        // ── 3. Déduire les remboursements de la période ───────────────────────
+        // ── 3. Remboursements ─────────────────────────────────────────────────
         const refundDomain = [
             ['date', '>=', this._formatORM(debut)],
             ['date', '<=', this._formatORM(fin)],
@@ -141,12 +123,10 @@ export class TresorerieDashboard extends Component {
         const refunds = await this.orm.searchRead(
             "refund.table",
             refundDomain,
-            ["id", "amount", "date"]
+            ["id", "amount"]
         );
 
         for (const refund of refunds) {
-            const refundDate = refund.date ? new Date(refund.date) : null;
-            const taux = this._getTaux(refundDate);
             total -= (refund.amount || 0) * taux;
         }
 
@@ -156,12 +136,15 @@ export class TresorerieDashboard extends Component {
     async _fetchZoneTresorerie(annee, zoneId) {
         const debut = new Date(annee, 0,  1,  0,  0,  0);
         const fin   = new Date(annee, 11, 31, 23, 59, 59);
+        const taux  = this._getTaux(annee);
+        const dateReference = new Date(2025, 10, 1, 0, 0, 0); // 01/11/2025
 
         // ── 1. Revenues pour cette zone ───────────────────────────────────────
         const revenues = await this.orm.searchRead(
             "revenue.record",
             [['zone', '=', zoneId]],
-            ["id", "date_encaissement", "create_date", "reservation", "montant", "montant_dzd", "is_old"],
+            ["id", "date_encaissement", "create_date", "reservation",
+             "montant", "montant_dzd", "is_old"],
             { order: "id desc" }
         );
 
@@ -189,18 +172,17 @@ export class TresorerieDashboard extends Component {
             } else if (rev.create_date) {
                 displayDate = new Date(rev.create_date);
             } else {
-                const resId = Array.isArray(rev.reservation) ? rev.reservation[0] : rev.reservation;
+                const resId  = Array.isArray(rev.reservation) ? rev.reservation[0] : rev.reservation;
                 const resDate = resId ? reservationDates[resId] : null;
                 if (resDate) displayDate = new Date(resDate);
             }
 
-            if (displayDate && displayDate < this._dateReference) {
+            if (displayDate && displayDate < dateReference) {
                 if (!rev.is_old) continue;
             }
 
             if (!displayDate || displayDate < debut || displayDate > fin) continue;
 
-            const taux = this._getTaux(displayDate);
             total += (rev.montant_dzd || 0) + ((rev.montant || 0) * taux);
         }
 
@@ -211,7 +193,6 @@ export class TresorerieDashboard extends Component {
             ['status', '=', 'effectuer'],
         ];
 
-        // Filtrer refunds par zone via les réservations
         if (reservationIds.length) {
             refundDomain.push(['reservation', 'in', reservationIds]);
         }
@@ -219,12 +200,10 @@ export class TresorerieDashboard extends Component {
         const refunds = await this.orm.searchRead(
             "refund.table",
             refundDomain,
-            ["id", "amount", "date"]
+            ["id", "amount"]
         );
 
         for (const refund of refunds) {
-            const refundDate = refund.date ? new Date(refund.date) : null;
-            const taux = this._getTaux(refundDate);
             total -= (refund.amount || 0) * taux;
         }
 
