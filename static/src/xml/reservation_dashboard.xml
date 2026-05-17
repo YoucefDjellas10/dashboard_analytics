@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         TEMPLATE ORIGINAL (inchangé)
+         ═══════════════════════════════════════════════════════════ -->
     <t t-name="dashboard_analytics.ReservationDashboard">
 <div style="padding:16px; background:#f1f5f9;">
 <style>
@@ -180,157 +184,6 @@
     margin-bottom:16px;
     text-align:center;
 }
-
-/* Popup */
-.rd-popup-overlay {
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.45);
-    z-index:9999;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-}
-.rd-popup-box {
-    background:#fff;
-    border-radius:16px;
-    border:1px solid #e2e8f0;
-    width:440px;
-    max-width:95vw;
-    overflow:hidden;
-    box-shadow:0 20px 60px rgba(0,0,0,.25);
-}
-.rd-popup-header {
-    background:linear-gradient(135deg,#1565c0,#6a1b9a);
-    padding:14px 20px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-}
-.rd-popup-header-title {
-    color:#fff;
-    font-size:15px;
-    font-weight:700;
-}
-.rd-popup-header-sub {
-    color:rgba(255,255,255,0.75);
-    font-size:12px;
-    margin-top:2px;
-}
-.rd-popup-close {
-    color:#fff;
-    font-size:22px;
-    cursor:pointer;
-    line-height:1;
-    padding:0 4px;
-    border:none;
-    background:transparent;
-}
-.rd-popup-close:hover { opacity:0.75; }
-.rd-popup-body {
-    padding:18px 20px;
-}
-.rd-popup-grid {
-    display:grid;
-    grid-template-columns:1fr auto auto;
-    gap:6px 16px;
-    align-items:center;
-    font-size:13px;
-}
-.rd-popup-col-header {
-    color:#64748b;
-    font-size:11px;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:.5px;
-    padding-bottom:8px;
-    border-bottom:1px solid #e2e8f0;
-}
-.rd-popup-col-header-right {
-    text-align:right;
-    color:#64748b;
-    font-size:11px;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:.5px;
-    padding-bottom:8px;
-    border-bottom:1px solid #e2e8f0;
-}
-.rd-popup-zone-name {
-    color:#1565c0;
-    font-weight:600;
-    cursor:pointer;
-    text-decoration:underline dotted;
-}
-.rd-popup-zone-name:hover { color:#6a1b9a; }
-.rd-popup-badge {
-    display:inline-block;
-    background:#E6F1FB;
-    color:#0C447C;
-    border-radius:20px;
-    padding:2px 10px;
-    font-weight:700;
-    font-size:12px;
-}
-.rd-popup-badge-total {
-    display:inline-block;
-    background:#1565c0;
-    color:#fff;
-    border-radius:20px;
-    padding:2px 10px;
-    font-weight:700;
-    font-size:12px;
-}
-.rd-popup-jours {
-    text-align:right;
-    color:#64748b;
-    font-size:12px;
-}
-.rd-popup-separator {
-    border-top:1px solid #e2e8f0;
-    padding-top:8px;
-}
-.rd-popup-total-label {
-    border-top:1px solid #e2e8f0;
-    padding-top:8px;
-    font-weight:700;
-    color:#1e293b;
-}
-.rd-popup-total-jours {
-    border-top:1px solid #e2e8f0;
-    padding-top:8px;
-    text-align:right;
-    color:#64748b;
-    font-size:12px;
-}
-.rd-popup-footer {
-    margin-top:18px;
-    display:flex;
-    gap:8px;
-    justify-content:flex-end;
-}
-.rd-popup-btn-close {
-    font-size:13px;
-    padding:8px 18px;
-    border-radius:8px;
-    border:1px solid #e2e8f0;
-    background:#f8fafc;
-    color:#475569;
-    cursor:pointer;
-    font-weight:600;
-}
-.rd-popup-btn-close:hover { background:#e2e8f0; }
-.rd-popup-btn-all {
-    font-size:13px;
-    padding:8px 18px;
-    border-radius:8px;
-    border:none;
-    background:linear-gradient(135deg,#1565c0,#6a1b9a);
-    color:#fff;
-    cursor:pointer;
-    font-weight:600;
-}
-.rd-popup-btn-all:hover { opacity:0.9; }
 </style>
 
 <!-- Header -->
@@ -396,19 +249,23 @@
                         <!-- Mois -->
                         <td><t t-esc="row.label"/></td>
 
-                        <!-- Colonne N-1 -->
+                        <!-- Colonne N-1 : nb réservations + jours sur la même ligne -->
                         <td class="rd-clickable"
-                            t-on-click="() => ouvrirMoisPopup(state.annee_n1, row.mois)">
+                            t-att-data-annee="state.annee_n1"
+                            t-att-data-mois="row.mois"
+                            t-on-click="onClickMois">
                             <span class="rd-cell-main"><t t-esc="row.count_n1"/></span><span class="rd-cell-jours">(<t t-esc="row.jours_n1"/> jours)</span>
                         </td>
 
-                        <!-- Colonne N -->
+                        <!-- Colonne N : nb réservations + jours sur la même ligne -->
                         <td class="rd-clickable"
-                            t-on-click="() => ouvrirMoisPopup(state.annee_n, row.mois)">
+                            t-att-data-annee="state.annee_n"
+                            t-att-data-mois="row.mois"
+                            t-on-click="onClickMois">
                             <span class="rd-cell-main"><t t-esc="row.count_n"/></span><span class="rd-cell-jours">(<t t-esc="row.jours_n"/> jours)</span>
                         </td>
 
-                        <!-- Évolution -->
+                        <!-- Évolution : badges côte à côte sur la même ligne -->
                         <td>
                             <div class="rd-evo-wrap">
                                 <span class="rd-evo-item">
@@ -510,84 +367,323 @@
 
 </t>
 
-<!-- ═══════════════════════════════════════════
-     POPUP RÉPARTITION PAR ZONE
-     ═══════════════════════════════════════════ -->
-<t t-if="state.popup">
-    <div class="rd-popup-overlay" t-on-click="fermerPopup">
+</div>
+    </t>
 
-        <div class="rd-popup-box" t-on-click.stop="">
 
-            <!-- Header popup -->
-            <div class="rd-popup-header">
-                <div>
-                    <div class="rd-popup-header-title">
-                        <t t-esc="state.popup.label"/>
-                    </div>
-                    <div class="rd-popup-header-sub">Répartition par zone</div>
+    <!-- ═══════════════════════════════════════════════════════════
+         NOUVEAU TEMPLATE : Page détail — tableau croisé + graphiques
+         ═══════════════════════════════════════════════════════════ -->
+    <t t-name="dashboard_analytics.ReservationDetailDashboard">
+<div style="padding:16px; background:#f1f5f9; min-height:100vh;">
+<style>
+/* ── Styles spécifiques à la page détail (préfixe rdd-) ──────── */
+.rdd-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    background:#fff;
+    border-radius:16px;
+    padding:16px 24px;
+    margin-bottom:20px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+}
+.rdd-title {
+    font-size:18px;
+    font-weight:800;
+    color:#1e293b;
+}
+.rdd-subtitle {
+    font-size:13px;
+    color:#64748b;
+    font-weight:500;
+    margin-top:2px;
+}
+.rdd-btn {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:8px 18px;
+    border-radius:9px;
+    border:1.5px solid #e2e8f0;
+    background:#f8fafc;
+    color:#475569;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .2s, transform .15s;
+}
+.rdd-btn:hover {
+    background:#e2e8f0;
+    transform:translateY(-2px);
+}
+/* ── Carte wrapper ──────────────────────────────────────────── */
+.rdd-card {
+    background:#fff;
+    border-radius:16px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+    overflow:hidden;
+    margin-bottom:20px;
+}
+.rdd-card-title {
+    font-size:15px;
+    font-weight:800;
+    color:#1e293b;
+    padding:18px 24px 12px;
+    border-bottom:1px solid #f1f5f9;
+}
+/* ── Tableau croisé ────────────────────────────────────────── */
+.rdd-scroll {
+    overflow-x: auto;
+}
+.rdd-cross-table {
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+}
+.rdd-cross-table thead tr:first-child {
+    background:linear-gradient(135deg,#1565c0,#6a1b9a);
+    color:#fff;
+}
+.rdd-cross-table thead tr:first-child th {
+    padding:12px 16px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    text-align:center;
+    white-space:nowrap;
+}
+.rdd-cross-table thead tr:first-child th:first-child {
+    text-align:left;
+}
+.rdd-cross-table tbody td {
+    padding:10px 14px;
+    text-align:center;
+    border-bottom:1px solid #f1f5f9;
+    color:#1e293b;
+    vertical-align:middle;
+}
+.rdd-cross-table tbody td:first-child {
+    text-align:left;
+    font-weight:700;
+    color:#475569;
+    background:#fafafa;
+    white-space:nowrap;
+    position:sticky;
+    left:0;
+    z-index:2;
+    border-right:1px solid #e2e8f0;
+}
+.rdd-cross-table tbody tr:hover td {
+    background:#f0f7ff;
+}
+.rdd-cross-table tbody tr:hover td:first-child {
+    background:#e8f0fe;
+}
+/* Cellule avec données */
+.rdd-cell-count {
+    font-weight:800;
+    color:#1565c0;
+    font-size:14px;
+}
+.rdd-cell-jours {
+    font-size:11px;
+    color:#94a3b8;
+    font-weight:500;
+}
+/* Ligne / colonne total */
+.rdd-total-row td {
+    background:linear-gradient(135deg,#f8fafc,#f1f5f9) !important;
+    font-weight:800 !important;
+    border-top:2px solid #e2e8f0 !important;
+    font-size:13px;
+}
+.rdd-total-col {
+    background:#f8fafc !important;
+    font-weight:800 !important;
+    border-left:2px solid #e2e8f0 !important;
+}
+/* Cellule vide */
+.rdd-cell-empty {
+    color:#e2e8f0;
+    font-size:18px;
+}
+/* ── Graphiques côte à côte ─────────────────────────────────── */
+.rdd-charts-grid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+@media (max-width:900px) {
+    .rdd-charts-grid { grid-template-columns:1fr; }
+}
+.rdd-chart-title {
+    font-size:14px;
+    font-weight:700;
+    color:#475569;
+    padding:16px 20px 12px;
+    border-bottom:1px solid #f1f5f9;
+}
+</style>
+
+    <!-- Header -->
+    <div class="rdd-header">
+        <div>
+            <button class="rdd-btn" t-on-click="retour">← Retour</button>
+        </div>
+        <div style="flex:1; padding: 0 16px;">
+            <div class="rdd-title">📋 Détail des réservations</div>
+            <div class="rdd-subtitle"><t t-esc="state.label"/></div>
+        </div>
+        <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center;">
+
+            <!-- Carte : Total réservations -->
+            <div style="
+                position:relative;
+                overflow:hidden;
+                background:linear-gradient(135deg,#1565c0 0%,#1e40af 100%);
+                border-radius:16px;
+                padding:18px 28px 18px 22px;
+                min-width:180px;
+                box-shadow:0 8px 32px rgba(21,101,192,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+            ">
+                <!-- Cercle décoratif arrière-plan -->
+                <div style="
+                    position:absolute; top:-18px; right:-18px;
+                    width:80px; height:80px;
+                    border-radius:50%;
+                    background:rgba(255,255,255,0.08);
+                    pointer-events:none;
+                "/>
+                <div style="
+                    position:absolute; bottom:-28px; right:14px;
+                    width:56px; height:56px;
+                    border-radius:50%;
+                    background:rgba(255,255,255,0.05);
+                    pointer-events:none;
+                "/>
+                <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.65); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:6px;">
+                    Réservations
                 </div>
-                <button class="rd-popup-close" t-on-click="fermerPopup">✕</button>
+                <div style="font-size:32px; font-weight:900; color:#fff; line-height:1; letter-spacing:-1px;">
+                    <t t-esc="state.grand_total.count"/>
+                </div>
+                <div style="margin-top:8px; display:flex; align-items:center; gap:5px;">
+                    <div style="width:24px; height:2px; background:rgba(255,255,255,0.4); border-radius:2px;"/>
+                    <div style="width:8px; height:2px; background:rgba(255,255,255,0.2); border-radius:2px;"/>
+                </div>
             </div>
 
-            <!-- Body popup -->
-            <div class="rd-popup-body">
-
-                <!-- Chargement -->
-                <t t-if="state.popup_loading">
-                    <div style="text-align:center; padding:30px; font-size:14px; color:#94a3b8;">
-                        ⏳ Chargement…
-                    </div>
-                </t>
-
-                <t t-else="">
-                    <div class="rd-popup-grid">
-
-                        <!-- En-têtes colonnes -->
-                        <div class="rd-popup-col-header">Zone</div>
-                        <div class="rd-popup-col-header-right">Résv.</div>
-                        <div class="rd-popup-col-header-right">Jours</div>
-
-                        <!-- Lignes par zone -->
-                        <t t-foreach="state.popup.zones" t-as="z" t-key="z.id">
-                            <div class="rd-popup-zone-name"
-                                 t-on-click="() => ouvrirZone(z.id, z.name)">
-                                <t t-esc="z.name"/>
-                            </div>
-                            <div style="text-align:right;">
-                                <span class="rd-popup-badge"><t t-esc="z.count"/></span>
-                            </div>
-                            <div class="rd-popup-jours">
-                                <t t-esc="z.jours"/> jrs
-                            </div>
-                        </t>
-
-                        <!-- Ligne total -->
-                        <div class="rd-popup-total-label">Total</div>
-                        <div class="rd-popup-separator" style="text-align:right;">
-                            <span class="rd-popup-badge-total"><t t-esc="state.popup.totalCount"/></span>
-                        </div>
-                        <div class="rd-popup-total-jours">
-                            <t t-esc="state.popup.totalJours"/> jrs
-                        </div>
-
-                    </div>
-
-                    <!-- Boutons footer -->
-                    <div class="rd-popup-footer">
-                        <button class="rd-popup-btn-close" t-on-click="fermerPopup">
-                            Fermer
-                        </button>
-                        <button class="rd-popup-btn-all" t-on-click="ouvrirMoisDepuisPopup">
-                            Voir toutes les résv. →
-                        </button>
-                    </div>
-                </t>
-
-            </div>
         </div>
     </div>
-</t>
+
+    <!-- Loading -->
+    <t t-if="state.loading">
+        <div style="text-align:center; padding:80px; font-size:16px; color:#94a3b8;">
+            ⏳ Chargement des données…
+        </div>
+    </t>
+
+    <t t-else="">
+
+        <!-- ── Tableau croisé ─────────────────────────────────── -->
+        <div class="rdd-card">
+            <div class="rdd-card-title">
+                🔀 Tableau croisé — Lieux de départ × Catégories de véhicule
+            </div>
+            <div class="rdd-scroll">
+                <table class="rdd-cross-table">
+                    <thead>
+                        <tr>
+                            <!-- Coin supérieur gauche -->
+                            <th style="min-width:160px;">Lieu de départ</th>
+                            <!-- Une colonne par catégorie -->
+                            <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
+                                <th><t t-esc="cat.name"/></th>
+                            </t>
+                            <!-- Colonne total -->
+                            <th style="background:rgba(255,255,255,0.15);">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Une ligne par lieu -->
+                        <t t-foreach="state.lieux" t-as="lieu" t-key="lieu.id">
+                            <tr>
+                                <td><t t-esc="lieu.name"/></td>
+                                <!-- Cellules catégorie -->
+                                <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
+                                    <td>
+                                        <t t-set="cell" t-value="getCell(lieu.id, cat.id)"/>
+                                        <t t-if="cell.count > 0">
+                                            <div class="rdd-cell-count"><t t-esc="cell.count"/></div>
+                                            <div class="rdd-cell-jours">(<t t-esc="cell.jours"/> j)</div>
+                                        </t>
+                                        <t t-else="">
+                                            <span class="rdd-cell-empty">·</span>
+                                        </t>
+                                    </td>
+                                </t>
+                                <!-- Total ligne -->
+                                <td class="rdd-total-col">
+                                    <t t-set="tl" t-value="getTotalLieu(lieu.id)"/>
+                                    <div class="rdd-cell-count"><t t-esc="tl.count"/></div>
+                                    <div class="rdd-cell-jours">(<t t-esc="tl.jours"/> j)</div>
+                                </td>
+                            </tr>
+                        </t>
+                    </tbody>
+                    <!-- Ligne totaux par catégorie -->
+                    <tfoot>
+                        <tr class="rdd-total-row">
+                            <td>Total</td>
+                            <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
+                                <td>
+                                    <t t-set="tc" t-value="getTotalCat(cat.id)"/>
+                                    <div class="rdd-cell-count"><t t-esc="tc.count"/></div>
+                                    <div class="rdd-cell-jours">(<t t-esc="tc.jours"/> j)</div>
+                                </td>
+                            </t>
+                            <!-- Grand total -->
+                            <td class="rdd-total-col">
+                                <div class="rdd-cell-count" style="color:#6a1b9a;">
+                                    <t t-esc="state.grand_total.count"/>
+                                </div>
+                                <div class="rdd-cell-jours">(<t t-esc="state.grand_total.jours"/> j)</div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── 2 Graphiques barres ────────────────────────────── -->
+        <div class="rdd-charts-grid">
+
+            <!-- Graphique 1 : par lieu de départ -->
+            <div class="rdd-card">
+                <div class="rdd-chart-title">📍 Par lieu de départ</div>
+                <div style="padding:20px;">
+                    <canvas id="rdd-chart-lieux" style="width:100%; max-height:380px;"/>
+                </div>
+            </div>
+
+            <!-- Graphique 2 : par catégorie -->
+            <div class="rdd-card">
+                <div class="rdd-chart-title">🏷️ Par catégorie de véhicule</div>
+                <div style="padding:20px;">
+                    <canvas id="rdd-chart-categories" style="width:100%; max-height:380px;"/>
+                </div>
+            </div>
+
+        </div>
+
+    </t>
 
 </div>
     </t>
+
 </templates>
