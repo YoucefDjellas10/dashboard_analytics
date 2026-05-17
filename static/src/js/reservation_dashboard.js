@@ -27,7 +27,14 @@ export class ReservationDashboard extends Component {
             pie_data      : [],
             pie_data_n1   : [],
             years         : years,
+            popup         : null,
+            popup_loading : false,
         });
+
+        this.ouvrirMoisPopup      = this.ouvrirMoisPopup.bind(this);
+        this.fermerPopup          = this.fermerPopup.bind(this);
+        this.ouvrirZone           = this.ouvrirZone.bind(this);
+        this.ouvrirMoisDepuisPopup = this.ouvrirMoisDepuisPopup.bind(this);
 
         onWillStart(() => this._loadZones().then(() => this.loadData()));
     }
@@ -77,8 +84,6 @@ export class ReservationDashboard extends Component {
                 "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
             ];
 
-            // 2 requêtes searchRead globales (toute l'année) pour récupérer les jours
-            // puis on regroupe côté JS par mois
             const _buildDomainYear = (annee) => {
                 const debut = new Date(annee, 0,  1,  0,  0,  0);
                 const fin   = new Date(annee, 11, 31, 23, 59, 59);
@@ -92,7 +97,6 @@ export class ReservationDashboard extends Component {
                 return domain;
             };
 
-            // Récupérer toutes les réservations des 2 années avec create_date + nbr_jour_reservation
             const [recsN1, recsN] = await Promise.all([
                 this.orm.searchRead(
                     "reservation",
@@ -108,13 +112,12 @@ export class ReservationDashboard extends Component {
                 ),
             ]);
 
-            // Fonction utilitaire : grouper par mois
             const groupByMonth = (recs) => {
                 const countArr = new Array(12).fill(0);
                 const joursArr = new Array(12).fill(0);
                 for (const r of recs) {
                     if (!r.create_date) continue;
-                    const moisIdx = new Date(r.create_date).getMonth(); // 0-11
+                    const moisIdx = new Date(r.create_date).getMonth();
                     countArr[moisIdx]++;
                     joursArr[moisIdx] += (r.nbr_jour_reservation || 0);
                 }
@@ -133,7 +136,6 @@ export class ReservationDashboard extends Component {
                 const count_n  = grpN.countArr[idx];
                 const jours_n  = grpN.joursArr[idx];
 
-                // Évolution basée sur le nombre de réservations
                 let delta = null;
                 if (count_n1 > 0) {
                     delta = Math.round(((count_n - count_n1) / count_n1) * 100);
@@ -141,7 +143,6 @@ export class ReservationDashboard extends Component {
                     delta = 100;
                 }
 
-                // Évolution basée sur le nombre de jours
                 let delta_jours = null;
                 if (jours_n1 > 0) {
                     delta_jours = Math.round(((jours_n - jours_n1) / jours_n1) * 100);
@@ -212,6 +213,101 @@ export class ReservationDashboard extends Component {
             domain,
         });
     }
+
+    // ─────────────────────────────────────────
+    //  Popup par zone
+    // ─────────────────────────────────────────
+
+    // ─────────────────────────────────────────
+    //  Popup par zone
+    // ─────────────────────────────────────────
+
+    _ouvrirMoisPopupInternal(annee, mois) {
+        // Wrapper synchrone appelé depuis le template pour éviter la perte de this
+        const self = this;
+        const label = `${self.state.rows[mois - 1]?.label} ${annee}`;
+        const debut = new Date(annee, mois - 1, 1, 0, 0, 0);
+        const fin   = new Date(annee, mois, 0, 23, 59, 59);
+
+        self.state.popup         = { label, annee, mois, zones: [], totalCount: 0, totalJours: 0 };
+        self.state.popup_loading = true;
+
+        const zones = self.state.zones.slice();
+        const orm   = self.orm;
+
+        const promises = zones.map(z =>
+            orm.searchRead("reservation", [
+                ["status",      "=",  "confirmee"],
+                ["create_date", ">=", self._formatORM(debut)],
+                ["create_date", "<=", self._formatORM(fin)],
+                ["zone",        "=",  z.id],
+            ], ["nbr_jour_reservation"], { limit: 0 })
+        );
+
+        Promise.all(promises).then(function(results) {
+            const zonesData = zones.map(function(z, i) {
+                return {
+                    id    : z.id,
+                    name  : z.name,
+                    count : results[i].length,
+                    jours : results[i].reduce(function(s, r) { return s + (r.nbr_jour_reservation || 0); }, 0),
+                };
+            }).filter(function(z) { return z.count > 0; });
+
+            if (self.state.popup) {
+                self.state.popup.zones      = zonesData;
+                self.state.popup.totalCount = zonesData.reduce(function(s, z) { return s + z.count; }, 0);
+                self.state.popup.totalJours = zonesData.reduce(function(s, z) { return s + z.jours; }, 0);
+            }
+            self.state.popup_loading = false;
+        }).catch(function(err) {
+            self.state.popup_loading = false;
+            console.error("Erreur chargement popup zones:", err);
+        });
+    }
+
+    ouvrirMoisPopup(annee, mois) {
+        this._ouvrirMoisPopupInternal(annee, mois);
+    }
+
+    fermerPopup() {
+        this.state.popup = null;
+    }
+
+    ouvrirZone(zone_id, zone_name) {
+        const self  = this;
+        const annee = self.state.popup.annee;
+        const mois  = self.state.popup.mois;
+        const debut = new Date(annee, mois - 1, 1, 0, 0, 0);
+        const fin   = new Date(annee, mois, 0, 23, 59, 59);
+        const label = `${zone_name} — ${self.state.rows[mois - 1]?.label} ${annee}`;
+
+        self.state.popup = null;
+
+        self.action.doAction({
+            type      : "ir.actions.act_window",
+            name      : `Réservations Confirmées — ${label}`,
+            res_model : "reservation",
+            view_mode : "list,form",
+            domain    : [
+                ["status",      "=",  "confirmee"],
+                ["create_date", ">=", self._formatORM(debut)],
+                ["create_date", "<=", self._formatORM(fin)],
+                ["zone",        "=",  zone_id],
+            ],
+        });
+    }
+
+    ouvrirMoisDepuisPopup() {
+        const annee = this.state.popup.annee;
+        const mois  = this.state.popup.mois;
+        this.state.popup = null;
+        this.ouvrirMois(annee, mois);
+    }
+
+    // ─────────────────────────────────────────
+    //  Charts
+    // ─────────────────────────────────────────
 
     _renderChart() {
         const canvas = document.getElementById("rd-chart");
