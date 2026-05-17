@@ -32,6 +32,10 @@ export class ReservationDashboard extends Component {
         onWillStart(() => this._loadZones().then(() => this.loadData()));
     }
 
+    // ─────────────────────────────────────────
+    //  Utilitaires
+    // ─────────────────────────────────────────
+
     _pad(n) { return String(n).padStart(2, "0"); }
 
     _formatORM(d) {
@@ -57,6 +61,10 @@ export class ReservationDashboard extends Component {
             domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
         return domain;
     }
+
+    // ─────────────────────────────────────────
+    //  Chargement
+    // ─────────────────────────────────────────
 
     async loadData() {
         this.state.loading = true;
@@ -156,6 +164,10 @@ export class ReservationDashboard extends Component {
             }, 50);
         }
     }
+
+    // ─────────────────────────────────────────
+    //  Handlers
+    // ─────────────────────────────────────────
 
     updateSelectedZone(ev) {
         this.state.selected_zone = ev.target.value;
@@ -515,6 +527,10 @@ export class ReservationDashboard extends Component {
         }
     }
 
+    // ─────────────────────────────────────────
+    //  Totaux (footer)
+    // ─────────────────────────────────────────
+
     get totalN1()      { return this.state.rows.reduce((s, r) => s + r.count_n1, 0); }
     get totalN()       { return this.state.rows.reduce((s, r) => s + r.count_n,  0); }
     get totalJoursN1() { return this.state.rows.reduce((s, r) => s + r.jours_n1, 0); }
@@ -538,7 +554,7 @@ registry
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  COMPOSANT : ReservationDetailDashboard (AVEC ACCORDÉON ZONE → LIEUX)
+//  COMPOSANT : ReservationDetailDashboard
 // ═══════════════════════════════════════════════════════════════════════════
 
 export class ReservationDetailDashboard extends Component {
@@ -551,17 +567,16 @@ export class ReservationDetailDashboard extends Component {
         const params = props.action?.params || {};
 
         this.state = useState({
-            loading        : true,
-            label          : params.label  || "",
-            domain         : params.domain || [],
-            zones          : [],           // Liste des zones avec leurs lieux
-            categories     : [],
-            expanded_zones : {},           // { zone_id: true/false }
-            matrix_zone    : {},           // Données agrégées par zone
-            matrix_lieu    : {},           // Données détaillées par lieu
-            totaux_zones   : {},
-            totaux_cats    : {},
-            grand_total    : { count: 0, jours: 0 },
+            loading      : true,
+            label        : params.label  || "",
+            domain       : params.domain || [],
+            lieux        : [],
+            // MODIF 1 : categories = categorie_client (catégorie du client, pas du véhicule)
+            categories   : [],
+            matrix       : {},
+            totaux_lieux : {},
+            totaux_cats  : {},
+            grand_total  : { count: 0, jours: 0 },
         });
 
         onWillStart(() => this._loadData());
@@ -574,130 +589,84 @@ export class ReservationDetailDashboard extends Component {
         try {
             const domain = this.state.domain;
 
-            // 1. Récupérer toutes les réservations
+            // MODIF 1 : "categorie_client" au lieu de "categorie"
             const recs = await this.orm.searchRead(
                 "reservation",
                 domain,
-                ["zone", "lieu_depart", "categorie_client", "nbr_jour_reservation"],
+                ["lieu_depart", "categorie_client", "nbr_jour_reservation"],
                 { limit: 0 }
             );
 
-            // 2. Récupérer la liste des zones avec leurs lieux
-            const zones_raw = await this.orm.searchRead(
-                "zone",
-                [],
-                ["id", "name"],
-                { order: "name asc" }
-            );
+            const lieuxMap = {};
+            const catsMap  = {};
 
-            // 3. Pour chaque zone, récupérer ses lieux
-            const zones = [];
-            for (const z of zones_raw) {
-                const lieux = await this.orm.searchRead(
-                    "lieu_depart",
-                    [["zone", "=", z.id]],
-                    ["id", "name"],
-                    { order: "name asc" }
-                );
-                zones.push({
-                    id: z.id,
-                    name: z.name,
-                    lieux: lieux
-                });
-            }
-
-            // 4. Récupérer toutes les catégories client
-            const cats_raw = await this.orm.searchRead(
-                "categorie.client",
-                [],
-                ["id", "name"],
-                { order: "name asc" }
-            );
-            const categories = cats_raw.map(c => ({ id: c.id, name: c.name }));
-
-            // 5. Initialiser les matrices
-            const matrix_zone = {};
-            const matrix_lieu = {};
-
-            for (const zone of zones) {
-                matrix_zone[zone.id] = {};
-                for (const cat of categories) {
-                    matrix_zone[zone.id][cat.id] = { count: 0, jours: 0 };
-                }
-
-                matrix_lieu[zone.id] = {};
-                for (const lieu of zone.lieux) {
-                    matrix_lieu[zone.id][lieu.id] = {};
-                    for (const cat of categories) {
-                        matrix_lieu[zone.id][lieu.id][cat.id] = { count: 0, jours: 0 };
-                    }
-                }
-            }
-
-            // 6. Remplir les matrices avec les données
             for (const r of recs) {
-                const zone_id = r.zone?.[0];
-                const lieu_id = r.lieu_depart?.[0];
-                const cat_id  = r.categorie_client?.[0];
-
-                if (zone_id && cat_id && matrix_zone[zone_id] && matrix_zone[zone_id][cat_id]) {
-                    // Agrégation par zone
-                    matrix_zone[zone_id][cat_id].count++;
-                    matrix_zone[zone_id][cat_id].jours += (r.nbr_jour_reservation || 0);
-
-                    // Agrégation par lieu
-                    if (lieu_id && matrix_lieu[zone_id] && matrix_lieu[zone_id][lieu_id] && matrix_lieu[zone_id][lieu_id][cat_id]) {
-                        matrix_lieu[zone_id][lieu_id][cat_id].count++;
-                        matrix_lieu[zone_id][lieu_id][cat_id].jours += (r.nbr_jour_reservation || 0);
-                    }
+                if (r.lieu_depart && r.lieu_depart[0]) {
+                    lieuxMap[r.lieu_depart[0]] = r.lieu_depart[1] || `Lieu ${r.lieu_depart[0]}`;
+                }
+                // MODIF 1 : lecture de categorie_client
+                if (r.categorie_client && r.categorie_client[0]) {
+                    catsMap[r.categorie_client[0]] = r.categorie_client[1] || `Cat. ${r.categorie_client[0]}`;
                 }
             }
 
-            // 7. Calculer les totaux par zone
-            const totaux_zones = {};
-            for (const zone of zones) {
+            const lieux      = Object.entries(lieuxMap)
+                                     .map(([id, name]) => ({ id: parseInt(id), name }))
+                                     .sort((a, b) => a.name.localeCompare(b.name));
+            const categories = Object.entries(catsMap)
+                                     .map(([id, name]) => ({ id: parseInt(id), name }))
+                                     .sort((a, b) => a.name.localeCompare(b.name));
+
+            const matrix = {};
+            for (const l of lieux) {
+                matrix[l.id] = {};
+                for (const c of categories) {
+                    matrix[l.id][c.id] = { count: 0, jours: 0 };
+                }
+            }
+
+            for (const r of recs) {
+                const lid = r.lieu_depart?.[0];
+                // MODIF 1 : categorie_client
+                const cid = r.categorie_client?.[0];
+                if (lid && cid && matrix[lid] && matrix[lid][cid] !== undefined) {
+                    matrix[lid][cid].count++;
+                    matrix[lid][cid].jours += (r.nbr_jour_reservation || 0);
+                }
+            }
+
+            const totaux_lieux = {};
+            for (const l of lieux) {
                 let count = 0, jours = 0;
-                for (const cat of categories) {
-                    count += matrix_zone[zone.id][cat.id].count;
-                    jours += matrix_zone[zone.id][cat.id].jours;
+                for (const c of categories) {
+                    count += matrix[l.id][c.id].count;
+                    jours += matrix[l.id][c.id].jours;
                 }
-                totaux_zones[zone.id] = { count, jours };
+                totaux_lieux[l.id] = { count, jours };
             }
 
-            // 8. Calculer les totaux par catégorie
             const totaux_cats = {};
-            for (const cat of categories) {
+            for (const c of categories) {
                 let count = 0, jours = 0;
-                for (const zone of zones) {
-                    count += matrix_zone[zone.id][cat.id].count;
-                    jours += matrix_zone[zone.id][cat.id].jours;
+                for (const l of lieux) {
+                    count += matrix[l.id][c.id].count;
+                    jours += matrix[l.id][c.id].jours;
                 }
-                totaux_cats[cat.id] = { count, jours };
+                totaux_cats[c.id] = { count, jours };
             }
 
-            // 9. Grand total
             const grand_total = {
-                count: recs.length,
-                jours: recs.reduce((s, r) => s + (r.nbr_jour_reservation || 0), 0),
+                count : recs.length,
+                jours : recs.reduce((s, r) => s + (r.nbr_jour_reservation || 0), 0),
             };
 
-            // 10. État initial : toutes les zones fermées
-            const expanded_zones = {};
-            for (const zone of zones) {
-                expanded_zones[zone.id] = false;
-            }
+            this.state.lieux        = lieux;
+            this.state.categories   = categories;
+            this.state.matrix       = matrix;
+            this.state.totaux_lieux = totaux_lieux;
+            this.state.totaux_cats  = totaux_cats;
+            this.state.grand_total  = grand_total;
 
-            this.state.zones = zones;
-            this.state.categories = categories;
-            this.state.matrix_zone = matrix_zone;
-            this.state.matrix_lieu = matrix_lieu;
-            this.state.totaux_zones = totaux_zones;
-            this.state.totaux_cats = totaux_cats;
-            this.state.grand_total = grand_total;
-            this.state.expanded_zones = expanded_zones;
-
-        } catch (error) {
-            console.error("Erreur chargement données:", error);
         } finally {
             this.state.loading = false;
             setTimeout(() => {
@@ -707,29 +676,18 @@ export class ReservationDetailDashboard extends Component {
         }
     }
 
-    // Basculer l'expansion d'une zone
-    toggleZone(zone_id) {
-        this.state.expanded_zones[zone_id] = !this.state.expanded_zones[zone_id];
-        // Forcer le re-rendu
-        this.state.expanded_zones = { ...this.state.expanded_zones };
-    }
-
-    // Vérifier si une zone est expansée
-    isZoneExpanded(zone_id) {
-        return this.state.expanded_zones[zone_id] === true;
-    }
-
     retour() {
         this.action.doAction("dashboard_analytics.action_reservation_dashboard");
     }
 
+    // MODIF 3 : graphique lieux — réservations seulement, sans jours ni axe y1
     _renderChartLieux() {
         const canvas = document.getElementById("rdd-chart-lieux");
         if (!canvas) return;
         if (this._chartLieux) { this._chartLieux.destroy(); this._chartLieux = null; }
 
-        const labels = this.state.zones.map(z => z.name);
-        const counts = this.state.zones.map(z => this.state.totaux_zones[z.id]?.count || 0);
+        const labels = this.state.lieux.map(l => l.name);
+        const counts = this.state.lieux.map(l => this.state.totaux_lieux[l.id]?.count || 0);
 
         const draw = () => {
             this._chartLieux = new Chart(canvas, {
@@ -776,6 +734,7 @@ export class ReservationDetailDashboard extends Component {
         }
     }
 
+    // MODIF 3 : graphique catégories — réservations seulement, sans jours ni axe y1
     _renderChartCategories() {
         const canvas = document.getElementById("rdd-chart-categories");
         if (!canvas) return;
@@ -829,33 +788,11 @@ export class ReservationDetailDashboard extends Component {
         }
     }
 
-    getZoneTotal(zone_id) {
-        return this.state.totaux_zones[zone_id] || { count: 0, jours: 0 };
+    getCell(lieu_id, cat_id) {
+        return this.state.matrix[lieu_id]?.[cat_id] || { count: 0, jours: 0 };
     }
-
-    getLieuTotal(zone_id, lieu_id) {
-        let count = 0, jours = 0;
-        const lieu_data = this.state.matrix_lieu[zone_id]?.[lieu_id];
-        if (lieu_data) {
-            for (const cat of this.state.categories) {
-                count += lieu_data[cat.id]?.count || 0;
-                jours += lieu_data[cat.id]?.jours || 0;
-            }
-        }
-        return { count, jours };
-    }
-
-    getCellZone(zone_id, cat_id) {
-        return this.state.matrix_zone[zone_id]?.[cat_id] || { count: 0, jours: 0 };
-    }
-
-    getCellLieu(zone_id, lieu_id, cat_id) {
-        return this.state.matrix_lieu[zone_id]?.[lieu_id]?.[cat_id] || { count: 0, jours: 0 };
-    }
-
-    getTotalCat(cat_id) {
-        return this.state.totaux_cats[cat_id] || { count: 0, jours: 0 };
-    }
+    getTotalLieu(lieu_id) { return this.state.totaux_lieux[lieu_id] || { count: 0, jours: 0 }; }
+    getTotalCat(cat_id)   { return this.state.totaux_cats[cat_id]   || { count: 0, jours: 0 }; }
 }
 
 ReservationDetailDashboard.template = "dashboard_analytics.ReservationDetailDashboard";
