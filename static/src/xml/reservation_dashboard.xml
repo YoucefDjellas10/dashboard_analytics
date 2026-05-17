@@ -314,7 +314,7 @@
     background:#fafafa; white-space:nowrap;
     position:sticky; left:0; z-index:2;
     border-right:1px solid #e2e8f0;
-    padding-left:32px; /* indentation */
+    padding-left:32px;
 }
 .rdd-lieu-row:hover td { background:#f0f7ff; }
 .rdd-lieu-row:hover td:first-child { background:#e8f0fe; }
@@ -336,6 +336,16 @@
 .rdd-charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 @media (max-width:900px) { .rdd-charts-grid { grid-template-columns:1fr; } }
 .rdd-chart-title { font-size:14px; font-weight:700; color:#475569; padding:16px 20px 12px; border-bottom:1px solid #f1f5f9; }
+
+/* Heatmap légende */
+.rdd-heatmap-legend {
+    display:flex; align-items:center; gap:8px; font-size:11px;
+    color:#64748b; font-weight:600; padding:12px 20px 16px;
+}
+.rdd-heatmap-legend-bar {
+    width:120px; height:12px; border-radius:6px;
+    background:linear-gradient(to right, #f1f5f9, #bae6fd, #1565c0, #6a1b9a);
+}
 </style>
 
     <!-- Header -->
@@ -499,6 +509,49 @@
                 <div style="padding:0 20px 20px;">
                     <canvas id="rdd-chart-categories-moy" style="width:100%; max-height:380px;"/>
                 </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             NOUVEAU 1 — Réservations par jour de la semaine
+             ══════════════════════════════════════════════════════════ -->
+        <div class="rdd-card">
+            <div class="rdd-card-title">
+                📅 Réservations par jour de la semaine
+                <span style="font-size:12px; font-weight:500; color:#94a3b8; margin-left:8px;">
+                    Tous les mois confondus
+                </span>
+            </div>
+            <div style="padding:20px;">
+                <canvas id="rdd-chart-jour-semaine" style="width:100%; max-height:380px;"/>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             NOUVEAU 2 — Heatmap semaine × jour
+             ══════════════════════════════════════════════════════════ -->
+        <div class="rdd-card">
+            <div class="rdd-card-title">🗓️ Heatmap — Réservations par semaine × jour</div>
+            <div class="rdd-heatmap-legend">
+                <span>Faible</span>
+                <div class="rdd-heatmap-legend-bar"/>
+                <span>Élevé</span>
+            </div>
+            <div id="rdd-heatmap-container" style="padding:0 20px 20px;"/>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════════
+             NOUVEAU 3 — Distribution des durées
+             ══════════════════════════════════════════════════════════ -->
+        <div class="rdd-card">
+            <div class="rdd-card-title">
+                📏 Distribution des durées de réservation
+                <span style="font-size:12px; font-weight:500; color:#94a3b8; margin-left:8px;">
+                    Nombre de réservations selon la durée (jours)
+                </span>
+            </div>
+            <div style="padding:20px;">
+                <canvas id="rdd-chart-distribution-durees" style="width:100%; max-height:380px;"/>
             </div>
         </div>
 

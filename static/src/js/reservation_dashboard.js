@@ -526,7 +526,6 @@ export class ReservationDashboard extends Component {
         }
 
         const labels  = this.state.rows.map(r => r.label);
-        // ratio = jours / réservations, arrondi à 2 décimales, 0 si pas de réservation
         const dataN1  = this.state.rows.map(r =>
             r.count_n1 > 0 ? Math.round((r.jours_n1 / r.count_n1) * 100) / 100 : 0
         );
@@ -620,7 +619,6 @@ registry
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  COMPOSANT : ReservationDetailDashboard
-//  NOUVEAU : tableau groupé par Zone → expand/collapse → Lieux
 // ═══════════════════════════════════════════════════════════════════════════
 
 export class ReservationDetailDashboard extends Component {
@@ -636,19 +634,18 @@ export class ReservationDetailDashboard extends Component {
             loading        : true,
             label          : params.label  || "",
             domain         : params.domain || [],
-            // Données brutes groupées
-            zones          : [],          // [{ id, name }]
-            lieux          : [],          // [{ id, name, zone_id }]
-            categories     : [],          // [{ id, name }]
-            // Matrices
-            matrix_lieu    : {},          // matrix_lieu[lieu_id][cat_id] = { count, jours }
-            matrix_zone    : {},          // matrix_zone[zone_id][cat_id] = { count, jours }
+            zones          : [],
+            lieux          : [],
+            categories     : [],
+            matrix_lieu    : {},
+            matrix_zone    : {},
             totaux_lieux   : {},
             totaux_zones   : {},
             totaux_cats    : {},
             grand_total    : { count: 0, jours: 0 },
-            // UI : quelles zones sont expand
             expanded_zones : {},
+            // Nouvelles données
+            recs_raw       : [],   // toutes les réservations brutes conservées pour les nouveaux graphiques
         });
 
         onWillStart(() => this._loadData());
@@ -661,25 +658,24 @@ export class ReservationDetailDashboard extends Component {
         try {
             const domain = this.state.domain;
 
-            // On récupère zone ET lieu_depart en plus
             const recs = await this.orm.searchRead(
                 "reservation",
                 domain,
-                ["lieu_depart", "zone", "categorie_client", "nbr_jour_reservation"],
+                ["lieu_depart", "zone", "categorie_client", "nbr_jour_reservation", "create_date"],
                 { limit: 0 }
             );
 
-            // ── Construire les maps ──────────────────────────────────────────
+            // Conserver les recs brutes pour les nouveaux graphiques
+            this.state.recs_raw = recs;
+
             const zonesMap = {};
-            const lieuxMap = {};   // lieu_id → { name, zone_id }
+            const lieuxMap = {};
             const catsMap  = {};
 
             for (const r of recs) {
-                // Zone
                 if (r.zone && r.zone[0]) {
                     zonesMap[r.zone[0]] = r.zone[1] || `Zone ${r.zone[0]}`;
                 }
-                // Lieu
                 if (r.lieu_depart && r.lieu_depart[0]) {
                     if (!lieuxMap[r.lieu_depart[0]]) {
                         lieuxMap[r.lieu_depart[0]] = {
@@ -688,7 +684,6 @@ export class ReservationDetailDashboard extends Component {
                         };
                     }
                 }
-                // Catégorie client
                 if (r.categorie_client && r.categorie_client[0]) {
                     catsMap[r.categorie_client[0]] = r.categorie_client[1] || `Cat. ${r.categorie_client[0]}`;
                 }
@@ -706,7 +701,6 @@ export class ReservationDetailDashboard extends Component {
                 .map(([id, name]) => ({ id: parseInt(id), name }))
                 .sort((a, b) => a.name.localeCompare(b.name));
 
-            // ── Matrice par lieu ─────────────────────────────────────────────
             const matrix_lieu = {};
             for (const l of lieux) {
                 matrix_lieu[l.id] = {};
@@ -724,7 +718,6 @@ export class ReservationDetailDashboard extends Component {
                 }
             }
 
-            // ── Totaux par lieu ──────────────────────────────────────────────
             const totaux_lieux = {};
             for (const l of lieux) {
                 let count = 0, jours = 0;
@@ -735,7 +728,6 @@ export class ReservationDetailDashboard extends Component {
                 totaux_lieux[l.id] = { count, jours };
             }
 
-            // ── Matrice par zone (agrégat des lieux de la zone) ──────────────
             const matrix_zone = {};
             for (const z of zones) {
                 matrix_zone[z.id] = {};
@@ -752,7 +744,6 @@ export class ReservationDetailDashboard extends Component {
                 }
             }
 
-            // ── Totaux par zone ──────────────────────────────────────────────
             const totaux_zones = {};
             for (const z of zones) {
                 let count = 0, jours = 0;
@@ -763,7 +754,6 @@ export class ReservationDetailDashboard extends Component {
                 totaux_zones[z.id] = { count, jours };
             }
 
-            // ── Totaux par catégorie ─────────────────────────────────────────
             const totaux_cats = {};
             for (const c of categories) {
                 let count = 0, jours = 0;
@@ -779,7 +769,6 @@ export class ReservationDetailDashboard extends Component {
                 jours : recs.reduce((s, r) => s + (r.nbr_jour_reservation || 0), 0),
             };
 
-            // ── Initialiser toutes les zones fermées ─────────────────────────
             const expanded_zones = {};
             for (const z of zones) {
                 expanded_zones[z.id] = false;
@@ -803,11 +792,14 @@ export class ReservationDetailDashboard extends Component {
                 this._renderChartCategories();
                 this._renderChartLieuxMoy();
                 this._renderChartCategoriesMoy();
+                // Nouveaux graphiques
+                this._renderChartJourSemaine();
+                this._renderHeatmap();
+                this._renderChartDistributionDurees();
             }, 50);
         }
     }
 
-    // Toggle expand/collapse d'une zone
     toggleZone(zone_id) {
         this.state.expanded_zones[zone_id] = !this.state.expanded_zones[zone_id];
     }
@@ -816,7 +808,6 @@ export class ReservationDetailDashboard extends Component {
         return !!this.state.expanded_zones[zone_id];
     }
 
-    // Lieux appartenant à une zone
     getLieuxByZone(zone_id) {
         return this.state.lieux.filter(l => l.zone_id === zone_id);
     }
@@ -825,7 +816,6 @@ export class ReservationDetailDashboard extends Component {
         this.action.doAction("dashboard_analytics.action_reservation_dashboard");
     }
 
-    // Graphique par lieu de départ (page détail)
     _renderChartZones() {
         const canvas = document.getElementById("rdd-chart-lieux");
         if (!canvas) return;
@@ -1020,7 +1010,266 @@ export class ReservationDetailDashboard extends Component {
         }
     }
 
-    // Accesseurs template
+    // ── NOUVEAU 1 : Réservations par jour de la semaine ──────────────────────
+    _renderChartJourSemaine() {
+        const canvas = document.getElementById("rdd-chart-jour-semaine");
+        if (!canvas) return;
+        if (this._chartJourSemaine) { this._chartJourSemaine.destroy(); this._chartJourSemaine = null; }
+
+        // Lundi=0 … Dimanche=6 (réindexation depuis getDay() où 0=Dimanche)
+        const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+        const counts = new Array(7).fill(0);
+
+        for (const r of this.state.recs_raw) {
+            if (!r.create_date) continue;
+            const d = new Date(r.create_date);
+            // getDay() : 0=Dim, 1=Lun … 6=Sam → on remapped vers Lun=0
+            const idx = (d.getDay() + 6) % 7;
+            counts[idx]++;
+        }
+
+        const COLORS = [
+            "rgba(21,101,192,0.8)","rgba(21,101,192,0.75)","rgba(21,101,192,0.7)",
+            "rgba(21,101,192,0.65)","rgba(21,101,192,0.6)","rgba(106,27,154,0.75)","rgba(106,27,154,0.85)",
+        ];
+
+        const draw = () => {
+            this._chartJourSemaine = new Chart(canvas, {
+                type : "bar",
+                data : {
+                    labels   : JOURS,
+                    datasets : [{
+                        label           : "Réservations",
+                        data            : counts,
+                        backgroundColor : COLORS,
+                        borderRadius    : 6,
+                        borderSkipped   : false,
+                    }],
+                },
+                options: {
+                    responsive : true,
+                    plugins: {
+                        legend : { display: false },
+                        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} réservations` } },
+                    },
+                    scales: {
+                        x : { grid: { display: false }, ticks: { font: { weight: "700" } } },
+                        y : {
+                            beginAtZero : true,
+                            ticks       : { stepSize: 1, font: { weight: "600" } },
+                            grid        : { color: "rgba(0,0,0,.06)" },
+                        },
+                    },
+                },
+            });
+        };
+
+        if (window.Chart) { draw(); }
+        else {
+            const s = document.createElement("script");
+            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            s.onload = draw; document.head.appendChild(s);
+        }
+    }
+
+    // ── NOUVEAU 2 : Heatmap semaine × jour ──────────────────────────────────
+    _renderHeatmap() {
+        const container = document.getElementById("rdd-heatmap-container");
+        if (!container) return;
+
+        // Construire la matrice : semaine (1-53) × jour (0=Lun…6=Dim)
+        const matrix = {}; // matrix[weekNum][dayIdx] = count
+
+        // Trouver la plage de semaines présentes dans les données
+        let minWeek = Infinity, maxWeek = -Infinity;
+        let minYear = Infinity;
+
+        for (const r of this.state.recs_raw) {
+            if (!r.create_date) continue;
+            const d = new Date(r.create_date);
+            const { week, year } = this._getISOWeek(d);
+            const key = `${year}-${week}`;
+            if (!matrix[key]) matrix[key] = new Array(7).fill(0);
+            const dayIdx = (d.getDay() + 6) % 7;
+            matrix[key][dayIdx]++;
+            if (year < minYear || (year === minYear && week < minWeek)) {
+                minWeek = week; minYear = year;
+            }
+            if (week > maxWeek) maxWeek = week;
+        }
+
+        // Trouver le max pour l'intensité
+        let maxVal = 0;
+        for (const key of Object.keys(matrix)) {
+            for (const v of matrix[key]) {
+                if (v > maxVal) maxVal = v;
+            }
+        }
+
+        // Trier les clés semaine
+        const weekKeys = Object.keys(matrix).sort();
+
+        const JOURS_COURTS = ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"];
+
+        // Générer le HTML de la heatmap
+        const cellSize  = 28;
+        const cellGap   = 3;
+        const labelW    = 28;
+        const headerH   = 36;
+        const nWeeks    = weekKeys.length;
+        const svgW      = labelW + nWeeks * (cellSize + cellGap);
+        const svgH      = headerH + 7 * (cellSize + cellGap);
+
+        let cells = "";
+
+        // En-têtes des semaines (afficher toutes les 4)
+        weekKeys.forEach((key, wi) => {
+            if (wi % 4 === 0) {
+                const [yr, wk] = key.split("-");
+                const x = labelW + wi * (cellSize + cellGap) + cellSize / 2;
+                cells += `<text x="${x}" y="14" text-anchor="middle" font-size="9" fill="#94a3b8" font-weight="600">S${wk}</text>`;
+            }
+        });
+
+        // Labels jours
+        JOURS_COURTS.forEach((j, di) => {
+            const y = headerH + di * (cellSize + cellGap) + cellSize / 2 + 4;
+            cells += `<text x="${labelW - 4}" y="${y}" text-anchor="end" font-size="10" fill="#64748b" font-weight="700">${j}</text>`;
+        });
+
+        // Cellules
+        weekKeys.forEach((key, wi) => {
+            for (let di = 0; di < 7; di++) {
+                const val  = matrix[key][di] || 0;
+                const x    = labelW + wi * (cellSize + cellGap);
+                const y    = headerH + di * (cellSize + cellGap);
+                const intensity = maxVal > 0 ? val / maxVal : 0;
+                const fill = val === 0
+                    ? "#f1f5f9"
+                    : this._heatColor(intensity);
+                const textColor = intensity > 0.5 ? "#fff" : "#1e293b";
+                cells += `<rect x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" rx="4" fill="${fill}">
+                    <title>Semaine ${key} — ${JOURS_COURTS[di]} : ${val} résv</title>
+                </rect>`;
+                if (val > 0) {
+                    cells += `<text x="${x + cellSize/2}" y="${y + cellSize/2 + 4}" text-anchor="middle" font-size="9" fill="${textColor}" font-weight="700">${val}</text>`;
+                }
+            }
+        });
+
+        container.innerHTML = `
+            <div style="overflow-x:auto; padding-bottom:8px;">
+                <svg width="${svgW}" height="${svgH}" style="display:block; min-width:${svgW}px;">
+                    ${cells}
+                </svg>
+            </div>
+        `;
+    }
+
+    _heatColor(t) {
+        // Dégradé : blanc → bleu clair → bleu foncé → violet
+        if (t <= 0) return "#f1f5f9";
+        if (t < 0.33) {
+            const r = Math.round(186 + (21  - 186) * (t / 0.33));
+            const g = Math.round(230 + (101 - 230) * (t / 0.33));
+            const b = Math.round(253 + (192 - 253) * (t / 0.33));
+            return `rgb(${r},${g},${b})`;
+        }
+        if (t < 0.66) {
+            const tt = (t - 0.33) / 0.33;
+            const r  = Math.round(21  + (30  - 21)  * tt);
+            const g  = Math.round(101 + (58  - 101) * tt);
+            const b  = Math.round(192 + (138 - 192) * tt);
+            return `rgb(${r},${g},${b})`;
+        }
+        const tt = (t - 0.66) / 0.34;
+        const r  = Math.round(30  + (106 - 30)  * tt);
+        const g  = Math.round(58  + (27  - 58)  * tt);
+        const b  = Math.round(138 + (154 - 138) * tt);
+        return `rgb(${r},${g},${b})`;
+    }
+
+    _getISOWeek(d) {
+        const date  = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const day   = date.getUTCDay() || 7;
+        date.setUTCDate(date.getUTCDate() + 4 - day);
+        const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+        const week  = Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
+        return { week, year: date.getUTCFullYear() };
+    }
+
+    // ── NOUVEAU 3 : Distribution des durées ─────────────────────────────────
+    _renderChartDistributionDurees() {
+        const canvas = document.getElementById("rdd-chart-distribution-durees");
+        if (!canvas) return;
+        if (this._chartDist) { this._chartDist.destroy(); this._chartDist = null; }
+
+        // Tranches : 3-6, 7-13, 14-26, 27+
+        const TRANCHES = [
+            { label: "3 – 6 jours",  min: 3,  max: 6,        count: 0 },
+            { label: "7 – 13 jours", min: 7,  max: 13,       count: 0 },
+            { label: "14 – 26 jours",min: 14, max: 26,       count: 0 },
+            { label: "27+ jours",    min: 27, max: Infinity,  count: 0 },
+        ];
+
+        for (const r of this.state.recs_raw) {
+            const j = r.nbr_jour_reservation || 0;
+            for (const t of TRANCHES) {
+                if (j >= t.min && j <= t.max) { t.count++; break; }
+            }
+        }
+
+        const COLORS = [
+            "rgba(21,101,192,0.82)",
+            "rgba(14,116,144,0.82)",
+            "rgba(22,163,74,0.82)",
+            "rgba(106,27,154,0.82)",
+        ];
+
+        const draw = () => {
+            this._chartDist = new Chart(canvas, {
+                type : "bar",
+                data : {
+                    labels   : TRANCHES.map(t => t.label),
+                    datasets : [{
+                        label           : "Réservations",
+                        data            : TRANCHES.map(t => t.count),
+                        backgroundColor : COLORS,
+                        borderRadius    : 8,
+                        borderSkipped   : false,
+                    }],
+                },
+                options: {
+                    responsive : true,
+                    plugins: {
+                        legend : { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.parsed.y} réservations`,
+                            },
+                        },
+                    },
+                    scales: {
+                        x : { grid: { display: false }, ticks: { font: { weight: "700" } } },
+                        y : {
+                            beginAtZero : true,
+                            ticks       : { stepSize: 1, font: { weight: "600" } },
+                            grid        : { color: "rgba(0,0,0,.06)" },
+                            title       : { display: true, text: "Nombre de réservations" },
+                        },
+                    },
+                },
+            });
+        };
+
+        if (window.Chart) { draw(); }
+        else {
+            const s = document.createElement("script");
+            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            s.onload = draw; document.head.appendChild(s);
+        }
+    }
+
     getCellLieu(lieu_id, cat_id)  { return this.state.matrix_lieu[lieu_id]?.[cat_id]  || { count: 0, jours: 0 }; }
     getCellZone(zone_id, cat_id)  { return this.state.matrix_zone[zone_id]?.[cat_id]  || { count: 0, jours: 0 }; }
     getTotalLieu(lieu_id)         { return this.state.totaux_lieux[lieu_id]  || { count: 0, jours: 0 }; }
