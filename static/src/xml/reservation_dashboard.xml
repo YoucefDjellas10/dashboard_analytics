@@ -2,24 +2,28 @@
 <templates xml:space="preserve">
 
     <!-- ═══════════════════════════════════════════════════════════
-         TEMPLATE ORIGINAL (inchangé)
+         TEMPLATE ORIGINAL (inchangé sauf scroll)
          ═══════════════════════════════════════════════════════════ -->
     <t t-name="dashboard_analytics.ReservationDashboard">
 <div style="padding:16px; background:#f1f5f9;">
 <style>
+  /* MODIF 2 : scroll activé sur la page */
   .o_action {
     overflow-y: auto !important;
     height: 100% !important;
-}
-
-.o_view_controller {
+  }
+  .o_view_controller {
     overflow-y: auto !important;
     height: 100% !important;
-}
-
-.o_action_manager {
+  }
+  .o_action_manager {
     overflow-y: auto !important;
-}
+  }
+  .o_content {
+    overflow-y: auto !important;
+    height: 100% !important;
+  }
+
 .rd-header {
     display:flex;
     align-items:center;
@@ -104,7 +108,6 @@
 }
 .rd-clickable:hover { color:#6a1b9a; }
 
-/* Cellule réservation : nombre + jours */
 .rd-cell-main {
     font-size:14px;
     font-weight:800;
@@ -117,7 +120,6 @@
     margin-left:4px;
 }
 
-/* Évolution : deux badges côte à côte sur la même ligne */
 .rd-evo-wrap {
     display:inline-flex;
     flex-direction:row;
@@ -246,10 +248,8 @@
             <tbody>
                 <t t-foreach="state.rows" t-as="row" t-key="row.mois">
                     <tr>
-                        <!-- Mois -->
                         <td><t t-esc="row.label"/></td>
 
-                        <!-- Colonne N-1 : nb réservations + jours sur la même ligne -->
                         <td class="rd-clickable"
                             t-att-data-annee="state.annee_n1"
                             t-att-data-mois="row.mois"
@@ -257,7 +257,6 @@
                             <span class="rd-cell-main"><t t-esc="row.count_n1"/></span><span class="rd-cell-jours">(<t t-esc="row.jours_n1"/> jours)</span>
                         </td>
 
-                        <!-- Colonne N : nb réservations + jours sur la même ligne -->
                         <td class="rd-clickable"
                             t-att-data-annee="state.annee_n"
                             t-att-data-mois="row.mois"
@@ -265,7 +264,6 @@
                             <span class="rd-cell-main"><t t-esc="row.count_n"/></span><span class="rd-cell-jours">(<t t-esc="row.jours_n"/> jours)</span>
                         </td>
 
-                        <!-- Évolution : badges côte à côte sur la même ligne -->
                         <td>
                             <div class="rd-evo-wrap">
                                 <span class="rd-evo-item">
@@ -297,15 +295,12 @@
             <tfoot>
                 <tr>
                     <td>Total</td>
-                    <!-- Total N-1 -->
                     <td>
                         <span class="rd-cell-main"><t t-esc="totalN1"/></span><span class="rd-cell-jours">(<t t-esc="totalJoursN1"/> jours)</span>
                     </td>
-                    <!-- Total N -->
                     <td>
                         <span class="rd-cell-main"><t t-esc="totalN"/></span><span class="rd-cell-jours">(<t t-esc="totalJoursN"/> jours)</span>
                     </td>
-                    <!-- Évolution totale -->
                     <td>
                         <div class="rd-evo-wrap">
                             <div>
@@ -372,12 +367,29 @@
 
 
     <!-- ═══════════════════════════════════════════════════════════
-         NOUVEAU TEMPLATE : Page détail — tableau croisé + graphiques
+         PAGE DÉTAIL — tableau croisé + graphiques
          ═══════════════════════════════════════════════════════════ -->
     <t t-name="dashboard_analytics.ReservationDetailDashboard">
-<div style="padding:16px; background:#f1f5f9; min-height:100vh;">
+<!-- MODIF 2 : overflow-y:auto pour activer le scroll -->
+<div style="padding:16px; background:#f1f5f9; min-height:100vh; overflow-y:auto;">
 <style>
-/* ── Styles spécifiques à la page détail (préfixe rdd-) ──────── */
+/* MODIF 2 : scroll activé sur la page détail aussi */
+.o_action {
+    overflow-y: auto !important;
+    height: 100% !important;
+}
+.o_view_controller {
+    overflow-y: auto !important;
+    height: 100% !important;
+}
+.o_action_manager {
+    overflow-y: auto !important;
+}
+.o_content {
+    overflow-y: auto !important;
+    height: 100% !important;
+}
+
 .rdd-header {
     display:flex;
     align-items:center;
@@ -420,7 +432,6 @@
     background:#e2e8f0;
     transform:translateY(-2px);
 }
-/* ── Carte wrapper ──────────────────────────────────────────── */
 .rdd-card {
     background:#fff;
     border-radius:16px;
@@ -436,7 +447,6 @@
     padding:18px 24px 12px;
     border-bottom:1px solid #f1f5f9;
 }
-/* ── Tableau croisé ────────────────────────────────────────── */
 .rdd-scroll {
     overflow-x: auto;
 }
@@ -484,7 +494,6 @@
 .rdd-cross-table tbody tr:hover td:first-child {
     background:#e8f0fe;
 }
-/* Cellule avec données */
 .rdd-cell-count {
     font-weight:800;
     color:#1565c0;
@@ -495,7 +504,6 @@
     color:#94a3b8;
     font-weight:500;
 }
-/* Ligne / colonne total */
 .rdd-total-row td {
     background:linear-gradient(135deg,#f8fafc,#f1f5f9) !important;
     font-weight:800 !important;
@@ -507,12 +515,10 @@
     font-weight:800 !important;
     border-left:2px solid #e2e8f0 !important;
 }
-/* Cellule vide */
 .rdd-cell-empty {
     color:#e2e8f0;
     font-size:18px;
 }
-/* ── Graphiques côte à côte ─────────────────────────────────── */
 .rdd-charts-grid {
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -551,7 +557,6 @@
                 min-width:180px;
                 box-shadow:0 8px 32px rgba(21,101,192,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
             ">
-                <!-- Cercle décoratif arrière-plan -->
                 <div style="
                     position:absolute; top:-18px; right:-18px;
                     width:80px; height:80px;
@@ -590,31 +595,26 @@
 
     <t t-else="">
 
-        <!-- ── Tableau croisé ─────────────────────────────────── -->
+        <!-- MODIF 1 : titre mis à jour "Catégories de client" -->
         <div class="rdd-card">
             <div class="rdd-card-title">
-                🔀 Tableau croisé — Lieux de départ × Catégories de véhicule
+                🔀 Tableau croisé — Lieux de départ × Catégories de client
             </div>
             <div class="rdd-scroll">
                 <table class="rdd-cross-table">
                     <thead>
                         <tr>
-                            <!-- Coin supérieur gauche -->
                             <th style="min-width:160px;">Lieu de départ</th>
-                            <!-- Une colonne par catégorie -->
                             <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
                                 <th><t t-esc="cat.name"/></th>
                             </t>
-                            <!-- Colonne total -->
                             <th style="background:rgba(255,255,255,0.15);">Total</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Une ligne par lieu -->
                         <t t-foreach="state.lieux" t-as="lieu" t-key="lieu.id">
                             <tr>
                                 <td><t t-esc="lieu.name"/></td>
-                                <!-- Cellules catégorie -->
                                 <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
                                     <td>
                                         <t t-set="cell" t-value="getCell(lieu.id, cat.id)"/>
@@ -627,7 +627,6 @@
                                         </t>
                                     </td>
                                 </t>
-                                <!-- Total ligne -->
                                 <td class="rdd-total-col">
                                     <t t-set="tl" t-value="getTotalLieu(lieu.id)"/>
                                     <div class="rdd-cell-count"><t t-esc="tl.count"/></div>
@@ -636,7 +635,6 @@
                             </tr>
                         </t>
                     </tbody>
-                    <!-- Ligne totaux par catégorie -->
                     <tfoot>
                         <tr class="rdd-total-row">
                             <td>Total</td>
@@ -647,7 +645,6 @@
                                     <div class="rdd-cell-jours">(<t t-esc="tc.jours"/> j)</div>
                                 </td>
                             </t>
-                            <!-- Grand total -->
                             <td class="rdd-total-col">
                                 <div class="rdd-cell-count" style="color:#6a1b9a;">
                                     <t t-esc="state.grand_total.count"/>
@@ -660,10 +657,10 @@
             </div>
         </div>
 
-        <!-- ── 2 Graphiques barres ────────────────────────────── -->
+        <!-- MODIF 3 : titres mis à jour, graphiques sans jours -->
         <div class="rdd-charts-grid">
 
-            <!-- Graphique 1 : par lieu de départ -->
+            <!-- Graphique 1 : par lieu de départ — réservations seulement -->
             <div class="rdd-card">
                 <div class="rdd-chart-title">📍 Par lieu de départ</div>
                 <div style="padding:20px;">
@@ -671,9 +668,9 @@
                 </div>
             </div>
 
-            <!-- Graphique 2 : par catégorie -->
+            <!-- MODIF 1 : titre "Par catégorie de client" + MODIF 3 : réservations seulement -->
             <div class="rdd-card">
-                <div class="rdd-chart-title">🏷️ Par catégorie de véhicule</div>
+                <div class="rdd-chart-title">🏷️ Par catégorie de client</div>
                 <div style="padding:20px;">
                     <canvas id="rdd-chart-categories" style="width:100%; max-height:380px;"/>
                 </div>

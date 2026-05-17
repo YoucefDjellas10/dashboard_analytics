@@ -185,12 +185,8 @@ export class ReservationDashboard extends Component {
         this.action.doAction("dashboard_analytics.action_dashboard_statistiques");
     }
 
-    // ─────────────────────────────────────────
-    //  MODIFICATION : lecture via data-* pour
-    //  éviter la perte de contexte avec arrow fn
-    // ─────────────────────────────────────────
     onClickMois(ev) {
-        const td   = ev.currentTarget;
+        const td    = ev.currentTarget;
         const annee = parseInt(td.dataset.annee);
         const mois  = parseInt(td.dataset.mois);
 
@@ -206,7 +202,6 @@ export class ReservationDashboard extends Component {
         if (this.state.selected_zone)
             domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
 
-        // Navigation vers le composant détail (nouvelle page, pas popup)
         this.action.doAction({
             type   : "ir.actions.client",
             tag    : "dashboard_analytics.action_reservation_detail_dashboard",
@@ -559,8 +554,7 @@ registry
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-//  NOUVEAU COMPOSANT : ReservationDetailDashboard
-//  Page détail : tableau croisé lieux × catégories + 2 graphiques barres
+//  COMPOSANT : ReservationDetailDashboard
 // ═══════════════════════════════════════════════════════════════════════════
 
 export class ReservationDetailDashboard extends Component {
@@ -569,21 +563,19 @@ export class ReservationDetailDashboard extends Component {
         this.orm    = useService("orm");
         this.action = useService("action");
 
-        // Récupérer les paramètres passés par ouvrirMois
-        const props = this.props;
+        const props  = this.props;
         const params = props.action?.params || {};
 
         this.state = useState({
-            loading    : true,
-            label      : params.label  || "",
-            domain     : params.domain || [],
-            // Tableau croisé
-            lieux      : [],       // [{id, name}]
-            categories : [],       // [{id, name}]
-            matrix     : {},       // matrix[lieu_id][cat_id] = {count, jours}
-            // Totaux lignes / colonnes
-            totaux_lieux : {},     // totaux_lieux[lieu_id] = {count, jours}
-            totaux_cats  : {},     // totaux_cats[cat_id]   = {count, jours}
+            loading      : true,
+            label        : params.label  || "",
+            domain       : params.domain || [],
+            lieux        : [],
+            // MODIF 1 : categories = categorie_client (catégorie du client, pas du véhicule)
+            categories   : [],
+            matrix       : {},
+            totaux_lieux : {},
+            totaux_cats  : {},
             grand_total  : { count: 0, jours: 0 },
         });
 
@@ -597,34 +589,34 @@ export class ReservationDetailDashboard extends Component {
         try {
             const domain = this.state.domain;
 
-            // Charger toutes les réservations avec les champs nécessaires
+            // MODIF 1 : "categorie_client" au lieu de "categorie"
             const recs = await this.orm.searchRead(
                 "reservation",
                 domain,
-                ["lieu_depart", "categorie", "nbr_jour_reservation"],
+                ["lieu_depart", "categorie_client", "nbr_jour_reservation"],
                 { limit: 0 }
             );
 
-            // Collecter les IDs uniques de lieux et catégories
-            const lieuxMap  = {};
-            const catsMap   = {};
+            const lieuxMap = {};
+            const catsMap  = {};
 
             for (const r of recs) {
                 if (r.lieu_depart && r.lieu_depart[0]) {
                     lieuxMap[r.lieu_depart[0]] = r.lieu_depart[1] || `Lieu ${r.lieu_depart[0]}`;
                 }
-                if (r.categorie && r.categorie[0]) {
-                    catsMap[r.categorie[0]] = r.categorie[1] || `Cat. ${r.categorie[0]}`;
+                // MODIF 1 : lecture de categorie_client
+                if (r.categorie_client && r.categorie_client[0]) {
+                    catsMap[r.categorie_client[0]] = r.categorie_client[1] || `Cat. ${r.categorie_client[0]}`;
                 }
             }
 
-            // Trier par nom
-            const lieux      = Object.entries(lieuxMap).map(([id, name]) => ({ id: parseInt(id), name }))
+            const lieux      = Object.entries(lieuxMap)
+                                     .map(([id, name]) => ({ id: parseInt(id), name }))
                                      .sort((a, b) => a.name.localeCompare(b.name));
-            const categories = Object.entries(catsMap).map(([id, name]) => ({ id: parseInt(id), name }))
+            const categories = Object.entries(catsMap)
+                                     .map(([id, name]) => ({ id: parseInt(id), name }))
                                      .sort((a, b) => a.name.localeCompare(b.name));
 
-            // Construire la matrice
             const matrix = {};
             for (const l of lieux) {
                 matrix[l.id] = {};
@@ -633,17 +625,16 @@ export class ReservationDetailDashboard extends Component {
                 }
             }
 
-            // Remplir la matrice
             for (const r of recs) {
                 const lid = r.lieu_depart?.[0];
-                const cid = r.categorie?.[0];
+                // MODIF 1 : categorie_client
+                const cid = r.categorie_client?.[0];
                 if (lid && cid && matrix[lid] && matrix[lid][cid] !== undefined) {
                     matrix[lid][cid].count++;
                     matrix[lid][cid].jours += (r.nbr_jour_reservation || 0);
                 }
             }
 
-            // Totaux par ligne (lieu)
             const totaux_lieux = {};
             for (const l of lieux) {
                 let count = 0, jours = 0;
@@ -654,7 +645,6 @@ export class ReservationDetailDashboard extends Component {
                 totaux_lieux[l.id] = { count, jours };
             }
 
-            // Totaux par colonne (catégorie)
             const totaux_cats = {};
             for (const c of categories) {
                 let count = 0, jours = 0;
@@ -665,15 +655,14 @@ export class ReservationDetailDashboard extends Component {
                 totaux_cats[c.id] = { count, jours };
             }
 
-            // Grand total
             const grand_total = {
                 count : recs.length,
                 jours : recs.reduce((s, r) => s + (r.nbr_jour_reservation || 0), 0),
             };
 
-            this.state.lieux       = lieux;
-            this.state.categories  = categories;
-            this.state.matrix      = matrix;
+            this.state.lieux        = lieux;
+            this.state.categories   = categories;
+            this.state.matrix       = matrix;
             this.state.totaux_lieux = totaux_lieux;
             this.state.totaux_cats  = totaux_cats;
             this.state.grand_total  = grand_total;
@@ -691,7 +680,7 @@ export class ReservationDetailDashboard extends Component {
         this.action.doAction("dashboard_analytics.action_reservation_dashboard");
     }
 
-    // ─── Graphique 1 : par lieu de départ ───────────────────────────────
+    // MODIF 3 : graphique lieux — réservations seulement, sans jours ni axe y1
     _renderChartLieux() {
         const canvas = document.getElementById("rdd-chart-lieux");
         if (!canvas) return;
@@ -699,7 +688,6 @@ export class ReservationDetailDashboard extends Component {
 
         const labels = this.state.lieux.map(l => l.name);
         const counts = this.state.lieux.map(l => this.state.totaux_lieux[l.id]?.count || 0);
-        const jours  = this.state.lieux.map(l => this.state.totaux_lieux[l.id]?.jours || 0);
 
         const draw = () => {
             this._chartLieux = new Chart(canvas, {
@@ -712,14 +700,6 @@ export class ReservationDetailDashboard extends Component {
                             data            : counts,
                             backgroundColor : "rgba(21,101,192,0.8)",
                             borderRadius    : 6,
-                            yAxisID         : "y",
-                        },
-                        {
-                            label           : "Jours",
-                            data            : jours,
-                            backgroundColor : "rgba(106,27,154,0.8)",
-                            borderRadius    : 6,
-                            yAxisID         : "y1",
                         },
                     ],
                 },
@@ -729,14 +709,17 @@ export class ReservationDetailDashboard extends Component {
                         legend : { position: "top", labels: { font: { weight: "bold" } } },
                         tooltip: {
                             callbacks: {
-                                label: ctx => ` ${ctx.dataset.label} : ${ctx.parsed.y}`,
+                                label: ctx => ` Réservations : ${ctx.parsed.y}`,
                             },
                         },
                     },
                     scales: {
-                        x  : { grid: { display: false }, ticks: { font: { weight: "600" } } },
-                        y  : { beginAtZero: true, position: "left",  title: { display: true, text: "Réservations" } },
-                        y1 : { beginAtZero: true, position: "right", title: { display: true, text: "Jours" }, grid: { drawOnChartArea: false } },
+                        x : { grid: { display: false }, ticks: { font: { weight: "600" } } },
+                        y : {
+                            beginAtZero : true,
+                            title       : { display: true, text: "Réservations" },
+                            ticks       : { stepSize: 1, font: { weight: "600" } },
+                        },
                     },
                 },
             });
@@ -745,13 +728,13 @@ export class ReservationDetailDashboard extends Component {
         if (window.Chart) { draw(); }
         else {
             const s = document.createElement("script");
-            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            s.src    = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
             s.onload = draw;
             document.head.appendChild(s);
         }
     }
 
-    // ─── Graphique 2 : par catégorie ────────────────────────────────────
+    // MODIF 3 : graphique catégories — réservations seulement, sans jours ni axe y1
     _renderChartCategories() {
         const canvas = document.getElementById("rdd-chart-categories");
         if (!canvas) return;
@@ -759,7 +742,6 @@ export class ReservationDetailDashboard extends Component {
 
         const labels = this.state.categories.map(c => c.name);
         const counts = this.state.categories.map(c => this.state.totaux_cats[c.id]?.count || 0);
-        const jours  = this.state.categories.map(c => this.state.totaux_cats[c.id]?.jours || 0);
 
         const draw = () => {
             this._chartCats = new Chart(canvas, {
@@ -772,14 +754,6 @@ export class ReservationDetailDashboard extends Component {
                             data            : counts,
                             backgroundColor : "rgba(22,163,74,0.8)",
                             borderRadius    : 6,
-                            yAxisID         : "y",
-                        },
-                        {
-                            label           : "Jours",
-                            data            : jours,
-                            backgroundColor : "rgba(220,38,38,0.8)",
-                            borderRadius    : 6,
-                            yAxisID         : "y1",
                         },
                     ],
                 },
@@ -789,14 +763,17 @@ export class ReservationDetailDashboard extends Component {
                         legend : { position: "top", labels: { font: { weight: "bold" } } },
                         tooltip: {
                             callbacks: {
-                                label: ctx => ` ${ctx.dataset.label} : ${ctx.parsed.y}`,
+                                label: ctx => ` Réservations : ${ctx.parsed.y}`,
                             },
                         },
                     },
                     scales: {
-                        x  : { grid: { display: false }, ticks: { font: { weight: "600" } } },
-                        y  : { beginAtZero: true, position: "left",  title: { display: true, text: "Réservations" } },
-                        y1 : { beginAtZero: true, position: "right", title: { display: true, text: "Jours" }, grid: { drawOnChartArea: false } },
+                        x : { grid: { display: false }, ticks: { font: { weight: "600" } } },
+                        y : {
+                            beginAtZero : true,
+                            title       : { display: true, text: "Réservations" },
+                            ticks       : { stepSize: 1, font: { weight: "600" } },
+                        },
                     },
                 },
             });
@@ -805,18 +782,17 @@ export class ReservationDetailDashboard extends Component {
         if (window.Chart) { draw(); }
         else {
             const s = document.createElement("script");
-            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            s.src    = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
             s.onload = draw;
             document.head.appendChild(s);
         }
     }
 
-    // Helpers template
     getCell(lieu_id, cat_id) {
         return this.state.matrix[lieu_id]?.[cat_id] || { count: 0, jours: 0 };
     }
-    getTotalLieu(lieu_id)  { return this.state.totaux_lieux[lieu_id] || { count: 0, jours: 0 }; }
-    getTotalCat(cat_id)    { return this.state.totaux_cats[cat_id]   || { count: 0, jours: 0 }; }
+    getTotalLieu(lieu_id) { return this.state.totaux_lieux[lieu_id] || { count: 0, jours: 0 }; }
+    getTotalCat(cat_id)   { return this.state.totaux_cats[cat_id]   || { count: 0, jours: 0 }; }
 }
 
 ReservationDetailDashboard.template = "dashboard_analytics.ReservationDetailDashboard";
