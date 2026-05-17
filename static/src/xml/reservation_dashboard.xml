@@ -205,6 +205,207 @@
             <canvas id="rd-chart-pie" style="width:100%; max-height:500px;"/>
         </div>
     </div>
+
+    <!-- ── Récapitulatif mensuel : Jours + Réservations ── -->
+    <div class="rd-table-wrapper" style="margin-top:20px; overflow:hidden;">
+
+        <!-- Légende couleurs -->
+        <div style="
+            display:flex; align-items:center; gap:24px;
+            padding:18px 24px 14px;
+            border-bottom:1px solid #f1f5f9;
+        ">
+            <div style="font-size:16px; font-weight:800; color:#1e293b;">
+                📅 Récapitulatif mensuel — Réservations &amp; Jours
+            </div>
+            <div style="display:flex; align-items:center; gap:16px; margin-left:auto;">
+                <div style="display:flex; align-items:center; gap:7px;">
+                    <div style="width:28px; height:12px; border-radius:4px; background:rgba(21,101,192,0.75);"/>
+                    <span style="font-size:12px; font-weight:700; color:#1565c0;"><t t-esc="state.annee_n1"/></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:7px;">
+                    <div style="width:28px; height:12px; border-radius:4px; background:rgba(106,27,154,0.75);"/>
+                    <span style="font-size:12px; font-weight:700; color:#6a1b9a;"><t t-esc="state.annee_n"/></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grille des mois -->
+        <div style="
+            display:grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap:0;
+        ">
+            <t t-foreach="state.rows" t-as="row" t-key="row.mois">
+                <div style="
+                    border-right:1px solid #f1f5f9;
+                    border-bottom:1px solid #f1f5f9;
+                    padding:16px 18px;
+                ">
+                    <!-- Nom du mois -->
+                    <div style="
+                        font-size:12px; font-weight:800; color:#94a3b8;
+                        text-transform:uppercase; letter-spacing:.8px;
+                        margin-bottom:12px;
+                    ">
+                        <t t-esc="row.label"/>
+                    </div>
+
+                    <!-- Bloc Réservations -->
+                    <div style="margin-bottom:10px;">
+                        <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px;">
+                            Réservations
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <!-- N-1 -->
+                            <div style="
+                                flex:1; background:rgba(21,101,192,0.1);
+                                border-left:3px solid rgba(21,101,192,0.75);
+                                border-radius:0 6px 6px 0;
+                                padding:6px 10px;
+                            ">
+                                <div style="font-size:18px; font-weight:900; color:#1565c0; line-height:1.1;">
+                                    <t t-esc="row.count_n1"/>
+                                </div>
+                                <div style="font-size:10px; font-weight:600; color:#64748b; margin-top:1px;">
+                                    <t t-esc="state.annee_n1"/>
+                                </div>
+                            </div>
+                            <!-- Flèche -->
+                            <div style="font-size:14px; color:#cbd5e1; flex-shrink:0;">→</div>
+                            <!-- N -->
+                            <div style="
+                                flex:1; background:rgba(106,27,154,0.1);
+                                border-left:3px solid rgba(106,27,154,0.75);
+                                border-radius:0 6px 6px 0;
+                                padding:6px 10px;
+                            ">
+                                <div style="font-size:18px; font-weight:900; color:#6a1b9a; line-height:1.1;">
+                                    <t t-esc="row.count_n"/>
+                                </div>
+                                <div style="font-size:10px; font-weight:600; color:#64748b; margin-top:1px;">
+                                    <t t-esc="state.annee_n"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bloc Jours -->
+                    <div>
+                        <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px;">
+                            Nbre de jours
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <!-- N-1 -->
+                            <div style="
+                                flex:1; background:rgba(21,101,192,0.06);
+                                border-left:3px solid rgba(21,101,192,0.4);
+                                border-radius:0 6px 6px 0;
+                                padding:6px 10px;
+                            ">
+                                <div style="font-size:16px; font-weight:800; color:#1565c0; line-height:1.1; opacity:.8;">
+                                    <t t-esc="row.jours_n1"/>
+                                </div>
+                                <div style="font-size:10px; font-weight:600; color:#64748b; margin-top:1px;">
+                                    <t t-esc="state.annee_n1"/>
+                                </div>
+                            </div>
+                            <!-- Flèche -->
+                            <div style="font-size:14px; color:#cbd5e1; flex-shrink:0;">→</div>
+                            <!-- N -->
+                            <div style="
+                                flex:1; background:rgba(106,27,154,0.06);
+                                border-left:3px solid rgba(106,27,154,0.4);
+                                border-radius:0 6px 6px 0;
+                                padding:6px 10px;
+                            ">
+                                <div style="font-size:16px; font-weight:800; color:#6a1b9a; line-height:1.1; opacity:.8;">
+                                    <t t-esc="row.jours_n"/>
+                                </div>
+                                <div style="font-size:10px; font-weight:600; color:#64748b; margin-top:1px;">
+                                    <t t-esc="state.annee_n"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Badge évolution réservations -->
+                    <div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">
+                        <t t-if="row.delta !== null">
+                            <span t-attf-class="rd-badge {{ row.delta >= 0 ? 'rd-badge-up' : 'rd-badge-down' }}" style="font-size:11px; padding:2px 8px;">
+                                <t t-if="row.delta >= 0">▲ +<t t-esc="row.delta"/>%</t>
+                                <t t-else="">▼ <t t-esc="row.delta"/>%</t>
+                            </span>
+                        </t>
+                        <t t-if="row.delta_jours !== null">
+                            <span t-attf-class="rd-badge {{ row.delta_jours >= 0 ? 'rd-badge-up' : 'rd-badge-down' }}" style="font-size:11px; padding:2px 8px; opacity:.8;">
+                                <t t-if="row.delta_jours >= 0">▲ +<t t-esc="row.delta_jours"/>% j</t>
+                                <t t-else="">▼ <t t-esc="row.delta_jours"/>% j</t>
+                            </span>
+                        </t>
+                    </div>
+                </div>
+            </t>
+        </div>
+
+        <!-- Footer totaux -->
+        <div style="
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:0;
+            border-top:2px solid #e2e8f0;
+            background:linear-gradient(135deg,#f8fafc,#f1f5f9);
+        ">
+            <!-- Total Réservations -->
+            <div style="padding:16px 24px; border-right:1px solid #e2e8f0;">
+                <div style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px;">
+                    Total réservations
+                </div>
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <div style="display:flex; align-items:baseline; gap:6px;">
+                        <span style="font-size:26px; font-weight:900; color:#1565c0;"><t t-esc="totalN1"/></span>
+                        <span style="font-size:12px; font-weight:600; color:#94a3b8;"><t t-esc="state.annee_n1"/></span>
+                    </div>
+                    <div style="font-size:18px; color:#cbd5e1;">→</div>
+                    <div style="display:flex; align-items:baseline; gap:6px;">
+                        <span style="font-size:26px; font-weight:900; color:#6a1b9a;"><t t-esc="totalN"/></span>
+                        <span style="font-size:12px; font-weight:600; color:#94a3b8;"><t t-esc="state.annee_n"/></span>
+                    </div>
+                    <t t-if="totalDelta !== null">
+                        <span t-attf-class="rd-badge {{ totalDelta >= 0 ? 'rd-badge-up' : 'rd-badge-down' }}">
+                            <t t-if="totalDelta >= 0">▲ +<t t-esc="totalDelta"/>%</t>
+                            <t t-else="">▼ <t t-esc="totalDelta"/>%</t>
+                        </span>
+                    </t>
+                </div>
+            </div>
+            <!-- Total Jours -->
+            <div style="padding:16px 24px;">
+                <div style="font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.6px; margin-bottom:8px;">
+                    Total jours
+                </div>
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <div style="display:flex; align-items:baseline; gap:6px;">
+                        <span style="font-size:26px; font-weight:900; color:#1565c0;"><t t-esc="totalJoursN1"/></span>
+                        <span style="font-size:12px; font-weight:600; color:#94a3b8;"><t t-esc="state.annee_n1"/></span>
+                    </div>
+                    <div style="font-size:18px; color:#cbd5e1;">→</div>
+                    <div style="display:flex; align-items:baseline; gap:6px;">
+                        <span style="font-size:26px; font-weight:900; color:#6a1b9a;"><t t-esc="totalJoursN"/></span>
+                        <span style="font-size:12px; font-weight:600; color:#94a3b8;"><t t-esc="state.annee_n"/></span>
+                    </div>
+                    <t t-if="totalDeltaJours !== null">
+                        <span t-attf-class="rd-badge {{ totalDeltaJours >= 0 ? 'rd-badge-up' : 'rd-badge-down' }}">
+                            <t t-if="totalDeltaJours >= 0">▲ +<t t-esc="totalDeltaJours"/>%</t>
+                            <t t-else="">▼ <t t-esc="totalDeltaJours"/>%</t>
+                        </span>
+                    </t>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
 </t>
 
 </div>
