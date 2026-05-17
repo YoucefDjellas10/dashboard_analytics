@@ -334,8 +334,9 @@
 
 /* Charts */
 .rdd-charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-@media (max-width:900px) { .rdd-charts-grid { grid-template-columns:1fr; } }
-@media (max-width:1100px) { .rdd-trio-grid { grid-template-columns:1fr !important; } }
+@media (max-width:768px) { .rdd-charts-grid { grid-template-columns:1fr; } }
+@media (max-width:1200px) { .rdd-trio-grid { grid-template-columns:1fr 1fr !important; } }
+@media (max-width:768px)  { .rdd-trio-grid { grid-template-columns:1fr !important; } }
 .rdd-chart-title { font-size:14px; font-weight:700; color:#475569; padding:16px 20px 12px; border-bottom:1px solid #f1f5f9; }
 
 /* Heatmap légende */
@@ -516,7 +517,7 @@
         <!-- ══════════════════════════════════════════════════════════
              NOUVEAUX 1, 2, 3 — sur la même ligne (3 colonnes)
              ══════════════════════════════════════════════════════════ -->
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:20px;">
+        <div class="rdd-trio-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:20px;">
 
             <!-- 1 — Réservations par jour de la semaine -->
             <div class="rdd-card" style="margin-bottom:0;">
