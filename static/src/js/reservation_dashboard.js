@@ -801,6 +801,8 @@ export class ReservationDetailDashboard extends Component {
             setTimeout(() => {
                 this._renderChartZones();
                 this._renderChartCategories();
+                this._renderChartLieuxMoy();
+                this._renderChartCategoriesMoy();
             }, 50);
         }
     }
@@ -927,6 +929,94 @@ export class ReservationDetailDashboard extends Component {
             s.src    = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
             s.onload = draw;
             document.head.appendChild(s);
+        }
+    }
+
+    _renderChartLieuxMoy() {
+        const canvas = document.getElementById("rdd-chart-lieux-moy");
+        if (!canvas) return;
+        if (this._chartLieuxMoy) { this._chartLieuxMoy.destroy(); this._chartLieuxMoy = null; }
+
+        const labels = this.state.lieux.map(l => l.name);
+        const data   = this.state.lieux.map(l => {
+            const t = this.state.totaux_lieux[l.id] || { count: 0, jours: 0 };
+            return t.count > 0 ? Math.round((t.jours / t.count) * 100) / 100 : 0;
+        });
+
+        const draw = () => {
+            this._chartLieuxMoy = new Chart(canvas, {
+                type : "bar",
+                data : {
+                    labels,
+                    datasets: [{
+                        label           : "Moyenne (j/résv)",
+                        data,
+                        backgroundColor : "rgba(21,101,192,0.8)",
+                        borderRadius    : 6,
+                    }],
+                },
+                options: {
+                    responsive : true,
+                    plugins: {
+                        legend : { position: "top", labels: { font: { weight: "bold" } } },
+                        tooltip: { callbacks: { label: ctx => ` Moyenne : ${ctx.parsed.y} j/résv` } },
+                    },
+                    scales: {
+                        x : { grid: { display: false }, ticks: { font: { weight: "600" } } },
+                        y : { beginAtZero: true, title: { display: true, text: "Jours / Réservation" }, ticks: { font: { weight: "600" } } },
+                    },
+                },
+            });
+        };
+        if (window.Chart) { draw(); }
+        else {
+            const s = document.createElement("script");
+            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            s.onload = draw; document.head.appendChild(s);
+        }
+    }
+
+    _renderChartCategoriesMoy() {
+        const canvas = document.getElementById("rdd-chart-categories-moy");
+        if (!canvas) return;
+        if (this._chartCatsMoy) { this._chartCatsMoy.destroy(); this._chartCatsMoy = null; }
+
+        const labels = this.state.categories.map(c => c.name);
+        const data   = this.state.categories.map(c => {
+            const t = this.state.totaux_cats[c.id] || { count: 0, jours: 0 };
+            return t.count > 0 ? Math.round((t.jours / t.count) * 100) / 100 : 0;
+        });
+
+        const draw = () => {
+            this._chartCatsMoy = new Chart(canvas, {
+                type : "bar",
+                data : {
+                    labels,
+                    datasets: [{
+                        label           : "Moyenne (j/résv)",
+                        data,
+                        backgroundColor : "rgba(22,163,74,0.8)",
+                        borderRadius    : 6,
+                    }],
+                },
+                options: {
+                    responsive : true,
+                    plugins: {
+                        legend : { position: "top", labels: { font: { weight: "bold" } } },
+                        tooltip: { callbacks: { label: ctx => ` Moyenne : ${ctx.parsed.y} j/résv` } },
+                    },
+                    scales: {
+                        x : { grid: { display: false }, ticks: { font: { weight: "600" } } },
+                        y : { beginAtZero: true, title: { display: true, text: "Jours / Réservation" }, ticks: { font: { weight: "600" } } },
+                    },
+                },
+            });
+        };
+        if (window.Chart) { draw(); }
+        else {
+            const s = document.createElement("script");
+            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            s.onload = draw; document.head.appendChild(s);
         }
     }
 

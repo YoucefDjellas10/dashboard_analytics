@@ -464,7 +464,7 @@
             </div>
         </div>
 
-        <!-- Graphiques -->
+        <!-- Graphiques réservations -->
         <div class="rdd-charts-grid">
             <div class="rdd-card">
                 <div class="rdd-chart-title">📍 Par lieu de départ</div>
@@ -476,6 +476,28 @@
                 <div class="rdd-chart-title">🏷️ Par catégorie de client</div>
                 <div style="padding:20px;">
                     <canvas id="rdd-chart-categories" style="width:100%; max-height:380px;"/>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphiques moyenne jours/résv -->
+        <div class="rdd-charts-grid">
+            <div class="rdd-card">
+                <div class="rdd-chart-title">📍 Moyenne jours/résv — Par lieu de départ</div>
+                <div style="font-size:11px; color:#94a3b8; padding:0 20px 8px; font-weight:500;">
+                    Nbre de jours ÷ nbre de réservations
+                </div>
+                <div style="padding:0 20px 20px;">
+                    <canvas id="rdd-chart-lieux-moy" style="width:100%; max-height:380px;"/>
+                </div>
+            </div>
+            <div class="rdd-card">
+                <div class="rdd-chart-title">🏷️ Moyenne jours/résv — Par catégorie de client</div>
+                <div style="font-size:11px; color:#94a3b8; padding:0 20px 8px; font-weight:500;">
+                    Nbre de jours ÷ nbre de réservations
+                </div>
+                <div style="padding:0 20px 20px;">
+                    <canvas id="rdd-chart-categories-moy" style="width:100%; max-height:380px;"/>
                 </div>
             </div>
         </div>
