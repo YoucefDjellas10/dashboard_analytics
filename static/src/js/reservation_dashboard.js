@@ -153,6 +153,7 @@ export class ReservationDashboard extends Component {
                 this._renderChartLine();
                 this._renderChartPie();
                 this._renderChartPieN1();
+                this._renderChartRatio();
             }, 50);
         }
     }
@@ -515,6 +516,86 @@ export class ReservationDashboard extends Component {
         }
     }
 
+    _renderChartRatio() {
+        const canvas = document.getElementById("rd-chart-ratio");
+        if (!canvas) return;
+
+        if (this._chartRatio) {
+            this._chartRatio.destroy();
+            this._chartRatio = null;
+        }
+
+        const labels  = this.state.rows.map(r => r.label);
+        // ratio = jours / réservations, arrondi à 2 décimales, 0 si pas de réservation
+        const dataN1  = this.state.rows.map(r =>
+            r.count_n1 > 0 ? Math.round((r.jours_n1 / r.count_n1) * 100) / 100 : 0
+        );
+        const dataN   = this.state.rows.map(r =>
+            r.count_n > 0 ? Math.round((r.jours_n / r.count_n) * 100) / 100 : 0
+        );
+
+        const draw = () => {
+            this._chartRatio = new Chart(canvas, {
+                type: "bar",
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label           : String(this.state.annee_n1),
+                            data            : dataN1,
+                            backgroundColor : "rgba(21, 101, 192, 0.75)",
+                            borderRadius    : 6,
+                            borderSkipped   : false,
+                        },
+                        {
+                            label           : String(this.state.annee_n),
+                            data            : dataN,
+                            backgroundColor : "rgba(106, 27, 154, 0.75)",
+                            borderRadius    : 6,
+                            borderSkipped   : false,
+                        },
+                    ],
+                },
+                options: {
+                    responsive          : true,
+                    maintainAspectRatio : true,
+                    plugins: {
+                        legend: {
+                            position : "top",
+                            labels   : { font: { weight: "bold" } },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.dataset.label} : ${ctx.parsed.y} j/résv`,
+                            },
+                        },
+                        datalabels: false,
+                    },
+                    scales: {
+                        x: {
+                            grid : { display: false },
+                            ticks: { font: { weight: "600" } },
+                        },
+                        y: {
+                            beginAtZero : true,
+                            grid        : { color: "rgba(0,0,0,.06)" },
+                            ticks       : { font: { weight: "600" } },
+                            title       : { display: true, text: "Jours / Réservation" },
+                        },
+                    },
+                },
+            });
+        };
+
+        if (window.Chart) { draw(); }
+        else {
+            const script = document.createElement("script");
+            script.src   = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            script.onload = draw;
+            document.head.appendChild(script);
+        }
+    }
+
     get totalN1()      { return this.state.rows.reduce((s, r) => s + r.count_n1, 0); }
     get totalN()       { return this.state.rows.reduce((s, r) => s + r.count_n,  0); }
     get totalJoursN1() { return this.state.rows.reduce((s, r) => s + r.jours_n1, 0); }
@@ -742,14 +823,14 @@ export class ReservationDetailDashboard extends Component {
         this.action.doAction("dashboard_analytics.action_reservation_dashboard");
     }
 
-    // Graphique par zone (remplace "par lieu")
+    // Graphique par lieu de départ (page détail)
     _renderChartZones() {
         const canvas = document.getElementById("rdd-chart-lieux");
         if (!canvas) return;
         if (this._chartLieux) { this._chartLieux.destroy(); this._chartLieux = null; }
 
-        const labels = this.state.zones.map(z => z.name);
-        const counts = this.state.zones.map(z => this.state.totaux_zones[z.id]?.count || 0);
+        const labels = this.state.lieux.map(l => l.name);
+        const counts = this.state.lieux.map(l => this.state.totaux_lieux[l.id]?.count || 0);
 
         const draw = () => {
             this._chartLieux = new Chart(canvas, {
