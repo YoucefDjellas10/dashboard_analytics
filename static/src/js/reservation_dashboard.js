@@ -1158,8 +1158,8 @@ export class ReservationDetailDashboard extends Component {
         });
 
         container.innerHTML = `
-            <div style="overflow-x:auto; padding-bottom:8px;">
-                <svg width="${svgW}" height="${svgH}" style="display:block; min-width:${svgW}px;">
+            <div style="width:100%; padding-bottom:8px;">
+                <svg viewBox="0 0 ${svgW} ${svgH}" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="display:block;">
                     ${cells}
                 </svg>
             </div>
