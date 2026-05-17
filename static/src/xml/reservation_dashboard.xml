@@ -335,6 +335,7 @@
 /* Charts */
 .rdd-charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
 @media (max-width:900px) { .rdd-charts-grid { grid-template-columns:1fr; } }
+@media (max-width:1100px) { .rdd-trio-grid { grid-template-columns:1fr !important; } }
 .rdd-chart-title { font-size:14px; font-weight:700; color:#475569; padding:16px 20px 12px; border-bottom:1px solid #f1f5f9; }
 
 /* Heatmap légende */
@@ -513,46 +514,43 @@
         </div>
 
         <!-- ══════════════════════════════════════════════════════════
-             NOUVEAU 1 — Réservations par jour de la semaine
+             NOUVEAUX 1, 2, 3 — sur la même ligne (3 colonnes)
              ══════════════════════════════════════════════════════════ -->
-        <div class="rdd-card">
-            <div class="rdd-card-title">
-                📅 Réservations par jour de la semaine
-                <span style="font-size:12px; font-weight:500; color:#94a3b8; margin-left:8px;">
-                    Tous les mois confondus
-                </span>
-            </div>
-            <div style="padding:20px;">
-                <canvas id="rdd-chart-jour-semaine" style="width:100%; max-height:380px;"/>
-            </div>
-        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:20px;">
 
-        <!-- ══════════════════════════════════════════════════════════
-             NOUVEAU 2 — Heatmap semaine × jour
-             ══════════════════════════════════════════════════════════ -->
-        <div class="rdd-card">
-            <div class="rdd-card-title">🗓️ Heatmap — Réservations par semaine × jour</div>
-            <div class="rdd-heatmap-legend">
-                <span>Faible</span>
-                <div class="rdd-heatmap-legend-bar"/>
-                <span>Élevé</span>
+            <!-- 1 — Réservations par jour de la semaine -->
+            <div class="rdd-card" style="margin-bottom:0;">
+                <div class="rdd-chart-title">
+                    📅 Par jour de la semaine
+                    <div style="font-size:11px; color:#94a3b8; font-weight:500; margin-top:2px;">Tous les mois confondus</div>
+                </div>
+                <div style="padding:16px;">
+                    <canvas id="rdd-chart-jour-semaine" style="width:100%; max-height:300px;"/>
+                </div>
             </div>
-            <div id="rdd-heatmap-container" style="padding:0 20px 20px;"/>
-        </div>
 
-        <!-- ══════════════════════════════════════════════════════════
-             NOUVEAU 3 — Distribution des durées
-             ══════════════════════════════════════════════════════════ -->
-        <div class="rdd-card">
-            <div class="rdd-card-title">
-                📏 Distribution des durées de réservation
-                <span style="font-size:12px; font-weight:500; color:#94a3b8; margin-left:8px;">
-                    Nombre de réservations selon la durée (jours)
-                </span>
+            <!-- 2 — Heatmap semaine × jour -->
+            <div class="rdd-card" style="margin-bottom:0;">
+                <div class="rdd-chart-title">🗓️ Heatmap — semaine × jour</div>
+                <div class="rdd-heatmap-legend">
+                    <span>Faible</span>
+                    <div class="rdd-heatmap-legend-bar"/>
+                    <span>Élevé</span>
+                </div>
+                <div id="rdd-heatmap-container" style="padding:0 16px 16px; overflow-x:auto;"/>
             </div>
-            <div style="padding:20px;">
-                <canvas id="rdd-chart-distribution-durees" style="width:100%; max-height:380px;"/>
+
+            <!-- 3 — Distribution des durées -->
+            <div class="rdd-card" style="margin-bottom:0;">
+                <div class="rdd-chart-title">
+                    📏 Distribution des durées
+                    <div style="font-size:11px; color:#94a3b8; font-weight:500; margin-top:2px;">Nb réservations selon la durée (jours)</div>
+                </div>
+                <div style="padding:16px;">
+                    <canvas id="rdd-chart-distribution-durees" style="width:100%; max-height:300px;"/>
+                </div>
             </div>
+
         </div>
 
     </t>
