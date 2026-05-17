@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
 
-    <!-- ═══════════════════════════════════════════════════════════
-         TEMPLATE ORIGINAL (inchangé sauf scroll)
-         ═══════════════════════════════════════════════════════════ -->
+    <!-- TEMPLATE DASHBOARD PRINCIPAL (inchangé) -->
     <t t-name="dashboard_analytics.ReservationDashboard">
 <div style="padding:16px; background:#f1f5f9;">
 <style>
-  /* MODIF 2 : scroll activé sur la page */
   .o_action {
     overflow-y: auto !important;
     height: 100% !important;
@@ -367,13 +364,11 @@
 
 
     <!-- ═══════════════════════════════════════════════════════════
-         PAGE DÉTAIL — tableau croisé + graphiques
+         PAGE DÉTAIL — Tableau ACCORDÉON Zone → Lieux
          ═══════════════════════════════════════════════════════════ -->
     <t t-name="dashboard_analytics.ReservationDetailDashboard">
-<!-- MODIF 2 : overflow-y:auto pour activer le scroll -->
 <div style="padding:16px; background:#f1f5f9; min-height:100vh; overflow-y:auto;">
 <style>
-/* MODIF 2 : scroll activé sur la page détail aussi */
 .o_action {
     overflow-y: auto !important;
     height: 100% !important;
@@ -480,19 +475,10 @@
 .rdd-cross-table tbody td:first-child {
     text-align:left;
     font-weight:700;
-    color:#475569;
-    background:#fafafa;
     white-space:nowrap;
-    position:sticky;
-    left:0;
-    z-index:2;
-    border-right:1px solid #e2e8f0;
 }
 .rdd-cross-table tbody tr:hover td {
     background:#f0f7ff;
-}
-.rdd-cross-table tbody tr:hover td:first-child {
-    background:#e8f0fe;
 }
 .rdd-cell-count {
     font-weight:800;
@@ -518,6 +504,29 @@
 .rdd-cell-empty {
     color:#e2e8f0;
     font-size:18px;
+}
+.rdd-zone-row {
+    background:#f8fafc;
+    cursor:pointer;
+    transition:background .2s;
+}
+.rdd-zone-row:hover {
+    background:#e8f0fe !important;
+}
+.rdd-zone-row td:first-child {
+    font-weight:800;
+    color:#1e293b;
+}
+.rdd-lieu-row td:first-child {
+    padding-left:32px !important;
+    font-weight:600;
+    color:#64748b;
+}
+.rdd-expand-icon {
+    display:inline-block;
+    margin-right:8px;
+    font-size:12px;
+    transition:transform .2s;
 }
 .rdd-charts-grid {
     display:grid;
@@ -546,8 +555,6 @@
             <div class="rdd-subtitle"><t t-esc="state.label"/></div>
         </div>
         <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center;">
-
-            <!-- Carte : Total réservations -->
             <div style="
                 position:relative;
                 overflow:hidden;
@@ -582,7 +589,6 @@
                     <div style="width:8px; height:2px; background:rgba(255,255,255,0.2); border-radius:2px;"/>
                 </div>
             </div>
-
         </div>
     </div>
 
@@ -594,17 +600,15 @@
     </t>
 
     <t t-else="">
-
-        <!-- MODIF 1 : titre mis à jour "Catégories de client" -->
         <div class="rdd-card">
             <div class="rdd-card-title">
-                🔀 Tableau croisé — Lieux de départ × Catégories de client
+                🔀 Tableau croisé — Zones × Catégories de client (cliquez sur une zone pour voir les lieux)
             </div>
             <div class="rdd-scroll">
                 <table class="rdd-cross-table">
                     <thead>
                         <tr>
-                            <th style="min-width:160px;">Lieu de départ</th>
+                            <th style="min-width:200px;">Zone / Lieu</th>
                             <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
                                 <th><t t-esc="cat.name"/></th>
                             </t>
@@ -612,12 +616,19 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <t t-foreach="state.lieux" t-as="lieu" t-key="lieu.id">
-                            <tr>
-                                <td><t t-esc="lieu.name"/></td>
+                        <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+                            <!-- Ligne ZONE (accordéon) -->
+                            <tr class="rdd-zone-row" t-on-click="() => toggleZone(zone.id)">
+                                <td>
+                                    <span class="rdd-expand-icon">
+                                        <t t-if="isZoneExpanded(zone.id)">▼</t>
+                                        <t t-else="">▶</t>
+                                    </span>
+                                    <strong>🏢 <t t-esc="zone.name"/></strong>
+                                </td>
                                 <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
                                     <td>
-                                        <t t-set="cell" t-value="getCell(lieu.id, cat.id)"/>
+                                        <t t-set="cell" t-value="getCellZone(zone.id, cat.id)"/>
                                         <t t-if="cell.count > 0">
                                             <div class="rdd-cell-count"><t t-esc="cell.count"/></div>
                                             <div class="rdd-cell-jours">(<t t-esc="cell.jours"/> j)</div>
@@ -628,16 +639,44 @@
                                     </td>
                                 </t>
                                 <td class="rdd-total-col">
-                                    <t t-set="tl" t-value="getTotalLieu(lieu.id)"/>
-                                    <div class="rdd-cell-count"><t t-esc="tl.count"/></div>
-                                    <div class="rdd-cell-jours">(<t t-esc="tl.jours"/> j)</div>
+                                    <t t-set="tz" t-value="getZoneTotal(zone.id)"/>
+                                    <div class="rdd-cell-count"><t t-esc="tz.count"/></div>
+                                    <div class="rdd-cell-jours">(<t t-esc="tz.jours"/> j)</div>
                                 </td>
                             </tr>
+
+                            <!-- Lignes LIEUX (expand/collapse) -->
+                            <t t-if="isZoneExpanded(zone.id)">
+                                <t t-foreach="zone.lieux" t-as="lieu" t-key="lieu.id">
+                                    <tr class="rdd-lieu-row">
+                                        <td style="padding-left:32px !important;">
+                                            <span style="margin-left:20px;">📍 <t t-esc="lieu.name"/></span>
+                                        </td>
+                                        <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
+                                            <td>
+                                                <t t-set="cell" t-value="getCellLieu(zone.id, lieu.id, cat.id)"/>
+                                                <t t-if="cell.count > 0">
+                                                    <div class="rdd-cell-count"><t t-esc="cell.count"/></div>
+                                                    <div class="rdd-cell-jours">(<t t-esc="cell.jours"/> j)</div>
+                                                </t>
+                                                <t t-else="">
+                                                    <span class="rdd-cell-empty">·</span>
+                                                </t>
+                                            </td>
+                                        </t>
+                                        <td class="rdd-total-col">
+                                            <t t-set="tl" t-value="getLieuTotal(zone.id, lieu.id)"/>
+                                            <div class="rdd-cell-count"><t t-esc="tl.count"/></div>
+                                            <div class="rdd-cell-jours">(<t t-esc="tl.jours"/> j)</div>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </t>
                         </t>
                     </tbody>
                     <tfoot>
                         <tr class="rdd-total-row">
-                            <td>Total</td>
+                            <td>Total général</td>
                             <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
                                 <td>
                                     <t t-set="tc" t-value="getTotalCat(cat.id)"/>
@@ -657,27 +696,21 @@
             </div>
         </div>
 
-        <!-- MODIF 3 : titres mis à jour, graphiques sans jours -->
+        <!-- Graphiques -->
         <div class="rdd-charts-grid">
-
-            <!-- Graphique 1 : par lieu de départ — réservations seulement -->
             <div class="rdd-card">
-                <div class="rdd-chart-title">📍 Par lieu de départ</div>
+                <div class="rdd-chart-title">📍 Par zone</div>
                 <div style="padding:20px;">
                     <canvas id="rdd-chart-lieux" style="width:100%; max-height:380px;"/>
                 </div>
             </div>
-
-            <!-- MODIF 1 : titre "Par catégorie de client" + MODIF 3 : réservations seulement -->
             <div class="rdd-card">
                 <div class="rdd-chart-title">🏷️ Par catégorie de client</div>
                 <div style="padding:20px;">
                     <canvas id="rdd-chart-categories" style="width:100%; max-height:380px;"/>
                 </div>
             </div>
-
         </div>
-
     </t>
 
 </div>
