@@ -88,6 +88,17 @@
     text-decoration:underline dotted;
 }
 .tr-clickable:hover { color:#6b0f3a; }
+
+/* FIX : valeur négative = rouge, zéro = gris */
+.tr-val-neg {
+    color:#dc2626 !important;
+    font-weight:700;
+}
+.tr-val-zero {
+    color:#94a3b8 !important;
+    font-weight:600;
+}
+
 .tr-badge {
     display:inline-block;
     padding:3px 10px;
@@ -199,12 +210,14 @@
                     <tr>
                         <td><t t-esc="row.label"/></td>
 
-                        <td class="tr-clickable"
+                        <!-- FIX : coloration selon signe pour N-1 -->
+                        <td t-attf-class="tr-clickable {{ isNeg(row.tr_n1) ? 'tr-val-neg' : (row.tr_n1 === 0 ? 'tr-val-zero' : '') }}"
                             t-on-click="() => ouvrirMois(state.annee_n1, row.mois)">
                             <t t-esc="fmtRow(row.tr_n1)"/>
                         </td>
 
-                        <td class="tr-clickable"
+                        <!-- FIX : coloration selon signe pour N -->
+                        <td t-attf-class="tr-clickable {{ isNeg(row.tr_n) ? 'tr-val-neg' : (row.tr_n === 0 ? 'tr-val-zero' : '') }}"
                             t-on-click="() => ouvrirMois(state.annee_n, row.mois)">
                             <t t-esc="fmtRow(row.tr_n)"/>
                         </td>
@@ -226,8 +239,13 @@
             <tfoot>
                 <tr>
                     <td>Total</td>
-                    <td><t t-esc="totalN1Fmt"/></td>
-                    <td><t t-esc="totalNFmt"/></td>
+                    <!-- FIX : coloration totaux -->
+                    <td t-attf-class="{{ isNeg(totalN1) ? 'tr-val-neg' : '' }}">
+                        <t t-esc="totalN1Fmt"/>
+                    </td>
+                    <td t-attf-class="{{ isNeg(totalN) ? 'tr-val-neg' : '' }}">
+                        <t t-esc="totalNFmt"/>
+                    </td>
                     <td>
                         <t t-if="totalDelta !== null">
                             <span t-attf-class="tr-badge {{ totalDelta >= 0 ? 'tr-badge-up' : 'tr-badge-down' }}">

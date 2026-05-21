@@ -39,7 +39,9 @@ export class TresorerieDashboard extends Component {
     }
 
     _fmt(n) {
-        return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        const abs = Math.abs(Math.round(n));
+        const formatted = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        return n < 0 ? `- ${formatted}` : formatted;
     }
 
     async _loadZones() {
@@ -53,8 +55,6 @@ export class TresorerieDashboard extends Component {
     }
 
     // ─── Récupération centralisée des IDs ─────────────────────────────────────
-    // FIX : On sépare les deux requêtes pour éviter l'erreur si is_old
-    // n'est pas encore migré. On utilise des domaines ORM directs.
 
     async _getAllIds() {
         const zoneId = this.state.selected_zone ? parseInt(this.state.selected_zone) : null;
@@ -67,7 +67,6 @@ export class TresorerieDashboard extends Component {
             baseNewDomain.push(['zone_encaissement', '=', zoneId]);
         }
 
-        // On récupère uniquement les IDs via search (plus léger que searchRead)
         const [oldRecords, newRecords] = await Promise.all([
             this.orm.search("revenue.record", baseOldDomain, { limit: 0 }),
             this.orm.search("revenue.record", baseNewDomain, { limit: 0 }),
@@ -90,6 +89,21 @@ export class TresorerieDashboard extends Component {
         return { oldIds, newIds };
     }
 
+    // ─── Domaine refund commun ────────────────────────────────────────────────
+
+    _buildRefundDomain(debut, fin) {
+        const domain = [
+            ['date', '>=', this._formatORM(debut)],
+            ['date', '<=', this._formatORM(fin)],
+            ['status', '=', 'effectuer'],
+        ];
+        if (this.state.selected_zone) {
+            // FIX : utiliser reservation.zone (Many2one sur reservation)
+            domain.push(['reservation.zone', '=', parseInt(this.state.selected_zone)]);
+        }
+        return domain;
+    }
+
     // ─── PÉRIODE 1 : avant le 01/11/2025 → is_old = true ─────────────────────
 
     async _fetchMoisTresorerieOld(annee, mois, oldIds) {
@@ -97,31 +111,45 @@ export class TresorerieDashboard extends Component {
         const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
         const fin   = new Date(annee, mois,     0, 23, 59, 59);
 
-        if (oldIds.length === 0) return 0;
+        // FIX : domaine refund mutualisé avec filtre zone correct
+        const refundDomain = this._buildRefundDomain(debut, fin);
 
-        const revenueDomain = [
+        if (oldIds.length === 0) {
+            const refundResult = await this.orm.readGroup(
+                "refund.table", refundDomain, ["amount:sum"], []
+            );
+            const sum_refund = (refundResult[0] ?? {}).amount ?? 0;
+            return -(sum_refund * taux);
+        }
+
+        // FIX : reproduire la logique Python _get_revenues_by_date
+        // → date_encaissement présent  : filtrer sur date_encaissement
+        // → date_encaissement absent   : fallback sur reservation.create_date
+        const domainAvecDate = [
             ['id', 'in', oldIds],
+            ['date_encaissement', '!=', false],
+            ['date_encaissement', '>=', this._formatORM(debut)],
+            ['date_encaissement', '<=', this._formatORM(fin)],
+        ];
+
+        const domainSansDate = [
+            ['id', 'in', oldIds],
+            ['date_encaissement', '=', false],
             ['reservation.create_date', '>=', this._formatORM(debut)],
             ['reservation.create_date', '<=', this._formatORM(fin)],
         ];
 
-        const refundDomain = [
-            ['date', '>=', this._formatORM(debut)],
-            ['date', '<=', this._formatORM(fin)],
-            ['status', '=', 'effectuer'],
-        ];
-        if (this.state.selected_zone) {
-            refundDomain.push(['reservation.zone', '=', parseInt(this.state.selected_zone)]);
-        }
-
-        const [revenueResult, refundResult] = await Promise.all([
-            this.orm.readGroup("revenue.record", revenueDomain, ["montant_dzd:sum", "montant:sum"], []),
-            this.orm.readGroup("refund.table",   refundDomain,  ["amount:sum"], []),
+        const [revenueAvecDate, revenueSansDate, refundResult] = await Promise.all([
+            this.orm.readGroup("revenue.record", domainAvecDate, ["montant_dzd:sum", "montant:sum"], []),
+            this.orm.readGroup("revenue.record", domainSansDate, ["montant_dzd:sum", "montant:sum"], []),
+            this.orm.readGroup("refund.table",   refundDomain,   ["amount:sum"], []),
         ]);
 
-        const revRow     = revenueResult[0] ?? {};
-        const sum_dzd    = revRow.montant_dzd ?? 0;
-        const sum_eur    = revRow.montant     ?? 0;
+        const r1 = revenueAvecDate[0] ?? {};
+        const r2 = revenueSansDate[0] ?? {};
+
+        const sum_dzd    = (r1.montant_dzd ?? 0) + (r2.montant_dzd ?? 0);
+        const sum_eur    = (r1.montant     ?? 0) + (r2.montant     ?? 0);
         const sum_refund = (refundResult[0] ?? {}).amount ?? 0;
 
         return (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
@@ -134,14 +162,8 @@ export class TresorerieDashboard extends Component {
         const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
         const fin   = new Date(annee, mois,     0, 23, 59, 59);
 
-        const refundDomain = [
-            ['date', '>=', this._formatORM(debut)],
-            ['date', '<=', this._formatORM(fin)],
-            ['status', '=', 'effectuer'],
-        ];
-        if (this.state.selected_zone) {
-            refundDomain.push(['reservation.zone', '=', parseInt(this.state.selected_zone)]);
-        }
+        // FIX : domaine refund mutualisé avec filtre zone correct
+        const refundDomain = this._buildRefundDomain(debut, fin);
 
         if (newIds.length === 0) {
             const refundResult = await this.orm.readGroup(
@@ -151,8 +173,12 @@ export class TresorerieDashboard extends Component {
             return -(sum_refund * taux);
         }
 
+        // FIX : même logique que _get_revenues_by_date
+        // → date_encaissement présent  : filtrer sur date_encaissement
+        // → date_encaissement absent   : fallback sur reservation.create_date
         const domainAvecDate = [
             ['id', 'in', newIds],
+            ['date_encaissement', '!=', false],
             ['date_encaissement', '>=', this._formatORM(debut)],
             ['date_encaissement', '<=', this._formatORM(fin)],
         ];
@@ -207,16 +233,26 @@ export class TresorerieDashboard extends Component {
                 ? finAnnee
                 : new Date(2025, 9, 31, 23, 59, 59);
 
-            const domainOld = [
+            // FIX : même logique date_encaissement / fallback create_date
+            const domainOldAvec = [
                 ['id', 'in', oldIds],
+                ['date_encaissement', '!=', false],
+                ['date_encaissement', '>=', this._formatORM(debutAnnee)],
+                ['date_encaissement', '<=', this._formatORM(finOld)],
+            ];
+            const domainOldSans = [
+                ['id', 'in', oldIds],
+                ['date_encaissement', '=', false],
                 ['reservation.create_date', '>=', this._formatORM(debutAnnee)],
                 ['reservation.create_date', '<=', this._formatORM(finOld)],
             ];
-            const resOld = await this.orm.readGroup(
-                "revenue.record", domainOld, ["montant_dzd:sum", "montant:sum"], []
-            );
-            const r = resOld[0] ?? {};
-            totalRevenue += (r.montant_dzd ?? 0) + ((r.montant ?? 0) * taux);
+            const [r1, r2] = await Promise.all([
+                this.orm.readGroup("revenue.record", domainOldAvec, ["montant_dzd:sum", "montant:sum"], []),
+                this.orm.readGroup("revenue.record", domainOldSans, ["montant_dzd:sum", "montant:sum"], []),
+            ]);
+            const a = r1[0] ?? {}, b = r2[0] ?? {};
+            totalRevenue += (a.montant_dzd ?? 0) + ((a.montant ?? 0) * taux)
+                          + (b.montant_dzd ?? 0) + ((b.montant ?? 0) * taux);
         }
 
         // --- Partie NEW ---
@@ -225,6 +261,7 @@ export class TresorerieDashboard extends Component {
 
             const domainNew1 = [
                 ['id', 'in', newIds],
+                ['date_encaissement', '!=', false],
                 ['date_encaissement', '>=', this._formatORM(debutNew)],
                 ['date_encaissement', '<=', this._formatORM(finAnnee)],
             ];
@@ -278,11 +315,13 @@ export class TresorerieDashboard extends Component {
 
             const promises = [];
             for (let m = 1; m <= 12; m++) {
+                // N-1
                 if (this._isBeforePivot(n1, m)) {
                     promises.push(this._fetchMoisTresorerieOld(n1, m, oldIds));
                 } else {
                     promises.push(this._fetchMoisTresorerieNew(n1, m, newIds));
                 }
+                // N
                 if (this._isBeforePivot(n, m)) {
                     promises.push(this._fetchMoisTresorerieOld(n, m, oldIds));
                 } else {
@@ -367,20 +406,33 @@ export class TresorerieDashboard extends Component {
         const DATE_PIVOT = new Date(2025, 10, 1);
         const dateMois   = new Date(annee, mois - 1, 1);
 
+        // FIX : même logique que _get_revenues_by_date pour le domaine de drill-down
         let revenueDomain;
 
         if (dateMois < DATE_PIVOT) {
             revenueDomain = [
                 ['is_old', '=', true],
-                ['reservation.create_date', '>=', this._formatORM(debut)],
-                ['reservation.create_date', '<=', this._formatORM(fin)],
+                '|',
+                '&',
+                    ['date_encaissement', '!=', false],
+                    '&',
+                        ['date_encaissement', '>=', this._formatORM(debut)],
+                        ['date_encaissement', '<=', this._formatORM(fin)],
+                '&',
+                    ['date_encaissement', '=', false],
+                    '&',
+                        ['reservation.create_date', '>=', this._formatORM(debut)],
+                        ['reservation.create_date', '<=', this._formatORM(fin)],
             ];
         } else {
             revenueDomain = [
+                ['is_old', '!=', true],
                 '|',
                 '&',
-                    ['date_encaissement', '>=', this._formatORM(debut)],
-                    ['date_encaissement', '<=', this._formatORM(fin)],
+                    ['date_encaissement', '!=', false],
+                    '&',
+                        ['date_encaissement', '>=', this._formatORM(debut)],
+                        ['date_encaissement', '<=', this._formatORM(fin)],
                 '&',
                     ['date_encaissement', '=', false],
                     '&',
@@ -584,6 +636,9 @@ export class TresorerieDashboard extends Component {
         if (this.totalN1 === 0) return this.totalN > 0 ? 100 : null;
         return Math.round(((this.totalN - this.totalN1) / this.totalN1) * 100);
     }
+
+    // FIX : expose isNeg pour coloration dans le template
+    isNeg(val) { return val < 0; }
 
     fmtRow(val) { return this._fmt(val); }
 }
