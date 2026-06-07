@@ -52,36 +52,55 @@ export class TresorerieDashboard extends Component {
         return annee < 2026 ? 260 : 270;
     }
 
-    // ─── Fetch unifié par mois (identique à _get_revenues_by_date en Python) ──
-    // Logique :
-    //   - Si date_encaissement existe et est dans la période → on prend
-    //   - Si date_encaissement est vide ET reservation.create_date dans la période → on prend
-    // Pas de séparation is_old / pivot, exactement comme le Python.
+    // ─── Récupération centralisée des IDs ─────────────────────────────────────
+    // FIX : On sépare les deux requêtes pour éviter l'erreur si is_old
+    // n'est pas encore migré. On utilise des domaines ORM directs.
 
-    async _fetchMoisTresorerie(annee, mois) {
+    async _getAllIds() {
+        const zoneId = this.state.selected_zone ? parseInt(this.state.selected_zone) : null;
+
+        const baseOldDomain  = [['is_old', '=', true]];
+        const baseNewDomain  = [['is_old', '!=', true]];
+
+        if (zoneId) {
+            baseOldDomain.push(['zone_encaissement', '=', zoneId]);
+            baseNewDomain.push(['zone_encaissement', '=', zoneId]);
+        }
+
+        // On récupère uniquement les IDs via search (plus léger que searchRead)
+        const [oldRecords, newRecords] = await Promise.all([
+            this.orm.search("revenue.record", baseOldDomain, { limit: 0 }),
+            this.orm.search("revenue.record", baseNewDomain, { limit: 0 }),
+        ]);
+
+        return { oldIds: oldRecords, newIds: newRecords };
+    }
+
+    async _getZoneIds(zoneId) {
+        const [oldIds, newIds] = await Promise.all([
+            this.orm.search("revenue.record", [
+                ['is_old', '=', true],
+                ['zone_encaissement', '=', zoneId],
+            ], { limit: 0 }),
+            this.orm.search("revenue.record", [
+                ['is_old', '!=', true],
+                ['zone_encaissement', '=', zoneId],
+            ], { limit: 0 }),
+        ]);
+        return { oldIds, newIds };
+    }
+
+    // ─── PÉRIODE 1 : avant le 01/11/2025 → is_old = true ─────────────────────
+
+    async _fetchMoisTresorerieOld(annee, mois, oldIds) {
         const taux  = this._getTaux(annee);
         const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
         const fin   = new Date(annee, mois,     0, 23, 59, 59);
 
-        const zoneRevFilter = this.state.selected_zone
-            ? [['zone_encaissement', '=', parseInt(this.state.selected_zone)]]
-            : [];
+        if (oldIds.length === 0) return 0;
 
-        const zoneRefFilter = this.state.selected_zone
-            ? [['reservation.zone', '=', parseInt(this.state.selected_zone)]]
-            : [];
-
-        // Cas 1 : date_encaissement existe et est dans la période
-        const domainAvecDate = [
-            ...zoneRevFilter,
-            ['date_encaissement', '>=', this._formatORM(debut)],
-            ['date_encaissement', '<=', this._formatORM(fin)],
-        ];
-
-        // Cas 2 : date_encaissement absente → on utilise reservation.create_date
-        const domainSansDate = [
-            ...zoneRevFilter,
-            ['date_encaissement', '=', false],
+        const revenueDomain = [
+            ['id', 'in', oldIds],
             ['reservation.create_date', '>=', this._formatORM(debut)],
             ['reservation.create_date', '<=', this._formatORM(fin)],
         ];
@@ -90,63 +109,156 @@ export class TresorerieDashboard extends Component {
             ['date', '>=', this._formatORM(debut)],
             ['date', '<=', this._formatORM(fin)],
             ['status', '=', 'effectuer'],
-            ...zoneRefFilter,
         ];
+        if (this.state.selected_zone) {
+            refundDomain.push(['reservation.zone', '=', parseInt(this.state.selected_zone)]);
+        }
 
-        const [r1, r2, refund] = await Promise.all([
-            this.orm.readGroup("revenue.record", domainAvecDate, ["montant_dzd:sum", "montant:sum"], []),
-            this.orm.readGroup("revenue.record", domainSansDate, ["montant_dzd:sum", "montant:sum"], []),
-            this.orm.readGroup("refund.table",   refundDomain,   ["amount:sum"], []),
+        const [revenueResult, refundResult] = await Promise.all([
+            this.orm.readGroup("revenue.record", revenueDomain, ["montant_dzd:sum", "montant:sum"], []),
+            this.orm.readGroup("refund.table",   refundDomain,  ["amount:sum"], []),
         ]);
 
-        const sum_dzd    = (r1[0]?.montant_dzd ?? 0) + (r2[0]?.montant_dzd ?? 0);
-        const sum_eur    = (r1[0]?.montant     ?? 0) + (r2[0]?.montant     ?? 0);
-        const sum_refund = (refund[0]?.amount  ?? 0);
+        const revRow     = revenueResult[0] ?? {};
+        const sum_dzd    = revRow.montant_dzd ?? 0;
+        const sum_eur    = revRow.montant     ?? 0;
+        const sum_refund = (refundResult[0] ?? {}).amount ?? 0;
 
         return (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
     }
 
-    // ─── Trésorerie par zone (pie charts) ────────────────────────────────────
-    // Même logique unifiée pour les pie charts
+    // ─── PÉRIODE 2 : à partir du 01/11/2025 ──────────────────────────────────
 
-    async _fetchZoneTresorerie(annee, zoneId) {
+    async _fetchMoisTresorerieNew(annee, mois, newIds) {
         const taux  = this._getTaux(annee);
-        const debut = new Date(annee, 0,  1,  0,  0,  0);
-        const fin   = new Date(annee, 11, 31, 23, 59, 59);
+        const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
+        const fin   = new Date(annee, mois,     0, 23, 59, 59);
 
-        // Cas 1 : date_encaissement existe
+        const refundDomain = [
+            ['date', '>=', this._formatORM(debut)],
+            ['date', '<=', this._formatORM(fin)],
+            ['status', '=', 'effectuer'],
+        ];
+        if (this.state.selected_zone) {
+            refundDomain.push(['reservation.zone', '=', parseInt(this.state.selected_zone)]);
+        }
+
+        if (newIds.length === 0) {
+            const refundResult = await this.orm.readGroup(
+                "refund.table", refundDomain, ["amount:sum"], []
+            );
+            const sum_refund = (refundResult[0] ?? {}).amount ?? 0;
+            return -(sum_refund * taux);
+        }
+
         const domainAvecDate = [
-            ['zone_encaissement', '=', zoneId],
+            ['id', 'in', newIds],
             ['date_encaissement', '>=', this._formatORM(debut)],
             ['date_encaissement', '<=', this._formatORM(fin)],
         ];
 
-        // Cas 2 : date_encaissement absente → reservation.create_date
         const domainSansDate = [
-            ['zone_encaissement', '=', zoneId],
+            ['id', 'in', newIds],
             ['date_encaissement', '=', false],
             ['reservation.create_date', '>=', this._formatORM(debut)],
             ['reservation.create_date', '<=', this._formatORM(fin)],
         ];
 
+        const [revenueAvecDate, revenueSansDate, refundResult] = await Promise.all([
+            this.orm.readGroup("revenue.record", domainAvecDate, ["montant_dzd:sum", "montant:sum"], []),
+            this.orm.readGroup("revenue.record", domainSansDate, ["montant_dzd:sum", "montant:sum"], []),
+            this.orm.readGroup("refund.table",   refundDomain,   ["amount:sum"], []),
+        ]);
+
+        const r1 = revenueAvecDate[0] ?? {};
+        const r2 = revenueSansDate[0] ?? {};
+
+        const sum_dzd    = (r1.montant_dzd ?? 0) + (r2.montant_dzd ?? 0);
+        const sum_eur    = (r1.montant     ?? 0) + (r2.montant     ?? 0);
+        const sum_refund = (refundResult[0] ?? {}).amount ?? 0;
+
+        return (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
+    }
+
+    // ─── DISPATCHER ──────────────────────────────────────────────────────────
+
+    _isBeforePivot(annee, mois) {
+        const DATE_PIVOT = new Date(2025, 10, 1);
+        return new Date(annee, mois - 1, 1) < DATE_PIVOT;
+    }
+
+    // ─── Trésorerie par zone (pie charts) ────────────────────────────────────
+
+    async _fetchZoneTresorerie(annee, zoneId) {
+        const taux       = this._getTaux(annee);
+        const debut      = new Date(annee, 0,  1,  0,  0,  0);
+        const fin        = new Date(annee, 11, 31, 23, 59, 59);
+        const DATE_PIVOT = new Date(2025, 10, 1);
+        const debutAnnee = new Date(annee, 0, 1);
+        const finAnnee   = new Date(annee, 11, 31, 23, 59, 59);
+
+        const { oldIds, newIds } = await this._getZoneIds(zoneId);
+
+        let totalRevenue = 0;
+
+        // --- Partie OLD ---
+        if (oldIds.length > 0 && debutAnnee < DATE_PIVOT) {
+            const finOld = annee < 2025
+                ? finAnnee
+                : new Date(2025, 9, 31, 23, 59, 59);
+
+            const domainOld = [
+                ['id', 'in', oldIds],
+                ['reservation.create_date', '>=', this._formatORM(debutAnnee)],
+                ['reservation.create_date', '<=', this._formatORM(finOld)],
+            ];
+            const resOld = await this.orm.readGroup(
+                "revenue.record", domainOld, ["montant_dzd:sum", "montant:sum"], []
+            );
+            const r = resOld[0] ?? {};
+            totalRevenue += (r.montant_dzd ?? 0) + ((r.montant ?? 0) * taux);
+        }
+
+        // --- Partie NEW ---
+        if (newIds.length > 0 && finAnnee >= DATE_PIVOT) {
+            const debutNew = debutAnnee >= DATE_PIVOT ? debutAnnee : DATE_PIVOT;
+
+            const domainNew1 = [
+                ['id', 'in', newIds],
+                ['date_encaissement', '>=', this._formatORM(debutNew)],
+                ['date_encaissement', '<=', this._formatORM(finAnnee)],
+            ];
+            const domainNew2 = [
+                ['id', 'in', newIds],
+                ['date_encaissement', '=', false],
+                ['reservation.create_date', '>=', this._formatORM(debutNew)],
+                ['reservation.create_date', '<=', this._formatORM(finAnnee)],
+            ];
+
+            const [resNew1, resNew2] = await Promise.all([
+                this.orm.readGroup("revenue.record", domainNew1, ["montant_dzd:sum", "montant:sum"], []),
+                this.orm.readGroup("revenue.record", domainNew2, ["montant_dzd:sum", "montant:sum"], []),
+            ]);
+
+            const n1 = resNew1[0] ?? {};
+            const n2 = resNew2[0] ?? {};
+            totalRevenue += (n1.montant_dzd ?? 0) + ((n1.montant ?? 0) * taux)
+                          + (n2.montant_dzd ?? 0) + ((n2.montant ?? 0) * taux);
+        }
+
+        // --- Remboursements ---
         const refundDomain = [
             ['date', '>=', this._formatORM(debut)],
             ['date', '<=', this._formatORM(fin)],
             ['status', '=', 'effectuer'],
             ['reservation.zone', '=', zoneId],
         ];
+        const resRefund  = await this.orm.readGroup(
+            "refund.table", refundDomain, ["amount:sum"], []
+        );
+        const sum_refund = (resRefund[0] ?? {}).amount ?? 0;
 
-        const [r1, r2, refund] = await Promise.all([
-            this.orm.readGroup("revenue.record", domainAvecDate, ["montant_dzd:sum", "montant:sum"], []),
-            this.orm.readGroup("revenue.record", domainSansDate, ["montant_dzd:sum", "montant:sum"], []),
-            this.orm.readGroup("refund.table",   refundDomain,   ["amount:sum"], []),
-        ]);
-
-        const sum_dzd    = (r1[0]?.montant_dzd ?? 0) + (r2[0]?.montant_dzd ?? 0);
-        const sum_eur    = (r1[0]?.montant     ?? 0) + (r2[0]?.montant     ?? 0);
-        const sum_refund = (refund[0]?.amount  ?? 0);
-
-        return (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
+        return totalRevenue - (sum_refund * taux);
     }
 
     // ─── Chargement principal ─────────────────────────────────────────────────
@@ -162,11 +274,20 @@ export class TresorerieDashboard extends Component {
                 "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
             ];
 
-            // Un seul appel par mois par année, logique unifiée
+            const { oldIds, newIds } = await this._getAllIds();
+
             const promises = [];
             for (let m = 1; m <= 12; m++) {
-                promises.push(this._fetchMoisTresorerie(n1, m));
-                promises.push(this._fetchMoisTresorerie(n,  m));
+                if (this._isBeforePivot(n1, m)) {
+                    promises.push(this._fetchMoisTresorerieOld(n1, m, oldIds));
+                } else {
+                    promises.push(this._fetchMoisTresorerieNew(n1, m, newIds));
+                }
+                if (this._isBeforePivot(n, m)) {
+                    promises.push(this._fetchMoisTresorerieOld(n, m, oldIds));
+                } else {
+                    promises.push(this._fetchMoisTresorerieNew(n, m, newIds));
+                }
             }
 
             const results = await Promise.all(promises);
@@ -240,22 +361,33 @@ export class TresorerieDashboard extends Component {
     }
 
     ouvrirMois(annee, mois) {
-        const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
-        const fin   = new Date(annee, mois,     0, 23, 59, 59);
-        const label = `${this.state.rows[mois-1]?.label} ${annee}`;
+        const debut      = new Date(annee, mois - 1, 1,  0,  0,  0);
+        const fin        = new Date(annee, mois,     0, 23, 59, 59);
+        const label      = `${this.state.rows[mois-1]?.label} ${annee}`;
+        const DATE_PIVOT = new Date(2025, 10, 1);
+        const dateMois   = new Date(annee, mois - 1, 1);
 
-        // Même logique unifiée : date_encaissement OU reservation.create_date
-        const revenueDomain = [
-            '|',
-            '&',
-                ['date_encaissement', '>=', this._formatORM(debut)],
-                ['date_encaissement', '<=', this._formatORM(fin)],
-            '&',
-                ['date_encaissement', '=', false],
+        let revenueDomain;
+
+        if (dateMois < DATE_PIVOT) {
+            revenueDomain = [
+                ['is_old', '=', true],
+                ['reservation.create_date', '>=', this._formatORM(debut)],
+                ['reservation.create_date', '<=', this._formatORM(fin)],
+            ];
+        } else {
+            revenueDomain = [
+                '|',
                 '&',
-                    ['reservation.create_date', '>=', this._formatORM(debut)],
-                    ['reservation.create_date', '<=', this._formatORM(fin)],
-        ];
+                    ['date_encaissement', '>=', this._formatORM(debut)],
+                    ['date_encaissement', '<=', this._formatORM(fin)],
+                '&',
+                    ['date_encaissement', '=', false],
+                    '&',
+                        ['reservation.create_date', '>=', this._formatORM(debut)],
+                        ['reservation.create_date', '<=', this._formatORM(fin)],
+            ];
+        }
 
         if (this.state.selected_zone) {
             revenueDomain.push(['zone_encaissement', '=', parseInt(this.state.selected_zone)]);
