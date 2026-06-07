@@ -56,89 +56,66 @@ export class TresorerieDashboard extends Component {
     _DATE_PIVOT = new Date(2025, 10, 1, 0, 0, 0);
 
     _isAvantPivot(annee, mois) {
-        // Équivalent Python : du < date_reference
-        // du = premier jour du mois
         return new Date(annee, mois - 1, 1, 0, 0, 0) < this._DATE_PIVOT;
     }
 
-    // ─── PÉRIODE AVANT 01/11/2025 ─────────────────────────────────────────────
-    // Équivalent Python : domain.append(('is_old', '=', True))
-    // Filtre date sur reservation.create_date (les anciens records n'ont pas date_encaissement)
+    // ─── MÉTHODE PRINCIPALE PAR MOIS ─────────────────────────────────────────
+    //
+    // Reproduit EXACTEMENT action_search_revenues + _get_revenues_by_date du Python :
+    //
+    // CAS 1 — mois AVANT 01/11/2025 (du < date_reference) :
+    //   domain = [is_old = True]
+    //   _get_revenues_by_date filtre :
+    //     (date_encaissement ∈ [debut,fin])
+    //     OU (pas de date_encaissement ET reservation.create_date ∈ [debut,fin])
+    //
+    // CAS 2 — mois DEPUIS 01/11/2025 (du >= date_reference) :
+    //   domain = [is_old = False OU is_old = None]
+    //   _get_revenues_by_date filtre :
+    //     (date_encaissement ∈ [debut,fin])
+    //     OU (pas de date_encaissement ET reservation.create_date ∈ [debut,fin])
+    //
+    // Dans les deux cas on fait 3 readGroup en parallèle :
+    //   1. revenue avec date_encaissement dans la période
+    //   2. revenue sans date_encaissement mais reservation.create_date dans la période
+    //   3. remboursements dans la période
 
-    async _fetchMoisOld(annee, mois, zoneId) {
+    async _fetchMoisTresorerie(annee, mois) {
         const taux  = this._getTaux(annee);
         const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
         const fin   = new Date(annee, mois,     0, 23, 59, 59);
 
+        const zoneId    = this.state.selected_zone ? parseInt(this.state.selected_zone) : null;
         const zoneFilter = zoneId ? [['zone_encaissement', '=', zoneId]] : [];
 
-        // is_old = True + filtre sur reservation.create_date (comme le Python)
-        const domainRevenue = [
-            ...zoneFilter,
-            ['is_old', '=', true],
-            ['reservation.create_date', '>=', this._formatORM(debut)],
-            ['reservation.create_date', '<=', this._formatORM(fin)],
-        ];
+        // Filtre is_old selon la position par rapport au pivot (équivalent Python)
+        const isOldFilter = this._isAvantPivot(annee, mois)
+            ? [['is_old', '=', true]]                          // CAS 1 : avant pivot
+            : ['|', ['is_old', '=', false], ['is_old', '=', false]]; // sera remplacé ci-dessous
 
-        const refundDomain = [
-            ['date', '>=', this._formatORM(debut)],
-            ['date', '<=', this._formatORM(fin)],
-            ['status', '=', 'effectuer'],
-        ];
-        if (zoneId) {
-            refundDomain.push(['reservation.zone', '=', zoneId]);
-        }
+        // Note : Odoo ORM, ['is_old', '!=', true] couvre False ET null/None
+        const isNewFilter = [['is_old', '!=', true]];
 
-        const [resRevenue, resRefund] = await Promise.all([
-            this.orm.readGroup("revenue.record", domainRevenue, ["montant_dzd:sum", "montant:sum"], []),
-            this.orm.readGroup("refund.table",   refundDomain,  ["amount:sum"], []),
-        ]);
+        const flagFilter = this._isAvantPivot(annee, mois) ? isOldFilter : isNewFilter;
 
-        const r        = resRevenue[0] ?? {};
-        const sum_dzd  = r.montant_dzd ?? 0;
-        const sum_eur  = r.montant     ?? 0;
-        const sum_refund = (resRefund[0] ?? {}).amount ?? 0;
-
-        return (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
-    }
-
-    // ─── PÉRIODE DEPUIS 01/11/2025 ────────────────────────────────────────────
-    // Équivalent Python : domain.append('|') is_old=False OU is_old=None
-    // Filtre date sur date_encaissement, fallback sur reservation.create_date si vide
-
-    async _fetchMoisNew(annee, mois, zoneId) {
-        const taux  = this._getTaux(annee);
-        const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
-        const fin   = new Date(annee, mois,     0, 23, 59, 59);
-
-        const zoneFilter = zoneId ? [['zone_encaissement', '=', zoneId]] : [];
-
-        // is_old != True (False ou None) — équivalent Python :
-        //   domain.append('|')
-        //   domain.append(('is_old', '=', False))
-        //   domain.append(('is_old', '=', None))
-        const isNewFilter = ['|', ['is_old', '=', false], ['is_old', '=', false]];
-        // Note : Odoo ORM : is_old != True s'écrit ['is_old', '!=', true]
-        // ce qui couvre False ET null/None
-        const isNewDomain = [['is_old', '!=', true]];
-
-        // Recettes avec date_encaissement renseignée
+        // --- Revenue avec date_encaissement renseignée ---
         const domainAvecDate = [
             ...zoneFilter,
-            ...isNewDomain,
+            ...flagFilter,
             ['date_encaissement', '>=', this._formatORM(debut)],
             ['date_encaissement', '<=', this._formatORM(fin)],
         ];
 
-        // Recettes sans date_encaissement → fallback reservation.create_date
+        // --- Revenue sans date_encaissement → fallback reservation.create_date ---
         const domainSansDate = [
             ...zoneFilter,
-            ...isNewDomain,
+            ...flagFilter,
             ['date_encaissement', '=', false],
             ['reservation.create_date', '>=', this._formatORM(debut)],
             ['reservation.create_date', '<=', this._formatORM(fin)],
         ];
 
+        // --- Remboursements ---
         const refundDomain = [
             ['date', '>=', this._formatORM(debut)],
             ['date', '<=', this._formatORM(fin)],
@@ -164,22 +141,9 @@ export class TresorerieDashboard extends Component {
         return (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
     }
 
-    // ─── DISPATCHER ──────────────────────────────────────────────────────────
-    // Aiguille vers Old ou New selon la date pivot — identique à action_search_revenues
-
-    async _fetchMoisTresorerie(annee, mois) {
-        const zoneId = this.state.selected_zone ? parseInt(this.state.selected_zone) : null;
-
-        if (this._isAvantPivot(annee, mois)) {
-            return this._fetchMoisOld(annee, mois, zoneId);
-        } else {
-            return this._fetchMoisNew(annee, mois, zoneId);
-        }
-    }
-
     // ─── Trésorerie annuelle par zone (pie charts) ───────────────────────────
-    // Même logique pivot, sur toute l'année
-    // Pour les années qui chevauchent le pivot (ex: 2025), on cumule Old + New
+    // Même logique mais sur toute l'année.
+    // Pour 2025 qui chevauche le pivot : on cumule la partie old + la partie new.
 
     async _fetchZoneTresorerie(annee, zoneId) {
         const taux    = this._getTaux(annee);
@@ -188,38 +152,50 @@ export class TresorerieDashboard extends Component {
 
         let totalRevenue = 0;
 
-        // --- Partie OLD : du début d'année jusqu'au pivot (ou fin d'année si année < 2025) ---
+        // ── Partie OLD (records avant le pivot) ──────────────────────────────
         if (debutAn < this._DATE_PIVOT) {
-            const finOld = annee < 2025
+            const finOld = finAn < this._DATE_PIVOT
                 ? finAn
-                : new Date(2025, 9, 31, 23, 59, 59); // 31/10/2025 = dernier jour avant pivot
+                : new Date(2025, 9, 31, 23, 59, 59); // 31/10/2025
 
-            const domainOld = [
+            // Avec date_encaissement
+            const domOldAvec = [
                 ['zone_encaissement', '=', zoneId],
                 ['is_old', '=', true],
+                ['date_encaissement', '>=', this._formatORM(debutAn)],
+                ['date_encaissement', '<=', this._formatORM(finOld)],
+            ];
+            // Sans date_encaissement → fallback reservation.create_date
+            const domOldSans = [
+                ['zone_encaissement', '=', zoneId],
+                ['is_old', '=', true],
+                ['date_encaissement', '=', false],
                 ['reservation.create_date', '>=', this._formatORM(debutAn)],
                 ['reservation.create_date', '<=', this._formatORM(finOld)],
             ];
 
-            const resOld = await this.orm.readGroup(
-                "revenue.record", domainOld, ["montant_dzd:sum", "montant:sum"], []
-            );
-            const r = resOld[0] ?? {};
-            totalRevenue += (r.montant_dzd ?? 0) + ((r.montant ?? 0) * taux);
+            const [r1, r2] = await Promise.all([
+                this.orm.readGroup("revenue.record", domOldAvec, ["montant_dzd:sum", "montant:sum"], []),
+                this.orm.readGroup("revenue.record", domOldSans, ["montant_dzd:sum", "montant:sum"], []),
+            ]);
+
+            const o1 = r1[0] ?? {};
+            const o2 = r2[0] ?? {};
+            totalRevenue += (o1.montant_dzd ?? 0) + ((o1.montant ?? 0) * taux)
+                          + (o2.montant_dzd ?? 0) + ((o2.montant ?? 0) * taux);
         }
 
-        // --- Partie NEW : depuis le pivot jusqu'à fin d'année ---
+        // ── Partie NEW (records depuis le pivot) ─────────────────────────────
         if (finAn >= this._DATE_PIVOT) {
             const debutNew = debutAn >= this._DATE_PIVOT ? debutAn : this._DATE_PIVOT;
 
-            const domainAvecDate = [
+            const domNewAvec = [
                 ['zone_encaissement', '=', zoneId],
                 ['is_old', '!=', true],
                 ['date_encaissement', '>=', this._formatORM(debutNew)],
                 ['date_encaissement', '<=', this._formatORM(finAn)],
             ];
-
-            const domainSansDate = [
+            const domNewSans = [
                 ['zone_encaissement', '=', zoneId],
                 ['is_old', '!=', true],
                 ['date_encaissement', '=', false],
@@ -227,27 +203,25 @@ export class TresorerieDashboard extends Component {
                 ['reservation.create_date', '<=', this._formatORM(finAn)],
             ];
 
-            const [resNew1, resNew2] = await Promise.all([
-                this.orm.readGroup("revenue.record", domainAvecDate, ["montant_dzd:sum", "montant:sum"], []),
-                this.orm.readGroup("revenue.record", domainSansDate, ["montant_dzd:sum", "montant:sum"], []),
+            const [r1, r2] = await Promise.all([
+                this.orm.readGroup("revenue.record", domNewAvec, ["montant_dzd:sum", "montant:sum"], []),
+                this.orm.readGroup("revenue.record", domNewSans, ["montant_dzd:sum", "montant:sum"], []),
             ]);
 
-            const n1 = resNew1[0] ?? {};
-            const n2 = resNew2[0] ?? {};
+            const n1 = r1[0] ?? {};
+            const n2 = r2[0] ?? {};
             totalRevenue += (n1.montant_dzd ?? 0) + ((n1.montant ?? 0) * taux)
                           + (n2.montant_dzd ?? 0) + ((n2.montant ?? 0) * taux);
         }
 
-        // --- Remboursements sur toute l'année ---
+        // ── Remboursements sur toute l'année ─────────────────────────────────
         const refundDomain = [
             ['date', '>=', this._formatORM(debutAn)],
             ['date', '<=', this._formatORM(finAn)],
             ['status', '=', 'effectuer'],
             ['reservation.zone', '=', zoneId],
         ];
-        const resRefund  = await this.orm.readGroup(
-            "refund.table", refundDomain, ["amount:sum"], []
-        );
+        const resRefund  = await this.orm.readGroup("refund.table", refundDomain, ["amount:sum"], []);
         const sum_refund = (resRefund[0] ?? {}).amount ?? 0;
 
         return totalRevenue - (sum_refund * taux);
@@ -266,7 +240,6 @@ export class TresorerieDashboard extends Component {
                 "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
             ];
 
-            // 24 requêtes parallèles (12 mois × 2 années)
             const promises = [];
             for (let m = 1; m <= 12; m++) {
                 promises.push(this._fetchMoisTresorerie(n1, m));
@@ -348,30 +321,22 @@ export class TresorerieDashboard extends Component {
         const fin   = new Date(annee, mois,     0, 23, 59, 59);
         const label = `${this.state.rows[mois-1]?.label} ${annee}`;
 
-        let revenueDomain;
+        const flagFilter = this._isAvantPivot(annee, mois)
+            ? [['is_old', '=', true]]
+            : [['is_old', '!=', true]];
 
-        if (this._isAvantPivot(annee, mois)) {
-            // Avant pivot : is_old = True + reservation.create_date
-            revenueDomain = [
-                ['is_old', '=', true],
-                ['reservation.create_date', '>=', this._formatORM(debut)],
-                ['reservation.create_date', '<=', this._formatORM(fin)],
-            ];
-        } else {
-            // Après pivot : is_old != True + date_encaissement ou fallback create_date
-            revenueDomain = [
-                ['is_old', '!=', true],
-                '|',
+        const revenueDomain = [
+            ...flagFilter,
+            '|',
+            '&',
+                ['date_encaissement', '>=', this._formatORM(debut)],
+                ['date_encaissement', '<=', this._formatORM(fin)],
+            '&',
+                ['date_encaissement', '=', false],
                 '&',
-                    ['date_encaissement', '>=', this._formatORM(debut)],
-                    ['date_encaissement', '<=', this._formatORM(fin)],
-                '&',
-                    ['date_encaissement', '=', false],
-                    '&',
-                        ['reservation.create_date', '>=', this._formatORM(debut)],
-                        ['reservation.create_date', '<=', this._formatORM(fin)],
-            ];
-        }
+                    ['reservation.create_date', '>=', this._formatORM(debut)],
+                    ['reservation.create_date', '<=', this._formatORM(fin)],
+        ];
 
         if (this.state.selected_zone) {
             revenueDomain.push(['zone_encaissement', '=', parseInt(this.state.selected_zone)]);
