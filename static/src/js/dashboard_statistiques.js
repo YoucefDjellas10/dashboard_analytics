@@ -82,29 +82,111 @@ export class DashboardStatistiques extends Component {
         return Math.round((fin - debut) / (1000 * 60 * 60 * 24));
     }
 
+    // Date pivot identique au Python : datetime(2025, 11, 1)
+    _DATE_PIVOT = new Date(2025, 10, 1, 0, 0, 0);
+
     // ─────────────────────────────────────────
-    //  Calcul de la période N-1
-    //  → même mois, même durée, mais -1 an
+    //  Calcul trésorerie pour une période
+    //  Même logique que tresorerie_dashboard.js :
+    //    - debut < pivot  → is_old = True  + date_encaissement OU reservation.create_date
+    //    - debut >= pivot → is_old != True + date_encaissement OU reservation.create_date
+    //  Pour une période qui chevauche le pivot, on cumule les deux parties.
     // ─────────────────────────────────────────
 
-    _getPrevPeriod(dateDebutStr, dateFinStr) {
-        const debut = this._parseDebut(dateDebutStr);
-        const fin   = this._parseFin(dateFinStr);
+    async _fetchTresorerie(debut, fin, taux, zoneId) {
+        const zoneFilter = zoneId ? [['zone_encaissement', '=', zoneId]] : [];
 
-        // On garde mois et jour, on recule l'année de 1
-        const prevDebut = new Date(debut.getFullYear()-1, debut.getMonth(), debut.getDate(),  0,  0,  0);
-        const prevFin   = new Date(fin.getFullYear()-1,   fin.getMonth(),   fin.getDate(),   23, 59, 59);
+        let totalRevenue = 0;
 
-        return {
-            debutStr : this._toInputDate(prevDebut),
-            finStr   : this._toInputDate(prevFin),
-            debut    : prevDebut,
-            fin      : prevFin,
-        };
+        // ── Partie OLD (is_old = True) ────────────────────────────────────────
+        // S'applique uniquement si une portion de la période est avant le pivot
+        if (debut < this._DATE_PIVOT) {
+            const finOld = fin < this._DATE_PIVOT ? fin : new Date(this._DATE_PIVOT - 1); // 1ms avant le pivot
+
+            const domOldAvec = [
+                ...zoneFilter,
+                ['is_old', '=', true],
+                ['date_encaissement', '>=', this._formatORM(debut)],
+                ['date_encaissement', '<=', this._formatORM(finOld)],
+            ];
+            const domOldSans = [
+                ...zoneFilter,
+                ['is_old', '=', true],
+                ['date_encaissement', '=', false],
+                ['reservation.create_date', '>=', this._formatORM(debut)],
+                ['reservation.create_date', '<=', this._formatORM(finOld)],
+            ];
+
+            const [r1, r2] = await Promise.all([
+                this.orm.readGroup("revenue.record", domOldAvec, ["montant_dzd:sum", "montant:sum"], []),
+                this.orm.readGroup("revenue.record", domOldSans, ["montant_dzd:sum", "montant:sum"], []),
+            ]);
+
+            const o1 = r1[0] ?? {};
+            const o2 = r2[0] ?? {};
+            totalRevenue += (o1.montant_dzd ?? 0) + ((o1.montant ?? 0) * taux)
+                          + (o2.montant_dzd ?? 0) + ((o2.montant ?? 0) * taux);
+        }
+
+        // ── Partie NEW (is_old != True) ───────────────────────────────────────
+        // S'applique si une portion de la période est après le pivot
+        if (fin >= this._DATE_PIVOT) {
+            const debutNew = debut >= this._DATE_PIVOT ? debut : this._DATE_PIVOT;
+
+            const domNewAvec = [
+                ...zoneFilter,
+                ['is_old', '!=', true],
+                ['date_encaissement', '>=', this._formatORM(debutNew)],
+                ['date_encaissement', '<=', this._formatORM(fin)],
+            ];
+            const domNewSans = [
+                ...zoneFilter,
+                ['is_old', '!=', true],
+                ['date_encaissement', '=', false],
+                ['reservation.create_date', '>=', this._formatORM(debutNew)],
+                ['reservation.create_date', '<=', this._formatORM(fin)],
+            ];
+
+            const [r1, r2] = await Promise.all([
+                this.orm.readGroup("revenue.record", domNewAvec, ["montant_dzd:sum", "montant:sum"], []),
+                this.orm.readGroup("revenue.record", domNewSans, ["montant_dzd:sum", "montant:sum"], []),
+            ]);
+
+            const n1 = r1[0] ?? {};
+            const n2 = r2[0] ?? {};
+            totalRevenue += (n1.montant_dzd ?? 0) + ((n1.montant ?? 0) * taux)
+                          + (n2.montant_dzd ?? 0) + ((n2.montant ?? 0) * taux);
+        }
+
+        // ── Remboursements ────────────────────────────────────────────────────
+        const refundDomain = [
+            ['date', '>=', this._formatORM(debut)],
+            ['date', '<=', this._formatORM(fin)],
+            ['status', '=', 'effectuer'],
+        ];
+        if (zoneId) {
+            refundDomain.push(['reservation.zone', '=', zoneId]);
+        }
+
+        const resRefund  = await this.orm.readGroup("refund.table", refundDomain, ["amount:sum"], []);
+        const sum_refund = (resRefund[0] ?? {}).amount ?? 0;
+
+        return totalRevenue - (sum_refund * taux);
     }
 
     // ─────────────────────────────────────────
-    //  Domaines
+    //  Taux de change selon la période
+    //  (260 avant 2026, 270 depuis 2026)
+    //  Pour une période qui chevauche deux années,
+    //  on utilise le taux de l'année de début.
+    // ─────────────────────────────────────────
+
+    _getTaux(debut) {
+        return debut.getFullYear() < 2026 ? 260 : 270;
+    }
+
+    // ─────────────────────────────────────────
+    //  Domaines (réservations / dépenses)
     // ─────────────────────────────────────────
 
     _buildDomain(debutStr, finStr) {
@@ -149,27 +231,13 @@ export class DashboardStatistiques extends Component {
     // ─────────────────────────────────────────
 
     async _fetchPeriod(debutStr, finStr) {
-        const debut = this._parseDebut(debutStr);
-        const fin   = this._parseFin(finStr);
+        const debut  = this._parseDebut(debutStr);
+        const fin    = this._parseFin(finStr);
+        const zoneId = this.state.selected_zone ? parseInt(this.state.selected_zone) : null;
+        const taux   = this._getTaux(debut);
 
-        const revenueDomain = [
-            '|',
-            '&', ['create_date', '>=', this._formatORM(debut)],
-                 ['create_date', '<=', this._formatORM(fin)],
-            '&', ['create_date', '=', false],
-            '&', ['reservation.create_date', '>=', this._formatORM(debut)],
-                 ['reservation.create_date', '<=', this._formatORM(fin)],
-        ];
-        if (this.state.selected_zone)
-            revenueDomain.push(['zone', '=', parseInt(this.state.selected_zone)]);
-
-        const refundDomain = [
-            ['date', '>=', this._formatORM(debut)],
-            ['date', '<=', this._formatORM(fin)],
-            ['status', '=', 'effectuer'],
-        ];
-
-        const [resResult, depResult, tauxResult, vehiculesResult, resDatesList, revenueResult, refundResult] =
+        // Toutes les requêtes sauf trésorerie en parallèle
+        const [resResult, depResult, tauxResult, vehiculesResult, resDatesList] =
             await Promise.all([
 
                 this.orm.readGroup("reservation",
@@ -187,8 +255,8 @@ export class DashboardStatistiques extends Component {
                 ),
 
                 this.orm.searchRead("vehicule",
-                    this.state.selected_zone
-                        ? [["zone", "=", parseInt(this.state.selected_zone)], ["active_test", "=", true]]
+                    zoneId
+                        ? [["zone", "=", zoneId], ["active_test", "=", true]]
                         : [["active_test", "=", true]],
                     ["id"]
                 ),
@@ -197,32 +265,19 @@ export class DashboardStatistiques extends Component {
                     this._buildDomainDates(debutStr, finStr),
                     ["date_heure_debut", "date_heure_fin"]
                 ),
-
-                this.orm.readGroup("revenue.record",
-                    revenueDomain,
-                    ["montant_dzd:sum", "montant:sum"], []
-                ),
-
-                this.orm.readGroup("refund.table",
-                    refundDomain,
-                    ["amount:sum"], []
-                ),
             ]);
 
-        const rowRes   = resResult[0] ?? {};
-        const count    = rowRes.__count           ?? 0;
-        const caEuro   = rowRes.total_reduit_euro ?? 0;
-        const taux     = tauxResult[0]?.montant   ?? 1;
+        // Trésorerie avec la logique correcte (is_old + pivot)
+        const tresorerie_da = await this._fetchTresorerie(debut, fin, taux, zoneId);
 
-        const ca_da         = caEuro * taux;
-        const revRow        = revenueResult[0] ?? {};
-        const sum_dzd       = revRow.montant_dzd ?? 0;
-        const sum_eur       = revRow.montant     ?? 0;
-        const refundRow     = refundResult[0]  ?? {};
-        const sum_refund    = refundRow.amount  ?? 0;
-        const tresorerie_da = (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
-        const panier_da     = count > 0 ? (caEuro / count) * taux : 0;
-        const depense_da    = (depResult[0] ?? {}).montant_da ?? 0;
+        const rowRes = resResult[0] ?? {};
+        const count  = rowRes.__count           ?? 0;
+        const caEuro = rowRes.total_reduit_euro ?? 0;
+        const tauxDB = tauxResult[0]?.montant   ?? 1;
+
+        const ca_da      = caEuro * tauxDB;
+        const panier_da  = count > 0 ? (caEuro / count) * tauxDB : 0;
+        const depense_da = (depResult[0] ?? {}).montant_da ?? 0;
 
         // Taux de remplissage
         const nbJoursPeriode = this._nbJours(debut, fin);
@@ -244,6 +299,25 @@ export class DashboardStatistiques extends Component {
         }
 
         return { count, ca_da, tresorerie_da, panier_da, depense_da, taux_remplissage };
+    }
+
+    // ─────────────────────────────────────────
+    //  Calcul de la période N-1
+    // ─────────────────────────────────────────
+
+    _getPrevPeriod(dateDebutStr, dateFinStr) {
+        const debut = this._parseDebut(dateDebutStr);
+        const fin   = this._parseFin(dateFinStr);
+
+        const prevDebut = new Date(debut.getFullYear()-1, debut.getMonth(), debut.getDate(),  0,  0,  0);
+        const prevFin   = new Date(fin.getFullYear()-1,   fin.getMonth(),   fin.getDate(),   23, 59, 59);
+
+        return {
+            debutStr : this._toInputDate(prevDebut),
+            finStr   : this._toInputDate(prevFin),
+            debut    : prevDebut,
+            fin      : prevFin,
+        };
     }
 
     // ─────────────────────────────────────────
@@ -317,77 +391,50 @@ export class DashboardStatistiques extends Component {
     }
 
     // ─────────────────────────────────────────
-    //  Helpers delta (pour le template)
+    //  Helpers delta
     // ─────────────────────────────────────────
 
-    /**
-     * Retourne { val, positive } ou null si pas de données N-1
-     * val : valeur arrondie (avec signe)
-     * positive : true si hausse, false si baisse
-     */
     _delta(current, prev) {
-    if (prev === null || prev === undefined) return null;
-    if (prev === 0 && current === 0) return null;
+        if (prev === null || prev === undefined) return null;
+        if (prev === 0 && current === 0) return null;
 
-    let pct;
-    if (prev === 0) {
-        pct = 100;
-    } else {
-        pct = Math.round(((current - prev) / prev) * 100);
+        let pct;
+        if (prev === 0) {
+            pct = 100;
+        } else {
+            pct = Math.round(((current - prev) / prev) * 100);
+        }
+
+        if (pct === 0) return null;
+        return { val: Math.abs(pct), positive: pct >= 0 };
     }
-
-    if (pct === 0) return null;
-    return { val: Math.abs(pct), positive: pct >= 0 };
-}
 
     get deltaReservations()  { return this._delta(this.state.reservations_confirmer, this.state.prev_reservations); }
     get deltaCa()            { return this._delta(this.state.total_ca_da,            this.state.prev_ca_da); }
     get deltaTresorerie()    { return this._delta(this.state.total_tresorerie_da,    this.state.prev_tresorerie_da); }
     get deltaPanier()        { return this._delta(this.state.panier_moyen_da,        this.state.prev_panier_moyen_da); }
     get deltaDepense()       { return this._delta(this.state.total_depense_da,       this.state.prev_depense_da); }
-    get deltaTaux() { return null; }    get deltaBalance()       { return this._delta(this.balance,                      this.prevBalance); }
+    get deltaTaux()          { return null; }
+    get deltaBalance()       { return this._delta(this.balance, this.prevBalance); }
 
     // ─────────────────────────────────────────
     //  Actions
     // ─────────────────────────────────────────
 
-    ouvrirReservations() {
-    this.action.doAction(
-        "dashboard_analytics.action_reservation_dashboard"
-    );
-}
+    ouvrirReservations()   { this.action.doAction("dashboard_analytics.action_reservation_dashboard"); }
+    ouvrirChiffreAffaire() { this.action.doAction("dashboard_analytics.action_ca_dashboard"); }
+    ouvrirTresorerie()     { this.action.doAction("dashboard_analytics.action_tresorerie_dashboard"); }
+    ouvrirTauxRemplissage(){ this.action.doAction("dashboard_analytics.action_taux_remplissage_dashboard"); }
+    ouvrirPanierMoyen()    { this.action.doAction("dashboard_analytics.action_panier_moyen_dashboard"); }
+    ouvrirBalance()        { this.action.doAction("dashboard_analytics.action_balance_dashboard"); }
+    ouvrirDepenses()       { this.action.doAction("dashboard_analytics.action_depense_dashboard"); }
 
-    ouvrirChiffreAffaire() {
-    this.action.doAction("dashboard_analytics.action_ca_dashboard");
-}
     fmt(n) {
-    return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-}
+        return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    }
 
-
-
-    ouvrirTresorerie() {
-    this.action.doAction("dashboard_analytics.action_tresorerie_dashboard");
-}
-    ouvrirTauxRemplissage() {
-    this.action.doAction("dashboard_analytics.action_taux_remplissage_dashboard");
-}
-    ouvrirPanierMoyen() {
-    this.action.doAction("dashboard_analytics.action_panier_moyen_dashboard");
-}
-    ouvrirBalance() {
-    this.action.doAction("dashboard_analytics.action_balance_dashboard");
-}
-    ouvrirDepenses() {
-    this.action.doAction("dashboard_analytics.action_depense_dashboard");
-}
-    get anneeActuelle() {
-    return this.state.date_debut ? this.state.date_debut.slice(0, 4) : "";
-}
-
-    get anneePrecedente() {
-    return this.state.date_debut ? String(parseInt(this.state.date_debut.slice(0, 4)) - 1) : "";
-}
+    get anneeActuelle()  { return this.state.date_debut ? this.state.date_debut.slice(0, 4) : ""; }
+    get anneePrecedente(){ return this.state.date_debut ? String(parseInt(this.state.date_debut.slice(0, 4)) - 1) : ""; }
 
     get caFormatted()         { return this.fmt(this.state.total_ca_da); }
     get tresorerieFormatted() { return this.fmt(this.state.total_tresorerie_da); }
