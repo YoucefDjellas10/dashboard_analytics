@@ -70,9 +70,6 @@
 }
 .rd-btn-retour:hover { background:#e2e8f0; transform:translateY(-2px); }
 
-/* ── Grille Pie ── */
-.rd-pie-grid  { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px; }
-.rd-pie-title { font-size:15px; font-weight:800; color:#1e293b; margin-bottom:16px; text-align:center; }
 
 /* ══════════════════════════════════════════════
    RESPONSIVE — Tablet ≤ 1024px
@@ -256,17 +253,6 @@
         <canvas id="rd-chart-line" style="width:100%; max-height:400px;"/>
     </div>
 
-    <!-- Graphiques Pie côte à côte -->
-    <div class="rd-pie-grid">
-        <div class="rd-table-wrapper" style="padding:24px;">
-            <div class="rd-pie-title">🥧 Réservations par zone — <t t-esc="state.annee_n1"/></div>
-            <canvas id="rd-chart-pie-n1" style="width:100%; max-height:500px;"/>
-        </div>
-        <div class="rd-table-wrapper" style="padding:24px;">
-            <div class="rd-pie-title">🥧 Réservations par zone — <t t-esc="state.annee_n"/></div>
-            <canvas id="rd-chart-pie" style="width:100%; max-height:500px;"/>
-        </div>
-    </div>
 
     <!-- ── Graphique : Moyenne Jours / Réservation par mois ── -->
     <div class="rd-table-wrapper" style="margin-top:20px; padding:24px;">
