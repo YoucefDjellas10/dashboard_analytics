@@ -57,101 +57,111 @@ export class ReservationDashboard extends Component {
     }
 
     async loadData() {
-        this.state.loading = true;
-        try {
-            const n  = this.state.annee_n;
-            const n1 = this.state.annee_n1;
+    this.state.loading = true;
+    try {
+        const n  = this.state.annee_n;
+        const n1 = this.state.annee_n1;
 
-            const MOIS_LABELS = [
-                "Janvier","Février","Mars","Avril","Mai","Juin",
-                "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
+        const MOIS_LABELS = [
+            "Janvier","Février","Mars","Avril","Mai","Juin",
+            "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
+        ];
+
+        const _buildDomainYear = (annee, statusFilter) => {
+            const debut = new Date(annee, 0,  1,  0,  0,  0);
+            const fin   = new Date(annee, 11, 31, 23, 59, 59);
+            const domain = [
+                ["status",      "=",  statusFilter],
+                ["create_date", ">=", this._formatORM(debut)],
+                ["create_date", "<=", this._formatORM(fin)],
             ];
+            if (this.state.selected_zone)
+                domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
+            return domain;
+        };
 
-            const _buildDomainYear = (annee) => {
-                const debut = new Date(annee, 0,  1,  0,  0,  0);
-                const fin   = new Date(annee, 11, 31, 23, 59, 59);
-                const domain = [
-                    ["status",      "=",  "confirmee"],
-                    ["create_date", ">=", this._formatORM(debut)],
-                    ["create_date", "<=", this._formatORM(fin)],
-                ];
-                if (this.state.selected_zone)
-                    domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
-                return domain;
-            };
+        const [recsN1, recsN, recsAnnuleN] = await Promise.all([
+            this.orm.searchRead(
+                "reservation",
+                _buildDomainYear(n1, "confirmee"),
+                ["create_date", "nbr_jour_reservation"],
+                { limit: 0 }
+            ),
+            this.orm.searchRead(
+                "reservation",
+                _buildDomainYear(n, "confirmee"),
+                ["create_date", "nbr_jour_reservation"],
+                { limit: 0 }
+            ),
+            this.orm.searchRead(
+                "reservation",
+                _buildDomainYear(n, "annule"),
+                ["create_date", "nbr_jour_reservation"],
+                { limit: 0 }
+            ),
+        ]);
 
-            const [recsN1, recsN] = await Promise.all([
-                this.orm.searchRead(
-                    "reservation",
-                    _buildDomainYear(n1),
-                    ["create_date", "nbr_jour_reservation"],
-                    { limit: 0 }
-                ),
-                this.orm.searchRead(
-                    "reservation",
-                    _buildDomainYear(n),
-                    ["create_date", "nbr_jour_reservation"],
-                    { limit: 0 }
-                ),
-            ]);
+        const groupByMonth = (recs) => {
+            const countArr = new Array(12).fill(0);
+            const joursArr = new Array(12).fill(0);
+            for (const r of recs) {
+                if (!r.create_date) continue;
+                const moisIdx = new Date(r.create_date).getMonth();
+                countArr[moisIdx]++;
+                joursArr[moisIdx] += (r.nbr_jour_reservation || 0);
+            }
+            return { countArr, joursArr };
+        };
 
-            const groupByMonth = (recs) => {
-                const countArr = new Array(12).fill(0);
-                const joursArr = new Array(12).fill(0);
-                for (const r of recs) {
-                    if (!r.create_date) continue;
-                    const moisIdx = new Date(r.create_date).getMonth();
-                    countArr[moisIdx]++;
-                    joursArr[moisIdx] += (r.nbr_jour_reservation || 0);
-                }
-                return { countArr, joursArr };
-            };
+        const grpN1      = groupByMonth(recsN1);
+        const grpN       = groupByMonth(recsN);
+        const grpAnnuleN = groupByMonth(recsAnnuleN);
 
-            const grpN1 = groupByMonth(recsN1);
-            const grpN  = groupByMonth(recsN);
+        const rows = [];
+        for (let m = 1; m <= 12; m++) {
+            const idx = m - 1;
 
-            const rows = [];
-            for (let m = 1; m <= 12; m++) {
-                const idx = m - 1;
+            const count_n1       = grpN1.countArr[idx];
+            const jours_n1       = grpN1.joursArr[idx];
+            const count_n        = grpN.countArr[idx];
+            const jours_n        = grpN.joursArr[idx];
+            const count_annule_n = grpAnnuleN.countArr[idx];
+            const jours_annule_n = grpAnnuleN.joursArr[idx];
 
-                const count_n1 = grpN1.countArr[idx];
-                const jours_n1 = grpN1.joursArr[idx];
-                const count_n  = grpN.countArr[idx];
-                const jours_n  = grpN.joursArr[idx];
-
-                let delta = null;
-                if (count_n1 > 0) {
-                    delta = Math.round(((count_n - count_n1) / count_n1) * 100);
-                } else if (count_n > 0) {
-                    delta = 100;
-                }
-
-                let delta_jours = null;
-                if (jours_n1 > 0) {
-                    delta_jours = Math.round(((jours_n - jours_n1) / jours_n1) * 100);
-                } else if (jours_n > 0) {
-                    delta_jours = 100;
-                }
-
-                rows.push({
-                    mois: m, label: MOIS_LABELS[m - 1],
-                    count_n1, jours_n1,
-                    count_n,  jours_n,
-                    delta, delta_jours,
-                });
+            let delta = null;
+            if (count_n1 > 0) {
+                delta = Math.round(((count_n - count_n1) / count_n1) * 100);
+            } else if (count_n > 0) {
+                delta = 100;
             }
 
-            this.state.rows = rows;
+            let delta_jours = null;
+            if (jours_n1 > 0) {
+                delta_jours = Math.round(((jours_n - jours_n1) / jours_n1) * 100);
+            } else if (jours_n > 0) {
+                delta_jours = 100;
+            }
 
-        } finally {
-            this.state.loading = false;
-            setTimeout(() => {
-                this._renderChart();
-                this._renderChartLine();
-                this._renderChartRatio();
-            }, 50);
+            rows.push({
+                mois: m, label: MOIS_LABELS[m - 1],
+                count_n1, jours_n1,
+                count_n,  jours_n,
+                count_annule_n, jours_annule_n,
+                delta, delta_jours,
+            });
         }
+
+        this.state.rows = rows;
+
+    } finally {
+        this.state.loading = false;
+        setTimeout(() => {
+            this._renderChart();
+            this._renderChartLine();
+            this._renderChartRatio();
+        }, 50);
     }
+}
 
     updateSelectedZone(ev) {
         this.state.selected_zone = ev.target.value;
@@ -590,10 +600,12 @@ export class ReservationDashboard extends Component {
         }
     }
 
-    get totalN1()      { return this.state.rows.reduce((s, r) => s + r.count_n1, 0); }
-    get totalN()       { return this.state.rows.reduce((s, r) => s + r.count_n,  0); }
-    get totalJoursN1() { return this.state.rows.reduce((s, r) => s + r.jours_n1, 0); }
-    get totalJoursN()  { return this.state.rows.reduce((s, r) => s + r.jours_n,  0); }
+    get totalN1()           { return this.state.rows.reduce((s, r) => s + r.count_n1,       0); }
+    get totalN()            { return this.state.rows.reduce((s, r) => s + r.count_n,        0); }
+    get totalJoursN1()      { return this.state.rows.reduce((s, r) => s + r.jours_n1,       0); }
+    get totalJoursN()       { return this.state.rows.reduce((s, r) => s + r.jours_n,        0); }
+    get totalAnnuleN()      { return this.state.rows.reduce((s, r) => s + r.count_annule_n, 0); }
+    get totalJoursAnnuleN() { return this.state.rows.reduce((s, r) => s + r.jours_annule_n, 0); }
 
     get totalDelta() {
         if (this.totalN1 === 0) return this.totalN > 0 ? 100 : null;
