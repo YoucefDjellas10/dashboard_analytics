@@ -161,8 +161,8 @@
                     <th><t t-esc="state.annee_n1"/></th>
                     <th><t t-esc="state.annee_n"/></th>
                     <th>Évolution</th>
-                    <th style="background:rgba(220,38,38,0.85);">
-    ❌ Annulations <t t-esc="state.annee_n"/>
+                    <th>
+     Annulations <t t-esc="state.annee_n"/>
 </th>
                 </tr>
             </thead>
