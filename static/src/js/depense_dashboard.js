@@ -185,9 +185,11 @@ async ouvrirMois(annee, mois) {
     const fin     = new Date(annee, mois,     0, 23, 59, 59);
 
     // Mois précédent (même mois, année N-1 ou N selon ce qui est affiché)
-    const anneePrev = annee - 1;
-    const debutPrev = new Date(anneePrev, mois - 1, 1,  0,  0,  0);
-    const finPrev   = new Date(anneePrev, mois,     0, 23, 59, 59);
+    const datePrev  = new Date(annee, mois - 2, 1);
+    const anneePrev = datePrev.getFullYear();
+    const moisPrev  = datePrev.getMonth() + 1;
+    const debutPrev = new Date(anneePrev, moisPrev - 1, 1,  0,  0,  0);
+    const finPrev   = new Date(anneePrev, moisPrev,     0, 23, 59, 59);
 
     const label = `${state.rows[mois - 1]?.label} ${annee}`;
 
@@ -232,7 +234,16 @@ async ouvrirMois(annee, mois) {
         };
     });
 
-    state.modal = { titre: label, anneePrev, lignes };
+    const MOIS_LABELS = [
+    "Janvier","Février","Mars","Avril","Mai","Juin",
+    "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
+];
+
+state.modal = {
+    titre    : label,
+    titrePrev: `${MOIS_LABELS[moisPrev - 1]} ${anneePrev}`,
+    lignes
+};
 }
     fermerModal() {
         this.state.modal = null;

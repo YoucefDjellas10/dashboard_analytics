@@ -156,7 +156,7 @@
             <th style="padding:11px 16px;text-align:left;font-size:13px;font-weight:700;border-radius:8px 0 0 0;">Type de dépense</th>
             <th style="padding:11px 16px;text-align:right;font-size:13px;font-weight:700;">Montant (DA)</th>
             <th style="padding:11px 16px;text-align:center;font-size:13px;font-weight:700;border-radius:0 8px 0 0;">
-                vs <t t-esc="state.modal.anneePrev"/>
+                vs <t t-esc="state.modal.titrePrev"/>
             </th>
         </tr>
     </thead>
