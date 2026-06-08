@@ -150,35 +150,49 @@
             </div>
 
             <!-- Tableau détail -->
-            <table style="width:100%;border-collapse:collapse;">
-                <thead>
-                    <tr style="background:linear-gradient(135deg,#7f1d1d,#dc2626);color:#fff;">
-                        <th style="padding:11px 16px;text-align:left;font-size:13px;font-weight:700;border-radius:8px 0 0 0;">Type de dépense</th>
-                        <th style="padding:11px 16px;text-align:right;font-size:13px;font-weight:700;border-radius:0 8px 0 0;">Montant (DA)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <t t-foreach="state.modal.lignes" t-as="ligne" t-key="ligne.type">
-                        <tr style="border-bottom:1px solid #f1f5f9;">
-                            <td style="padding:11px 16px;font-size:14px;color:#475569;font-weight:600;">
-                                <t t-esc="ligne.type"/>
-                            </td>
-                            <td style="padding:11px 16px;font-size:14px;color:#1e293b;font-weight:700;text-align:right;">
-                                <t t-esc="fmtRow(ligne.montant)"/>
-                            </td>
-                        </tr>
+<table style="width:100%;border-collapse:collapse;">
+    <thead>
+        <tr style="background:linear-gradient(135deg,#7f1d1d,#dc2626);color:#fff;">
+            <th style="padding:11px 16px;text-align:left;font-size:13px;font-weight:700;border-radius:8px 0 0 0;">Type de dépense</th>
+            <th style="padding:11px 16px;text-align:right;font-size:13px;font-weight:700;">Montant (DA)</th>
+            <th style="padding:11px 16px;text-align:center;font-size:13px;font-weight:700;border-radius:0 8px 0 0;">
+                vs <t t-esc="state.modal.anneePrev"/>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        <t t-foreach="state.modal.lignes" t-as="ligne" t-key="ligne.type">
+            <tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:11px 16px;font-size:14px;color:#475569;font-weight:600;">
+                    <t t-esc="ligne.type"/>
+                </td>
+                <td style="padding:11px 16px;font-size:14px;color:#1e293b;font-weight:700;text-align:right;">
+                    <t t-esc="fmtRow(ligne.montant)"/>
+                </td>
+                <td style="padding:11px 16px;text-align:center;">
+                    <t t-if="ligne.delta !== null">
+                        <span t-attf-class="dep-badge {{ ligne.delta >= 0 ? 'dep-badge-up' : 'dep-badge-down' }}">
+                            <t t-if="ligne.delta >= 0">▲ +<t t-esc="ligne.delta"/> %</t>
+                            <t t-else="">▼ <t t-esc="ligne.delta"/> %</t>
+                        </span>
                     </t>
-                </tbody>
-                <tfoot>
-                    <tr style="background:#f8fafc;">
-                        <td style="padding:12px 16px;font-weight:800;font-size:14px;color:#1e293b;">Total</td>
-                        <td style="padding:12px 16px;font-weight:800;font-size:14px;color:#dc2626;text-align:right;">
-                            <t t-esc="fmtRow(state.modal.lignes.reduce((s,l) => s + l.montant, 0))"/>
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
-
+                    <t t-else="">
+                        <span class="dep-badge dep-badge-null">—</span>
+                    </t>
+                </td>
+            </tr>
+        </t>
+    </tbody>
+    <tfoot>
+        <tr style="background:#f8fafc;">
+            <td style="padding:12px 16px;font-weight:800;font-size:14px;color:#1e293b;">Total</td>
+            <td style="padding:12px 16px;font-weight:800;font-size:14px;color:#dc2626;text-align:right;">
+                <t t-esc="fmtRow(state.modal.lignes.reduce((s,l) => s + l.montant, 0))"/>
+            </td>
+            <td/>
+        </tr>
+    </tfoot>
+</table>
         </div>
     </div>
 </t>

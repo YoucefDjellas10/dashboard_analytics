@@ -177,40 +177,63 @@ export class DepenseDashboard extends Component {
         this.action.doAction("dashboard_analytics.action_dashboard_statistiques");
     }
 
-    async ouvrirMois(annee, mois) {
-        const state = this.state;   // capture locale — évite la perte de contexte
-        const orm   = this.orm;
+async ouvrirMois(annee, mois) {
+    const state = this.state;
+    const orm   = this.orm;
 
-        const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
-        const fin   = new Date(annee, mois,     0, 23, 59, 59);
-        const label = `${state.rows[mois - 1]?.label} ${annee}`;
+    const debut   = new Date(annee, mois - 1, 1,  0,  0,  0);
+    const fin     = new Date(annee, mois,     0, 23, 59, 59);
 
+    // Mois précédent (même mois, année N-1 ou N selon ce qui est affiché)
+    const anneePrev = annee - 1;
+    const debutPrev = new Date(anneePrev, mois - 1, 1,  0,  0,  0);
+    const finPrev   = new Date(anneePrev, mois,     0, 23, 59, 59);
+
+    const label = `${state.rows[mois - 1]?.label} ${annee}`;
+
+    const buildDomain = (d, f) => {
         const domain = [
             ["status",              "=",  "valide"],
-            ["date_de_realisation", ">=", this._toDateStr(debut)],
-            ["date_de_realisation", "<=", this._toDateStr(fin)],
+            ["date_de_realisation", ">=", this._toDateStr(d)],
+            ["date_de_realisation", "<=", this._toDateStr(f)],
         ];
         if (state.selected_zone)
             domain.push(["zone", "=", parseInt(state.selected_zone)]);
         if (state.selected_type)
             domain.push(["type_depense", "=", parseInt(state.selected_type)]);
+        return domain;
+    };
 
-        const groups = await orm.readGroup(
-            "depense.record",
-            domain,
-            ["montant_da:sum"],
-            ["type_depense"],
-            { orderby: "montant_da desc" }
-        );
+    const [groupsCurrent, groupsPrev] = await Promise.all([
+        orm.readGroup("depense.record", buildDomain(debut, fin),     ["montant_da:sum"], ["type_depense"], { orderby: "montant_da desc" }),
+        orm.readGroup("depense.record", buildDomain(debutPrev, finPrev), ["montant_da:sum"], ["type_depense"], {}),
+    ]);
 
-        const lignes = groups.map(g => ({
-            type    : g.type_depense ? g.type_depense[1] : "— Sans type —",
-            montant : g.montant_da ?? 0,
-        }));
-
-        state.modal = { titre: label, lignes };
+    // Map N-1 par type_depense id pour lookup rapide
+    const mapPrev = {};
+    for (const g of groupsPrev) {
+        const key = g.type_depense ? g.type_depense[0] : 0;
+        mapPrev[key] = g.montant_da ?? 0;
     }
 
+    const lignes = groupsCurrent.map(g => {
+        const key      = g.type_depense ? g.type_depense[0] : 0;
+        const montant  = g.montant_da ?? 0;
+        const montantP = mapPrev[key] ?? 0;
+
+        let delta = null;
+        if (montantP > 0)       delta = Math.round(((montant - montantP) / montantP) * 100);
+        else if (montant > 0)   delta = 100;
+
+        return {
+            type    : g.type_depense ? g.type_depense[1] : "— Sans type —",
+            montant,
+            delta,
+        };
+    });
+
+    state.modal = { titre: label, anneePrev, lignes };
+}
     fermerModal() {
         this.state.modal = null;
     }
