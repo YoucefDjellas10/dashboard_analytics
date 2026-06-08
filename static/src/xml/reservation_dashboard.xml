@@ -201,13 +201,17 @@
                                 </span>
                             </div>
                         </td>
-                        <td>
-    <span class="rd-cell-main" style="color:#dc2626;">
-        <t t-esc="totalAnnuleN"/>
-    </span>
-    <span class="rd-cell-jours">(<t t-esc="totalJoursAnnuleN"/> jours)</span>
-</td>
-                    </tr>
+<td>
+    <t t-if="row.count_annule_n > 0">
+        <span class="rd-cell-main" style="color:#dc2626;">
+            <t t-esc="row.count_annule_n"/>
+        </span>
+        <span class="rd-cell-jours">(<t t-esc="row.jours_annule_n"/> jours)</span>
+    </t>
+    <t t-else="">
+        <span style="color:#e2e8f0; font-size:18px;">·</span>
+    </t>
+</td>                    </tr>
                 </t>
             </tbody>
             <tfoot>
@@ -241,6 +245,12 @@
                             </div>
                         </div>
                     </td>
+                    <td>
+    <span class="rd-cell-main" style="color:#dc2626;">
+        <t t-esc="totalAnnuleN"/>
+    </span>
+    <span class="rd-cell-jours">(<t t-esc="totalJoursAnnuleN"/> jours)</span>
+</td>
                 </tr>
             </tfoot>
         </table>
