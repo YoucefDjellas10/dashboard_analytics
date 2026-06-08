@@ -648,153 +648,116 @@ export class ReservationDetailDashboard extends Component {
 
     _pad(n) { return String(n).padStart(2, "0"); }
 
-    async _loadData() {
-        this.state.loading = true;
-        try {
-            const domain = this.state.domain;
+    async loadData() {
+    this.state.loading = true;
+    try {
+        const n  = this.state.annee_n;
+        const n1 = this.state.annee_n1;
 
-            const recs = await this.orm.searchRead(
+        const MOIS_LABELS = [
+            "Janvier","Février","Mars","Avril","Mai","Juin",
+            "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
+        ];
+
+        const _buildDomainYear = (annee, statusFilter) => {
+            const debut = new Date(annee, 0,  1,  0,  0,  0);
+            const fin   = new Date(annee, 11, 31, 23, 59, 59);
+            const domain = [
+                ["status",      "=",  statusFilter],
+                ["create_date", ">=", this._formatORM(debut)],
+                ["create_date", "<=", this._formatORM(fin)],
+            ];
+            if (this.state.selected_zone)
+                domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
+            return domain;
+        };
+
+        const [recsN1, recsN, recsAnnuleN] = await Promise.all([
+            this.orm.searchRead(
                 "reservation",
-                domain,
-                ["lieu_depart", "zone", "categorie_client", "nbr_jour_reservation", "create_date"],
+                _buildDomainYear(n1, "confirmee"),
+                ["create_date", "nbr_jour_reservation"],
                 { limit: 0 }
-            );
+            ),
+            this.orm.searchRead(
+                "reservation",
+                _buildDomainYear(n, "confirmee"),
+                ["create_date", "nbr_jour_reservation"],
+                { limit: 0 }
+            ),
+            this.orm.searchRead(
+                "reservation",
+                _buildDomainYear(n, "annule"),
+                ["create_date", "nbr_jour_reservation"],
+                { limit: 0 }
+            ),
+        ]);
 
-            // Conserver les recs brutes pour les nouveaux graphiques
-            this.state.recs_raw = recs;
-
-            const zonesMap = {};
-            const lieuxMap = {};
-            const catsMap  = {};
-
+        const groupByMonth = (recs) => {
+            const countArr = new Array(12).fill(0);
+            const joursArr = new Array(12).fill(0);
             for (const r of recs) {
-                if (r.zone && r.zone[0]) {
-                    zonesMap[r.zone[0]] = r.zone[1] || `Zone ${r.zone[0]}`;
-                }
-                if (r.lieu_depart && r.lieu_depart[0]) {
-                    if (!lieuxMap[r.lieu_depart[0]]) {
-                        lieuxMap[r.lieu_depart[0]] = {
-                            name    : r.lieu_depart[1] || `Lieu ${r.lieu_depart[0]}`,
-                            zone_id : r.zone?.[0] || null,
-                        };
-                    }
-                }
-                if (r.categorie_client && r.categorie_client[0]) {
-                    catsMap[r.categorie_client[0]] = r.categorie_client[1] || `Cat. ${r.categorie_client[0]}`;
-                }
+                if (!r.create_date) continue;
+                const moisIdx = new Date(r.create_date).getMonth();
+                countArr[moisIdx]++;
+                joursArr[moisIdx] += (r.nbr_jour_reservation || 0);
+            }
+            return { countArr, joursArr };
+        };
+
+        const grpN1      = groupByMonth(recsN1);
+        const grpN       = groupByMonth(recsN);
+        const grpAnnuleN = groupByMonth(recsAnnuleN);
+
+        const rows = [];
+        for (let m = 1; m <= 12; m++) {
+            const idx = m - 1;
+
+            const count_n1 = grpN1.countArr[idx];
+            const jours_n1 = grpN1.joursArr[idx];
+            const count_n  = grpN.countArr[idx];
+            const jours_n  = grpN.joursArr[idx];
+
+            // Annulations année N
+            const count_annule_n = grpAnnuleN.countArr[idx];
+            const jours_annule_n = grpAnnuleN.joursArr[idx];
+
+            let delta = null;
+            if (count_n1 > 0) {
+                delta = Math.round(((count_n - count_n1) / count_n1) * 100);
+            } else if (count_n > 0) {
+                delta = 100;
             }
 
-            const zones = Object.entries(zonesMap)
-                .map(([id, name]) => ({ id: parseInt(id), name }))
-                .sort((a, b) => a.name.localeCompare(b.name));
-
-            const lieux = Object.entries(lieuxMap)
-                .map(([id, info]) => ({ id: parseInt(id), name: info.name, zone_id: info.zone_id }))
-                .sort((a, b) => a.name.localeCompare(b.name));
-
-            const categories = Object.entries(catsMap)
-                .map(([id, name]) => ({ id: parseInt(id), name }))
-                .sort((a, b) => a.name.localeCompare(b.name));
-
-            const matrix_lieu = {};
-            for (const l of lieux) {
-                matrix_lieu[l.id] = {};
-                for (const c of categories) {
-                    matrix_lieu[l.id][c.id] = { count: 0, jours: 0 };
-                }
+            let delta_jours = null;
+            if (jours_n1 > 0) {
+                delta_jours = Math.round(((jours_n - jours_n1) / jours_n1) * 100);
+            } else if (jours_n > 0) {
+                delta_jours = 100;
             }
 
-            for (const r of recs) {
-                const lid = r.lieu_depart?.[0];
-                const cid = r.categorie_client?.[0];
-                if (lid && cid && matrix_lieu[lid] && matrix_lieu[lid][cid] !== undefined) {
-                    matrix_lieu[lid][cid].count++;
-                    matrix_lieu[lid][cid].jours += (r.nbr_jour_reservation || 0);
-                }
-            }
-
-            const totaux_lieux = {};
-            for (const l of lieux) {
-                let count = 0, jours = 0;
-                for (const c of categories) {
-                    count += matrix_lieu[l.id][c.id].count;
-                    jours += matrix_lieu[l.id][c.id].jours;
-                }
-                totaux_lieux[l.id] = { count, jours };
-            }
-
-            const matrix_zone = {};
-            for (const z of zones) {
-                matrix_zone[z.id] = {};
-                for (const c of categories) {
-                    matrix_zone[z.id][c.id] = { count: 0, jours: 0 };
-                }
-            }
-
-            for (const l of lieux) {
-                if (!l.zone_id || !matrix_zone[l.zone_id]) continue;
-                for (const c of categories) {
-                    matrix_zone[l.zone_id][c.id].count += matrix_lieu[l.id][c.id].count;
-                    matrix_zone[l.zone_id][c.id].jours += matrix_lieu[l.id][c.id].jours;
-                }
-            }
-
-            const totaux_zones = {};
-            for (const z of zones) {
-                let count = 0, jours = 0;
-                for (const c of categories) {
-                    count += matrix_zone[z.id][c.id].count;
-                    jours += matrix_zone[z.id][c.id].jours;
-                }
-                totaux_zones[z.id] = { count, jours };
-            }
-
-            const totaux_cats = {};
-            for (const c of categories) {
-                let count = 0, jours = 0;
-                for (const l of lieux) {
-                    count += matrix_lieu[l.id][c.id].count;
-                    jours += matrix_lieu[l.id][c.id].jours;
-                }
-                totaux_cats[c.id] = { count, jours };
-            }
-
-            const grand_total = {
-                count : recs.length,
-                jours : recs.reduce((s, r) => s + (r.nbr_jour_reservation || 0), 0),
-            };
-
-            const expanded_zones = {};
-            for (const z of zones) {
-                expanded_zones[z.id] = false;
-            }
-
-            this.state.zones          = zones;
-            this.state.lieux          = lieux;
-            this.state.categories     = categories;
-            this.state.matrix_lieu    = matrix_lieu;
-            this.state.matrix_zone    = matrix_zone;
-            this.state.totaux_lieux   = totaux_lieux;
-            this.state.totaux_zones   = totaux_zones;
-            this.state.totaux_cats    = totaux_cats;
-            this.state.grand_total    = grand_total;
-            this.state.expanded_zones = expanded_zones;
-
-        } finally {
-            this.state.loading = false;
-            setTimeout(() => {
-                this._renderChartZones();
-                this._renderChartCategories();
-                this._renderChartLieuxMoy();
-                this._renderChartCategoriesMoy();
-                // Nouveaux graphiques
-                this._renderChartJourSemaine();
-                this._renderHeatmap();
-                this._renderChartDistributionDurees();
-            }, 50);
+            rows.push({
+                mois: m, label: MOIS_LABELS[m - 1],
+                count_n1, jours_n1,
+                count_n,  jours_n,
+                count_annule_n, jours_annule_n,
+                delta, delta_jours,
+            });
         }
-    }
 
+        this.state.rows = rows;
+
+    } finally {
+        this.state.loading = false;
+        setTimeout(() => {
+            this._renderChart();
+            this._renderChartLine();
+            this._renderChartRatio();
+        }, 50);
+    }
+}
+    get totalAnnuleN()       { return this.state.rows.reduce((s, r) => s + r.count_annule_n, 0); }
+    get totalJoursAnnuleN()  { return this.state.rows.reduce((s, r) => s + r.jours_annule_n,  0); }
     toggleZone(zone_id) {
         this.state.expanded_zones[zone_id] = !this.state.expanded_zones[zone_id];
     }

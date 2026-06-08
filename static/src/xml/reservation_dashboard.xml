@@ -161,6 +161,9 @@
                     <th><t t-esc="state.annee_n1"/></th>
                     <th><t t-esc="state.annee_n"/></th>
                     <th>Évolution</th>
+                    <th style="background:rgba(220,38,38,0.85);">
+    ❌ Annulations <t t-esc="state.annee_n"/>
+</th>
                 </tr>
             </thead>
             <tbody>
@@ -198,6 +201,12 @@
                                 </span>
                             </div>
                         </td>
+                        <td>
+    <span class="rd-cell-main" style="color:#dc2626;">
+        <t t-esc="totalAnnuleN"/>
+    </span>
+    <span class="rd-cell-jours">(<t t-esc="totalJoursAnnuleN"/> jours)</span>
+</td>
                     </tr>
                 </t>
             </tbody>
@@ -250,6 +259,7 @@
         <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
             📈 Évolution mensuelle — <t t-esc="state.annee_n1"/> vs <t t-esc="state.annee_n"/>
         </div>
+
         <canvas id="rd-chart-line" style="width:100%; max-height:400px;"/>
     </div>
 
