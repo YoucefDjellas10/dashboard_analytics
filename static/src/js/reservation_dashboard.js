@@ -57,111 +57,111 @@ export class ReservationDashboard extends Component {
     }
 
     async loadData() {
-    this.state.loading = true;
-    try {
-        const n  = this.state.annee_n;
-        const n1 = this.state.annee_n1;
+        this.state.loading = true;
+        try {
+            const n  = this.state.annee_n;
+            const n1 = this.state.annee_n1;
 
-        const MOIS_LABELS = [
-            "Janvier","Février","Mars","Avril","Mai","Juin",
-            "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
-        ];
-
-        const _buildDomainYear = (annee, statusFilter) => {
-            const debut = new Date(annee, 0,  1,  0,  0,  0);
-            const fin   = new Date(annee, 11, 31, 23, 59, 59);
-            const domain = [
-                ["status",      "=",  statusFilter],
-                ["create_date", ">=", this._formatORM(debut)],
-                ["create_date", "<=", this._formatORM(fin)],
+            const MOIS_LABELS = [
+                "Janvier","Février","Mars","Avril","Mai","Juin",
+                "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
             ];
-            if (this.state.selected_zone)
-                domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
-            return domain;
-        };
 
-        const [recsN1, recsN, recsAnnuleN] = await Promise.all([
-            this.orm.searchRead(
-                "reservation",
-                _buildDomainYear(n1, "confirmee"),
-                ["create_date", "nbr_jour_reservation"],
-                { limit: 0 }
-            ),
-            this.orm.searchRead(
-                "reservation",
-                _buildDomainYear(n, "confirmee"),
-                ["create_date", "nbr_jour_reservation"],
-                { limit: 0 }
-            ),
-            this.orm.searchRead(
-                "reservation",
-                _buildDomainYear(n, "annule"),
-                ["create_date", "nbr_jour_reservation"],
-                { limit: 0 }
-            ),
-        ]);
+            const _buildDomainYear = (annee, statusFilter) => {
+                const debut = new Date(annee, 0,  1,  0,  0,  0);
+                const fin   = new Date(annee, 11, 31, 23, 59, 59);
+                const domain = [
+                    ["status",      "=",  statusFilter],
+                    ["create_date", ">=", this._formatORM(debut)],
+                    ["create_date", "<=", this._formatORM(fin)],
+                ];
+                if (this.state.selected_zone)
+                    domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
+                return domain;
+            };
 
-        const groupByMonth = (recs) => {
-            const countArr = new Array(12).fill(0);
-            const joursArr = new Array(12).fill(0);
-            for (const r of recs) {
-                if (!r.create_date) continue;
-                const moisIdx = new Date(r.create_date).getMonth();
-                countArr[moisIdx]++;
-                joursArr[moisIdx] += (r.nbr_jour_reservation || 0);
+            const [recsN1, recsN, recsAnnuleN] = await Promise.all([
+                this.orm.searchRead(
+                    "reservation",
+                    _buildDomainYear(n1, "confirmee"),
+                    ["create_date", "nbr_jour_reservation"],
+                    { limit: 0 }
+                ),
+                this.orm.searchRead(
+                    "reservation",
+                    _buildDomainYear(n, "confirmee"),
+                    ["create_date", "nbr_jour_reservation"],
+                    { limit: 0 }
+                ),
+                this.orm.searchRead(
+                    "reservation",
+                    _buildDomainYear(n, "annule"),
+                    ["create_date", "nbr_jour_reservation"],
+                    { limit: 0 }
+                ),
+            ]);
+
+            const groupByMonth = (recs) => {
+                const countArr = new Array(12).fill(0);
+                const joursArr = new Array(12).fill(0);
+                for (const r of recs) {
+                    if (!r.create_date) continue;
+                    const moisIdx = new Date(r.create_date).getMonth();
+                    countArr[moisIdx]++;
+                    joursArr[moisIdx] += (r.nbr_jour_reservation || 0);
+                }
+                return { countArr, joursArr };
+            };
+
+            const grpN1      = groupByMonth(recsN1);
+            const grpN       = groupByMonth(recsN);
+            const grpAnnuleN = groupByMonth(recsAnnuleN);
+
+            const rows = [];
+            for (let m = 1; m <= 12; m++) {
+                const idx = m - 1;
+
+                const count_n1       = grpN1.countArr[idx];
+                const jours_n1       = grpN1.joursArr[idx];
+                const count_n        = grpN.countArr[idx];
+                const jours_n        = grpN.joursArr[idx];
+                const count_annule_n = grpAnnuleN.countArr[idx];
+                const jours_annule_n = grpAnnuleN.joursArr[idx];
+
+                let delta = null;
+                if (count_n1 > 0) {
+                    delta = Math.round(((count_n - count_n1) / count_n1) * 100);
+                } else if (count_n > 0) {
+                    delta = 100;
+                }
+
+                let delta_jours = null;
+                if (jours_n1 > 0) {
+                    delta_jours = Math.round(((jours_n - jours_n1) / jours_n1) * 100);
+                } else if (jours_n > 0) {
+                    delta_jours = 100;
+                }
+
+                rows.push({
+                    mois: m, label: MOIS_LABELS[m - 1],
+                    count_n1, jours_n1,
+                    count_n,  jours_n,
+                    count_annule_n, jours_annule_n,
+                    delta, delta_jours,
+                });
             }
-            return { countArr, joursArr };
-        };
 
-        const grpN1      = groupByMonth(recsN1);
-        const grpN       = groupByMonth(recsN);
-        const grpAnnuleN = groupByMonth(recsAnnuleN);
+            this.state.rows = rows;
 
-        const rows = [];
-        for (let m = 1; m <= 12; m++) {
-            const idx = m - 1;
-
-            const count_n1       = grpN1.countArr[idx];
-            const jours_n1       = grpN1.joursArr[idx];
-            const count_n        = grpN.countArr[idx];
-            const jours_n        = grpN.joursArr[idx];
-            const count_annule_n = grpAnnuleN.countArr[idx];
-            const jours_annule_n = grpAnnuleN.joursArr[idx];
-
-            let delta = null;
-            if (count_n1 > 0) {
-                delta = Math.round(((count_n - count_n1) / count_n1) * 100);
-            } else if (count_n > 0) {
-                delta = 100;
-            }
-
-            let delta_jours = null;
-            if (jours_n1 > 0) {
-                delta_jours = Math.round(((jours_n - jours_n1) / jours_n1) * 100);
-            } else if (jours_n > 0) {
-                delta_jours = 100;
-            }
-
-            rows.push({
-                mois: m, label: MOIS_LABELS[m - 1],
-                count_n1, jours_n1,
-                count_n,  jours_n,
-                count_annule_n, jours_annule_n,
-                delta, delta_jours,
-            });
+        } finally {
+            this.state.loading = false;
+            setTimeout(() => {
+                this._renderChart();
+                this._renderChartLine();
+                this._renderChartRatio();
+            }, 50);
         }
-
-        this.state.rows = rows;
-
-    } finally {
-        this.state.loading = false;
-        setTimeout(() => {
-            this._renderChart();
-            this._renderChartLine();
-            this._renderChartRatio();
-        }, 50);
     }
-}
 
     updateSelectedZone(ev) {
         this.state.selected_zone = ev.target.value;
@@ -218,9 +218,7 @@ export class ReservationDashboard extends Component {
         const dataN1   = this.state.rows.map(r => r.count_n1);
         const dataN    = this.state.rows.map(r => r.count_n);
 
-        const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
-        script.onload = () => {
+        const draw = () => {
             this._chart = new Chart(canvas, {
                 type: "bar",
                 data: {
@@ -273,8 +271,11 @@ export class ReservationDashboard extends Component {
         };
 
         if (window.Chart) {
-            script.onload();
+            draw();
         } else {
+            const script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            script.onload = draw;
             document.head.appendChild(script);
         }
     }
@@ -651,125 +652,103 @@ export class ReservationDetailDashboard extends Component {
             totaux_cats    : {},
             grand_total    : { count: 0, jours: 0 },
             expanded_zones : {},
-            // Nouvelles données
-            recs_raw       : [],   // toutes les réservations brutes conservées pour les nouveaux graphiques
+            recs_raw       : [],
         });
 
-        onWillStart(() => this._loadData());
+        onWillStart(() => this._loadDetailData());
     }
 
     _pad(n) { return String(n).padStart(2, "0"); }
 
-    async loadData() {
-    this.state.loading = true;
-    try {
-        const n  = this.state.annee_n;
-        const n1 = this.state.annee_n1;
+    async _loadDetailData() {
+        this.state.loading = true;
+        try {
+            const domain = this.state.domain;
 
-        const MOIS_LABELS = [
-            "Janvier","Février","Mars","Avril","Mai","Juin",
-            "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
-        ];
+            const [zones, lieux, categories, recs] = await Promise.all([
+                this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" }),
+                this.orm.searchRead("lieux", [], ["id", "name", "zone"], { order: "name asc" }),
+                this.orm.searchRead("categorie.client", [], ["id", "name"], { order: "name asc" }),
+                this.orm.searchRead(
+                    "reservation",
+                    domain,
+                    ["id", "lieu_depart", "zone", "categorie_client", "nbr_jour_reservation", "create_date"],
+                    { limit: 0 }
+                ),
+            ]);
 
-        const _buildDomainYear = (annee, statusFilter) => {
-            const debut = new Date(annee, 0,  1,  0,  0,  0);
-            const fin   = new Date(annee, 11, 31, 23, 59, 59);
-            const domain = [
-                ["status",      "=",  statusFilter],
-                ["create_date", ">=", this._formatORM(debut)],
-                ["create_date", "<=", this._formatORM(fin)],
-            ];
-            if (this.state.selected_zone)
-                domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
-            return domain;
-        };
+            this.state.zones      = zones;
+            this.state.lieux      = lieux.map(l => ({ ...l, zone_id: Array.isArray(l.zone) ? l.zone[0] : l.zone || false }));
+            this.state.categories = categories;
+            this.state.recs_raw   = recs;
 
-        const [recsN1, recsN, recsAnnuleN] = await Promise.all([
-            this.orm.searchRead(
-                "reservation",
-                _buildDomainYear(n1, "confirmee"),
-                ["create_date", "nbr_jour_reservation"],
-                { limit: 0 }
-            ),
-            this.orm.searchRead(
-                "reservation",
-                _buildDomainYear(n, "confirmee"),
-                ["create_date", "nbr_jour_reservation"],
-                { limit: 0 }
-            ),
-            this.orm.searchRead(
-                "reservation",
-                _buildDomainYear(n, "annule"),
-                ["create_date", "nbr_jour_reservation"],
-                { limit: 0 }
-            ),
-        ]);
+            const matrix_lieu  = {};
+            const matrix_zone  = {};
+            const totaux_lieux = {};
+            const totaux_zones = {};
+            const totaux_cats  = {};
+            let grand_count = 0;
+            let grand_jours = 0;
 
-        const groupByMonth = (recs) => {
-            const countArr = new Array(12).fill(0);
-            const joursArr = new Array(12).fill(0);
             for (const r of recs) {
-                if (!r.create_date) continue;
-                const moisIdx = new Date(r.create_date).getMonth();
-                countArr[moisIdx]++;
-                joursArr[moisIdx] += (r.nbr_jour_reservation || 0);
-            }
-            return { countArr, joursArr };
-        };
+                const lieu_id = Array.isArray(r.lieu_depart)    ? r.lieu_depart[0]    : r.lieu_depart    || false;
+                const zone_id = Array.isArray(r.zone)           ? r.zone[0]           : r.zone           || false;
+                const cat_id  = Array.isArray(r.categorie_client) ? r.categorie_client[0] : r.categorie_client || false;
+                const jours   = r.nbr_jour_reservation || 0;
 
-        const grpN1      = groupByMonth(recsN1);
-        const grpN       = groupByMonth(recsN);
-        const grpAnnuleN = groupByMonth(recsAnnuleN);
+                grand_count++;
+                grand_jours += jours;
 
-        const rows = [];
-        for (let m = 1; m <= 12; m++) {
-            const idx = m - 1;
+                if (lieu_id) {
+                    if (!matrix_lieu[lieu_id]) matrix_lieu[lieu_id] = {};
+                    if (!matrix_lieu[lieu_id][cat_id]) matrix_lieu[lieu_id][cat_id] = { count: 0, jours: 0 };
+                    matrix_lieu[lieu_id][cat_id].count++;
+                    matrix_lieu[lieu_id][cat_id].jours += jours;
 
-            const count_n1 = grpN1.countArr[idx];
-            const jours_n1 = grpN1.joursArr[idx];
-            const count_n  = grpN.countArr[idx];
-            const jours_n  = grpN.joursArr[idx];
+                    if (!totaux_lieux[lieu_id]) totaux_lieux[lieu_id] = { count: 0, jours: 0 };
+                    totaux_lieux[lieu_id].count++;
+                    totaux_lieux[lieu_id].jours += jours;
+                }
 
-            // Annulations année N
-            const count_annule_n = grpAnnuleN.countArr[idx];
-            const jours_annule_n = grpAnnuleN.joursArr[idx];
+                if (zone_id) {
+                    if (!matrix_zone[zone_id]) matrix_zone[zone_id] = {};
+                    if (!matrix_zone[zone_id][cat_id]) matrix_zone[zone_id][cat_id] = { count: 0, jours: 0 };
+                    matrix_zone[zone_id][cat_id].count++;
+                    matrix_zone[zone_id][cat_id].jours += jours;
 
-            let delta = null;
-            if (count_n1 > 0) {
-                delta = Math.round(((count_n - count_n1) / count_n1) * 100);
-            } else if (count_n > 0) {
-                delta = 100;
-            }
+                    if (!totaux_zones[zone_id]) totaux_zones[zone_id] = { count: 0, jours: 0 };
+                    totaux_zones[zone_id].count++;
+                    totaux_zones[zone_id].jours += jours;
+                }
 
-            let delta_jours = null;
-            if (jours_n1 > 0) {
-                delta_jours = Math.round(((jours_n - jours_n1) / jours_n1) * 100);
-            } else if (jours_n > 0) {
-                delta_jours = 100;
+                if (cat_id) {
+                    if (!totaux_cats[cat_id]) totaux_cats[cat_id] = { count: 0, jours: 0 };
+                    totaux_cats[cat_id].count++;
+                    totaux_cats[cat_id].jours += jours;
+                }
             }
 
-            rows.push({
-                mois: m, label: MOIS_LABELS[m - 1],
-                count_n1, jours_n1,
-                count_n,  jours_n,
-                count_annule_n, jours_annule_n,
-                delta, delta_jours,
-            });
+            this.state.matrix_lieu  = matrix_lieu;
+            this.state.matrix_zone  = matrix_zone;
+            this.state.totaux_lieux = totaux_lieux;
+            this.state.totaux_zones = totaux_zones;
+            this.state.totaux_cats  = totaux_cats;
+            this.state.grand_total  = { count: grand_count, jours: grand_jours };
+
+        } finally {
+            this.state.loading = false;
+            setTimeout(() => {
+                this._renderChartZones();
+                this._renderChartCategories();
+                this._renderChartLieuxMoy();
+                this._renderChartCategoriesMoy();
+                this._renderChartJourSemaine();
+                this._renderHeatmap();
+                this._renderChartDistributionDurees();
+            }, 50);
         }
-
-        this.state.rows = rows;
-
-    } finally {
-        this.state.loading = false;
-        setTimeout(() => {
-            this._renderChart();
-            this._renderChartLine();
-            this._renderChartRatio();
-        }, 50);
     }
-}
-    get totalAnnuleN()       { return this.state.rows.reduce((s, r) => s + r.count_annule_n, 0); }
-    get totalJoursAnnuleN()  { return this.state.rows.reduce((s, r) => s + r.jours_annule_n,  0); }
+
     toggleZone(zone_id) {
         this.state.expanded_zones[zone_id] = !this.state.expanded_zones[zone_id];
     }
@@ -980,20 +959,17 @@ export class ReservationDetailDashboard extends Component {
         }
     }
 
-    // ── NOUVEAU 1 : Réservations par jour de la semaine ──────────────────────
     _renderChartJourSemaine() {
         const canvas = document.getElementById("rdd-chart-jour-semaine");
         if (!canvas) return;
         if (this._chartJourSemaine) { this._chartJourSemaine.destroy(); this._chartJourSemaine = null; }
 
-        // Lundi=0 … Dimanche=6 (réindexation depuis getDay() où 0=Dimanche)
         const JOURS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
         const counts = new Array(7).fill(0);
 
         for (const r of this.state.recs_raw) {
             if (!r.create_date) continue;
             const d = new Date(r.create_date);
-            // getDay() : 0=Dim, 1=Lun … 6=Sam → on remapped vers Lun=0
             const idx = (d.getDay() + 6) % 7;
             counts[idx]++;
         }
@@ -1042,15 +1018,11 @@ export class ReservationDetailDashboard extends Component {
         }
     }
 
-    // ── NOUVEAU 2 : Heatmap semaine × jour ──────────────────────────────────
     _renderHeatmap() {
         const container = document.getElementById("rdd-heatmap-container");
         if (!container) return;
 
-        // Construire la matrice : semaine (1-53) × jour (0=Lun…6=Dim)
-        const matrix = {}; // matrix[weekNum][dayIdx] = count
-
-        // Trouver la plage de semaines présentes dans les données
+        const matrix = {};
         let minWeek = Infinity, maxWeek = -Infinity;
         let minYear = Infinity;
 
@@ -1058,7 +1030,7 @@ export class ReservationDetailDashboard extends Component {
             if (!r.create_date) continue;
             const d = new Date(r.create_date);
             const { week, year } = this._getISOWeek(d);
-            const key = `${year}-${week}`;
+            const key = `${year}-${String(week).padStart(2,"0")}`;
             if (!matrix[key]) matrix[key] = new Array(7).fill(0);
             const dayIdx = (d.getDay() + 6) % 7;
             matrix[key][dayIdx]++;
@@ -1068,7 +1040,6 @@ export class ReservationDetailDashboard extends Component {
             if (week > maxWeek) maxWeek = week;
         }
 
-        // Trouver le max pour l'intensité
         let maxVal = 0;
         for (const key of Object.keys(matrix)) {
             for (const v of matrix[key]) {
@@ -1076,12 +1047,9 @@ export class ReservationDetailDashboard extends Component {
             }
         }
 
-        // Trier les clés semaine
         const weekKeys = Object.keys(matrix).sort();
-
         const JOURS_COURTS = ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"];
 
-        // Générer le HTML de la heatmap
         const cellSize  = 28;
         const cellGap   = 3;
         const labelW    = 28;
@@ -1092,31 +1060,27 @@ export class ReservationDetailDashboard extends Component {
 
         let cells = "";
 
-        // En-têtes des semaines (afficher toutes les 4)
         weekKeys.forEach((key, wi) => {
             if (wi % 4 === 0) {
-                const [yr, wk] = key.split("-");
+                const parts = key.split("-");
+                const wk = parts[1];
                 const x = labelW + wi * (cellSize + cellGap) + cellSize / 2;
                 cells += `<text x="${x}" y="14" text-anchor="middle" font-size="9" fill="#94a3b8" font-weight="600">S${wk}</text>`;
             }
         });
 
-        // Labels jours
         JOURS_COURTS.forEach((j, di) => {
             const y = headerH + di * (cellSize + cellGap) + cellSize / 2 + 4;
             cells += `<text x="${labelW - 4}" y="${y}" text-anchor="end" font-size="10" fill="#64748b" font-weight="700">${j}</text>`;
         });
 
-        // Cellules
         weekKeys.forEach((key, wi) => {
             for (let di = 0; di < 7; di++) {
                 const val  = matrix[key][di] || 0;
                 const x    = labelW + wi * (cellSize + cellGap);
                 const y    = headerH + di * (cellSize + cellGap);
                 const intensity = maxVal > 0 ? val / maxVal : 0;
-                const fill = val === 0
-                    ? "#f1f5f9"
-                    : this._heatColor(intensity);
+                const fill = val === 0 ? "#f1f5f9" : this._heatColor(intensity);
                 const textColor = intensity > 0.5 ? "#fff" : "#1e293b";
                 cells += `<rect x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" rx="4" fill="${fill}">
                     <title>Semaine ${key} — ${JOURS_COURTS[di]} : ${val} résv</title>
@@ -1137,7 +1101,6 @@ export class ReservationDetailDashboard extends Component {
     }
 
     _heatColor(t) {
-        // Dégradé : blanc → bleu clair → bleu foncé → violet
         if (t <= 0) return "#f1f5f9";
         if (t < 0.33) {
             const r = Math.round(186 + (21  - 186) * (t / 0.33));
@@ -1168,18 +1131,16 @@ export class ReservationDetailDashboard extends Component {
         return { week, year: date.getUTCFullYear() };
     }
 
-    // ── NOUVEAU 3 : Distribution des durées ─────────────────────────────────
     _renderChartDistributionDurees() {
         const canvas = document.getElementById("rdd-chart-distribution-durees");
         if (!canvas) return;
         if (this._chartDist) { this._chartDist.destroy(); this._chartDist = null; }
 
-        // Tranches : 3-6, 7-13, 14-26, 27+
         const TRANCHES = [
-            { label: "3 – 6 jours",  min: 3,  max: 6,        count: 0 },
-            { label: "7 – 13 jours", min: 7,  max: 13,       count: 0 },
-            { label: "14 – 26 jours",min: 14, max: 26,       count: 0 },
-            { label: "27+ jours",    min: 27, max: Infinity,  count: 0 },
+            { label: "3 – 6 jours",   min: 3,  max: 6,       count: 0 },
+            { label: "7 – 13 jours",  min: 7,  max: 13,      count: 0 },
+            { label: "14 – 26 jours", min: 14, max: 26,      count: 0 },
+            { label: "27+ jours",     min: 27, max: Infinity, count: 0 },
         ];
 
         for (const r of this.state.recs_raw) {
