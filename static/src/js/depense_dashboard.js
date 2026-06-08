@@ -23,8 +23,6 @@ export class DepenseDashboard extends Component {
             rows              : [],
             annee_n           : currentYear,
             annee_n1          : currentYear - 1,
-            pie_data          : [],
-            pie_data_n1       : [],
             years             : years,
             modal             : null,
         });
@@ -137,13 +135,11 @@ export class DepenseDashboard extends Component {
             this.state.rows = rows;
 
         } finally {
-            await Promise.all([this._loadPieData(), this._loadPieDataN1()]);
             this.state.loading = false;
             setTimeout(() => {
                 this._renderChart();
                 this._renderChartLine();
-                this._renderChartPie();
-                this._renderChartPieN1();
+
             }, 50);
         }
     }

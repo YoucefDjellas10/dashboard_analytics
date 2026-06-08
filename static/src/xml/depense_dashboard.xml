@@ -319,23 +319,6 @@
         <canvas id="dep-chart-line" style="width:100%; max-height:400px;"/>
     </div>
 
-    <div class="dep-pie-grid">
-
-        <div class="dep-table-wrapper" style="padding:24px;">
-            <div class="dep-pie-title">
-                Dépenses par zone — <t t-esc="state.annee_n1"/>
-            </div>
-            <canvas id="dep-chart-pie-n1" style="width:100%; max-height:500px;"/>
-        </div>
-
-        <div class="dep-table-wrapper" style="padding:24px;">
-            <div class="dep-pie-title">
-                Dépenses par zone — <t t-esc="state.annee_n"/>
-            </div>
-            <canvas id="dep-chart-pie" style="width:100%; max-height:500px;"/>
-        </div>
-
-    </div>
 
 
 </t>
