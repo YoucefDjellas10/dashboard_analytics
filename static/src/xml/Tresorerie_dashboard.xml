@@ -189,8 +189,8 @@
             <thead>
                 <tr>
                     <th>Mois</th>
-                    <th><t t-esc="state.annee_n1"/> (DA)</th>
-                    <th><t t-esc="state.annee_n"/> (DA)</th>
+                    <th><t t-esc="state.annee_n1"/>(DA)</th>
+                    <th><t t-esc="state.annee_n"/>(DA)</th>
                     <th>Évolution</th>
                 </tr>
             </thead>

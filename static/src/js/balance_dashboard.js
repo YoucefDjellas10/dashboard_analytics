@@ -51,100 +51,194 @@ export class BalanceDashboard extends Component {
         return n < 0 ? `- ${abs}` : abs;
     }
 
-    async _fetchMoisBalance(annee, mois) {
+    // ── Même logique taux que TresorerieDashboard ─────────────────────────────
+    _getTaux(annee) {
+        return annee < 2026 ? 260 : 270;
+    }
+
+    _DATE_PIVOT = new Date(2025, 10, 1, 0, 0, 0); // 01/11/2025
+
+    _isAvantPivot(annee, mois) {
+        return new Date(annee, mois - 1, 1, 0, 0, 0) < this._DATE_PIVOT;
+    }
+
+    // ── Trésorerie d'un mois (copie exacte de TresorerieDashboard) ───────────
+    async _fetchMoisTresorerie(annee, mois) {
+        const taux  = this._getTaux(annee);
         const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
         const fin   = new Date(annee, mois,     0, 23, 59, 59);
 
-        const revenueDomain = [
-            '|',
-            '&', ['create_date', '>=', this._formatORM(debut)],
-                 ['create_date', '<=', this._formatORM(fin)],
-            '&', ['create_date', '=', false],
-            '&', ['reservation.create_date', '>=', this._formatORM(debut)],
-                 ['reservation.create_date', '<=', this._formatORM(fin)],
+        const zoneId     = this.state.selected_zone ? parseInt(this.state.selected_zone) : null;
+        const zoneFilter = zoneId ? [['zone_encaissement', '=', zoneId]] : [];
+        const isNewFilter = [['is_old', '!=', true]];
+        const flagFilter  = this._isAvantPivot(annee, mois)
+            ? [['is_old', '=', true]]
+            : isNewFilter;
+
+        const domainAvecDate = [
+            ...zoneFilter,
+            ...flagFilter,
+            ['date_encaissement', '>=', this._formatORM(debut)],
+            ['date_encaissement', '<=', this._formatORM(fin)],
         ];
-        if (this.state.selected_zone)
-            revenueDomain.push(['zone', '=', parseInt(this.state.selected_zone)]);
+
+        const domainSansDate = [
+            ...zoneFilter,
+            ...flagFilter,
+            ['date_encaissement', '=', false],
+            ['reservation.create_date', '>=', this._formatORM(debut)],
+            ['reservation.create_date', '<=', this._formatORM(fin)],
+        ];
 
         const refundDomain = [
             ['date', '>=', this._formatORM(debut)],
             ['date', '<=', this._formatORM(fin)],
             ['status', '=', 'effectuer'],
         ];
+        if (zoneId) refundDomain.push(['reservation.zone', '=', zoneId]);
 
-        const depenseDomain = [
+        const [resAvecDate, resSansDate, resRefund] = await Promise.all([
+            this.orm.readGroup("revenue.record", domainAvecDate, ["montant_dzd:sum", "montant:sum"], []),
+            this.orm.readGroup("revenue.record", domainSansDate, ["montant_dzd:sum", "montant:sum"], []),
+            this.orm.readGroup("refund.table",   refundDomain,   ["amount:sum"], []),
+        ]);
+
+        const r1 = resAvecDate[0] ?? {};
+        const r2 = resSansDate[0] ?? {};
+        const sum_dzd    = (r1.montant_dzd ?? 0) + (r2.montant_dzd ?? 0);
+        const sum_eur    = (r1.montant     ?? 0) + (r2.montant     ?? 0);
+        const sum_refund = (resRefund[0]   ?? {}).amount ?? 0;
+
+        return (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
+    }
+
+    // ── Dépenses d'un mois ────────────────────────────────────────────────────
+    async _fetchMoisDepense(annee, mois) {
+        const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
+        const fin   = new Date(annee, mois,     0, 23, 59, 59);
+
+        const domain = [
             ['status',              '=',  'valide'],
             ['date_de_realisation', '>=', this._toDateStr(debut)],
             ['date_de_realisation', '<=', this._toDateStr(fin)],
         ];
         if (this.state.selected_zone)
-            depenseDomain.push(['zone', '=', parseInt(this.state.selected_zone)]);
+            domain.push(['zone', '=', parseInt(this.state.selected_zone)]);
 
-        const [tauxResult, revenueResult, refundResult, depenseResult] = await Promise.all([
-            this.orm.searchRead("taux.change", [["id", "=", 2]], ["montant"], { limit: 1 }),
-            this.orm.readGroup("revenue.record", revenueDomain, ["montant_dzd:sum", "montant:sum"], []),
-            this.orm.readGroup("refund.table",   refundDomain,  ["amount:sum"], []),
-            this.orm.readGroup("depense.record", depenseDomain, ["montant_da:sum"], []),
-        ]);
-
-        const taux       = tauxResult[0]?.montant ?? 1;
-        const revRow     = revenueResult[0] ?? {};
-        const sum_dzd    = revRow.montant_dzd ?? 0;
-        const sum_eur    = revRow.montant     ?? 0;
-        const refundRow  = refundResult[0]  ?? {};
-        const sum_refund = refundRow.amount  ?? 0;
-        const depRow     = depenseResult[0] ?? {};
-        const depense_da = depRow.montant_da ?? 0;
-
-        const tresorerie = (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
-        return tresorerie - depense_da;
+        const result = await this.orm.readGroup("depense.record", domain, ["montant_da:sum"], []);
+        return (result[0] ?? {}).montant_da ?? 0;
     }
 
-    async _fetchZoneBalance(annee, zoneId) {
+    // ── Balance = Trésorerie - Dépense (par mois) ────────────────────────────
+    async _fetchMoisBalance(annee, mois) {
+        const [tresorerie, depense] = await Promise.all([
+            this._fetchMoisTresorerie(annee, mois),
+            this._fetchMoisDepense(annee, mois),
+        ]);
+        return tresorerie - depense;
+    }
+
+    // ── Trésorerie annuelle par zone (copie exacte de TresorerieDashboard) ───
+    async _fetchZoneTresorerie(annee, zoneId) {
+        const taux    = this._getTaux(annee);
+        const debutAn = new Date(annee, 0,  1,  0,  0,  0);
+        const finAn   = new Date(annee, 11, 31, 23, 59, 59);
+
+        let totalRevenue = 0;
+
+        // Partie OLD
+        if (debutAn < this._DATE_PIVOT) {
+            const finOld = finAn < this._DATE_PIVOT
+                ? finAn
+                : new Date(2025, 9, 31, 23, 59, 59);
+
+            const domOldAvec = [
+                ['zone_encaissement', '=', zoneId],
+                ['is_old', '=', true],
+                ['date_encaissement', '>=', this._formatORM(debutAn)],
+                ['date_encaissement', '<=', this._formatORM(finOld)],
+            ];
+            const domOldSans = [
+                ['zone_encaissement', '=', zoneId],
+                ['is_old', '=', true],
+                ['date_encaissement', '=', false],
+                ['reservation.create_date', '>=', this._formatORM(debutAn)],
+                ['reservation.create_date', '<=', this._formatORM(finOld)],
+            ];
+
+            const [r1, r2] = await Promise.all([
+                this.orm.readGroup("revenue.record", domOldAvec, ["montant_dzd:sum", "montant:sum"], []),
+                this.orm.readGroup("revenue.record", domOldSans, ["montant_dzd:sum", "montant:sum"], []),
+            ]);
+            const o1 = r1[0] ?? {};
+            const o2 = r2[0] ?? {};
+            totalRevenue += (o1.montant_dzd ?? 0) + ((o1.montant ?? 0) * taux)
+                          + (o2.montant_dzd ?? 0) + ((o2.montant ?? 0) * taux);
+        }
+
+        // Partie NEW
+        if (finAn >= this._DATE_PIVOT) {
+            const debutNew = debutAn >= this._DATE_PIVOT ? debutAn : this._DATE_PIVOT;
+
+            const domNewAvec = [
+                ['zone_encaissement', '=', zoneId],
+                ['is_old', '!=', true],
+                ['date_encaissement', '>=', this._formatORM(debutNew)],
+                ['date_encaissement', '<=', this._formatORM(finAn)],
+            ];
+            const domNewSans = [
+                ['zone_encaissement', '=', zoneId],
+                ['is_old', '!=', true],
+                ['date_encaissement', '=', false],
+                ['reservation.create_date', '>=', this._formatORM(debutNew)],
+                ['reservation.create_date', '<=', this._formatORM(finAn)],
+            ];
+
+            const [r1, r2] = await Promise.all([
+                this.orm.readGroup("revenue.record", domNewAvec, ["montant_dzd:sum", "montant:sum"], []),
+                this.orm.readGroup("revenue.record", domNewSans, ["montant_dzd:sum", "montant:sum"], []),
+            ]);
+            const n1 = r1[0] ?? {};
+            const n2 = r2[0] ?? {};
+            totalRevenue += (n1.montant_dzd ?? 0) + ((n1.montant ?? 0) * taux)
+                          + (n2.montant_dzd ?? 0) + ((n2.montant ?? 0) * taux);
+        }
+
+        // Remboursements
+        const refundDomain = [
+            ['date', '>=', this._formatORM(debutAn)],
+            ['date', '<=', this._formatORM(finAn)],
+            ['status', '=', 'effectuer'],
+            ['reservation.zone', '=', zoneId],
+        ];
+        const resRefund  = await this.orm.readGroup("refund.table", refundDomain, ["amount:sum"], []);
+        const sum_refund = (resRefund[0] ?? {}).amount ?? 0;
+
+        return totalRevenue - (sum_refund * taux);
+    }
+
+    // ── Dépenses annuelles par zone ───────────────────────────────────────────
+    async _fetchZoneDepense(annee, zoneId) {
         const debut = new Date(annee, 0,  1,  0,  0,  0);
         const fin   = new Date(annee, 11, 31, 23, 59, 59);
 
-        const revenueDomain = [
-            '|',
-            '&', ['create_date', '>=', this._formatORM(debut)],
-                 ['create_date', '<=', this._formatORM(fin)],
-            '&', ['create_date', '=', false],
-            '&', ['reservation.create_date', '>=', this._formatORM(debut)],
-                 ['reservation.create_date', '<=', this._formatORM(fin)],
-            ['zone', '=', zoneId],
-        ];
-
-        const refundDomain = [
-            ['date', '>=', this._formatORM(debut)],
-            ['date', '<=', this._formatORM(fin)],
-            ['status', '=', 'effectuer'],
-        ];
-
-        const depenseDomain = [
+        const domain = [
             ['status',              '=',  'valide'],
             ['date_de_realisation', '>=', this._toDateStr(debut)],
             ['date_de_realisation', '<=', this._toDateStr(fin)],
             ['zone',                '=',  zoneId],
         ];
+        const result = await this.orm.readGroup("depense.record", domain, ["montant_da:sum"], []);
+        return (result[0] ?? {}).montant_da ?? 0;
+    }
 
-        const [tauxResult, revenueResult, refundResult, depenseResult] = await Promise.all([
-            this.orm.searchRead("taux.change", [["id", "=", 2]], ["montant"], { limit: 1 }),
-            this.orm.readGroup("revenue.record", revenueDomain, ["montant_dzd:sum", "montant:sum"], []),
-            this.orm.readGroup("refund.table",   refundDomain,  ["amount:sum"], []),
-            this.orm.readGroup("depense.record", depenseDomain, ["montant_da:sum"], []),
+    // ── Balance par zone = Trésorerie - Dépense ───────────────────────────────
+    async _fetchZoneBalance(annee, zoneId) {
+        const [tresorerie, depense] = await Promise.all([
+            this._fetchZoneTresorerie(annee, zoneId),
+            this._fetchZoneDepense(annee, zoneId),
         ]);
-
-        const taux       = tauxResult[0]?.montant ?? 1;
-        const revRow     = revenueResult[0] ?? {};
-        const sum_dzd    = revRow.montant_dzd ?? 0;
-        const sum_eur    = revRow.montant     ?? 0;
-        const refundRow  = refundResult[0]  ?? {};
-        const sum_refund = refundRow.amount  ?? 0;
-        const depRow     = depenseResult[0] ?? {};
-        const depense_da = depRow.montant_da ?? 0;
-
-        const tresorerie = (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
-        return tresorerie - depense_da;
+        return tresorerie - depense;
     }
 
     async loadData() {
@@ -168,7 +262,7 @@ export class BalanceDashboard extends Component {
 
             const rows = [];
             for (let m = 1; m <= 12; m++) {
-                const idx   = (m - 1) * 2;
+                const idx    = (m - 1) * 2;
                 const bal_n1 = results[idx];
                 const bal_n  = results[idx + 1];
 
@@ -199,13 +293,17 @@ export class BalanceDashboard extends Component {
     async _loadPieData() {
         const zones   = await this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" });
         const results = await Promise.all(zones.map(z => this._fetchZoneBalance(this.state.annee_n, z.id)));
-        this.state.pie_data = zones.map((z, i) => ({ zone_name: z.name, balance: results[i] })).filter(r => r.balance !== 0);
+        this.state.pie_data = zones
+            .map((z, i) => ({ zone_name: z.name, balance: results[i] }))
+            .filter(r => r.balance !== 0);
     }
 
     async _loadPieDataN1() {
         const zones   = await this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" });
         const results = await Promise.all(zones.map(z => this._fetchZoneBalance(this.state.annee_n1, z.id)));
-        this.state.pie_data_n1 = zones.map((z, i) => ({ zone_name: z.name, balance: results[i] })).filter(r => r.balance !== 0);
+        this.state.pie_data_n1 = zones
+            .map((z, i) => ({ zone_name: z.name, balance: results[i] }))
+            .filter(r => r.balance !== 0);
     }
 
     updateSelectedZone(ev) {
