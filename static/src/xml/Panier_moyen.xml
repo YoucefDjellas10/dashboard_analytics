@@ -257,23 +257,6 @@
         <canvas id="pm-chart-line" style="width:100%; max-height:400px;"/>
     </div>
 
-    <div class="pm-pie-grid">
-
-        <div class="pm-table-wrapper" style="padding:24px;">
-            <div class="pm-pie-title">
-                 Panier Moyen par zone — <t t-esc="state.annee_n1"/>
-            </div>
-            <canvas id="pm-chart-pie-n1" style="width:100%; max-height:500px;"/>
-        </div>
-
-        <div class="pm-table-wrapper" style="padding:24px;">
-            <div class="pm-pie-title">
-                 Panier Moyen par zone — <t t-esc="state.annee_n"/>
-            </div>
-            <canvas id="pm-chart-pie" style="width:100%; max-height:500px;"/>
-        </div>
-
-    </div>
 
 </t>
 
