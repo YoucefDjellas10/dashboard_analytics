@@ -542,136 +542,157 @@ export class TresorerieDetailDashboard extends Component {
     }
 
     async _loadDetailData() {
-        this.state.loading = true;
-        try {
-            const p      = this.state.domain_params;
-            const annee  = p.annee  || this.state.annee;
-            const mois   = p.mois   || this.state.mois;
-            const zoneId = p.selected_zone ? parseInt(p.selected_zone) : null;
-            const taux   = this._getTaux(annee);
+    this.state.loading = true;
+    try {
+        const p      = this.state.domain_params;
+        const annee  = p.annee  || this.state.annee;
+        const mois   = p.mois   || this.state.mois;
+        const zoneId = p.selected_zone ? parseInt(p.selected_zone) : null;
+        const taux   = this._getTaux(annee);
 
-            const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
-            const fin   = new Date(annee, mois,     0, 23, 59, 59);
+        const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
+        const fin   = new Date(annee, mois,     0, 23, 59, 59);
 
-            const flagFilter = this._isAvantPivot(annee, mois)
-                ? [['is_old', '=', true]]
-                : [['is_old', '!=', true]];
+        const flagFilter  = this._isAvantPivot(annee, mois)
+            ? [['is_old', '=', true]]
+            : [['is_old', '!=', true]];
+        const zoneFilter  = zoneId ? [['zone_encaissement', '=', zoneId]] : [];
 
-            const zoneFilter = zoneId ? [['zone_encaissement', '=', zoneId]] : [];
+        // ── domaine AVEC date_encaissement ──
+        const domainAvecDate = [
+            ...zoneFilter, ...flagFilter,
+            ['date_encaissement', '>=', this._formatORM(debut)],
+            ['date_encaissement', '<=', this._formatORM(fin)],
+        ];
 
-            const domainBase = [
-                ...zoneFilter,
-                ...flagFilter,
-                ['date_encaissement', '>=', this._formatORM(debut)],
-                ['date_encaissement', '<=', this._formatORM(fin)],
-            ];
+        // ── domaine SANS date_encaissement (fallback create_date) ──
+        const domainSansDate = [
+            ...zoneFilter, ...flagFilter,
+            ['date_encaissement', '=', false],
+            ['reservation.create_date', '>=', this._formatORM(debut)],
+            ['reservation.create_date', '<=', this._formatORM(fin)],
+        ];
 
-            const [zones, lieux, categories, recs] = await Promise.all([
-                this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" }),
-                this.orm.searchRead("lieux", [], ["id", "name", "zone"], { order: "name asc" }),
-                this.orm.searchRead("categorie.client", [], ["id", "name"], { order: "name asc" }),
-                this.orm.searchRead(
-                    "revenue.record",
-                    domainBase,
-                    ["id", "montant", "montant_dzd", "zone_encaissement", "reservation", "date_encaissement"],
-                    { limit: 0 }
-                ),
-            ]);
+        // ── domaine remboursements ──
+        const refundDomain = [
+            ['date', '>=', this._formatORM(debut)],
+            ['date', '<=', this._formatORM(fin)],
+            ['status', '=', 'effectuer'],
+        ];
+        if (zoneId) refundDomain.push(['reservation.zone', '=', zoneId]);
 
-            // Récupérer lieu_depart + categorie_client via les reservations liées
-            const resIds = [...new Set(
-                recs
-                    .map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation)
-                    .filter(Boolean)
-            )];
+        const FIELDS_REC = ["id", "montant", "montant_dzd", "zone_encaissement", "reservation", "date_encaissement"];
 
-            let resvMap = {};
-            if (resIds.length > 0) {
-                const resvData = await this.orm.searchRead(
-                    "reservation",
-                    [["id", "in", resIds]],
-                    ["id", "lieu_depart", "categorie_client"],
-                    { limit: 0 }
-                );
-                for (const rv of resvData) {
-                    resvMap[rv.id] = {
-                        lieu_id : Array.isArray(rv.lieu_depart)      ? rv.lieu_depart[0]      : rv.lieu_depart      || false,
-                        cat_id  : Array.isArray(rv.categorie_client) ? rv.categorie_client[0] : rv.categorie_client || false,
-                    };
-                }
+        const [zones, lieux, categories, recsAvec, recsSans, resRefund] = await Promise.all([
+            this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" }),
+            this.orm.searchRead("lieux", [], ["id", "name", "zone"], { order: "name asc" }),
+            this.orm.searchRead("categorie.client", [], ["id", "name"], { order: "name asc" }),
+            this.orm.searchRead("revenue.record", domainAvecDate, FIELDS_REC, { limit: 0 }),
+            this.orm.searchRead("revenue.record", domainSansDate, FIELDS_REC, { limit: 0 }),
+            this.orm.readGroup("refund.table", refundDomain, ["amount:sum"], []),
+        ]);
+
+        // ── Fusion des deux listes de records ──
+        const recs = [...recsAvec, ...recsSans];
+
+        // ── Montant remboursements à déduire ──
+        const montant_refund = ((resRefund[0] ?? {}).amount ?? 0) * taux;
+
+        // ... (suite identique : resvMap, matrix, etc.)
+        const resIds = [...new Set(
+            recs
+                .map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation)
+                .filter(Boolean)
+        )];
+
+        let resvMap = {};
+        if (resIds.length > 0) {
+            const resvData = await this.orm.searchRead(
+                "reservation",
+                [["id", "in", resIds]],
+                ["id", "lieu_depart", "categorie_client"],
+                { limit: 0 }
+            );
+            for (const rv of resvData) {
+                resvMap[rv.id] = {
+                    lieu_id : Array.isArray(rv.lieu_depart)      ? rv.lieu_depart[0]      : rv.lieu_depart      || false,
+                    cat_id  : Array.isArray(rv.categorie_client) ? rv.categorie_client[0] : rv.categorie_client || false,
+                };
             }
-
-            this.state.zones      = zones;
-            this.state.lieux      = lieux.map(l => ({
-                ...l,
-                zone_id: Array.isArray(l.zone) ? l.zone[0] : l.zone || false,
-            }));
-            this.state.categories = categories;
-            this.state.recs_raw   = recs;
-
-            const matrix_lieu  = {};
-            const matrix_zone  = {};
-            const totaux_lieux = {};
-            const totaux_zones = {};
-            const totaux_cats  = {};
-            let grand_montant  = 0;
-            let grand_count    = 0;
-
-            for (const rec of recs) {
-                const res_id  = Array.isArray(rec.reservation) ? rec.reservation[0] : rec.reservation || false;
-                const zone_id = Array.isArray(rec.zone_encaissement) ? rec.zone_encaissement[0] : rec.zone_encaissement || false;
-                const rv      = res_id ? resvMap[res_id] : null;
-                const lieu_id = rv?.lieu_id || false;
-                const cat_id  = rv?.cat_id  || false;
-                const montant = (rec.montant_dzd || 0) + ((rec.montant || 0) * taux);
-
-                grand_montant += montant;
-                grand_count++;
-
-                if (zone_id) {
-                    if (!matrix_zone[zone_id]) matrix_zone[zone_id] = {};
-                    if (!matrix_zone[zone_id][cat_id]) matrix_zone[zone_id][cat_id] = { montant: 0, count: 0 };
-                    matrix_zone[zone_id][cat_id].montant += montant;
-                    matrix_zone[zone_id][cat_id].count++;
-
-                    if (!totaux_zones[zone_id]) totaux_zones[zone_id] = { montant: 0, count: 0 };
-                    totaux_zones[zone_id].montant += montant;
-                    totaux_zones[zone_id].count++;
-                }
-
-                if (lieu_id) {
-                    if (!matrix_lieu[lieu_id]) matrix_lieu[lieu_id] = {};
-                    if (!matrix_lieu[lieu_id][cat_id]) matrix_lieu[lieu_id][cat_id] = { montant: 0, count: 0 };
-                    matrix_lieu[lieu_id][cat_id].montant += montant;
-                    matrix_lieu[lieu_id][cat_id].count++;
-
-                    if (!totaux_lieux[lieu_id]) totaux_lieux[lieu_id] = { montant: 0, count: 0 };
-                    totaux_lieux[lieu_id].montant += montant;
-                    totaux_lieux[lieu_id].count++;
-                }
-
-                if (cat_id) {
-                    if (!totaux_cats[cat_id]) totaux_cats[cat_id] = { montant: 0, count: 0 };
-                    totaux_cats[cat_id].montant += montant;
-                    totaux_cats[cat_id].count++;
-                }
-            }
-
-            this.state.matrix_lieu  = matrix_lieu;
-            this.state.matrix_zone  = matrix_zone;
-            this.state.totaux_lieux = totaux_lieux;
-            this.state.totaux_zones = totaux_zones;
-            this.state.totaux_cats  = totaux_cats;
-            this.state.grand_total  = { montant: grand_montant, count: grand_count };
-
-        } finally {
-            this.state.loading = false;
-            setTimeout(() => {
-                this._renderChartJourSemaine();
-                this._renderHeatmap();
-            }, 50);
         }
+
+        this.state.zones      = zones;
+        this.state.lieux      = lieux.map(l => ({
+            ...l,
+            zone_id: Array.isArray(l.zone) ? l.zone[0] : l.zone || false,
+        }));
+        this.state.categories = categories;
+        this.state.recs_raw   = recs;
+
+        const matrix_lieu  = {};
+        const matrix_zone  = {};
+        const totaux_lieux = {};
+        const totaux_zones = {};
+        const totaux_cats  = {};
+        let grand_montant  = 0;
+        let grand_count    = 0;
+
+        for (const rec of recs) {
+            const res_id  = Array.isArray(rec.reservation) ? rec.reservation[0] : rec.reservation || false;
+            const zone_id = Array.isArray(rec.zone_encaissement) ? rec.zone_encaissement[0] : rec.zone_encaissement || false;
+            const rv      = res_id ? resvMap[res_id] : null;
+            const lieu_id = rv?.lieu_id || false;
+            const cat_id  = rv?.cat_id  || false;
+            const montant = (rec.montant_dzd || 0) + ((rec.montant || 0) * taux);
+
+            grand_montant += montant;
+            grand_count++;
+
+            if (zone_id) {
+                if (!matrix_zone[zone_id]) matrix_zone[zone_id] = {};
+                if (!matrix_zone[zone_id][cat_id]) matrix_zone[zone_id][cat_id] = { montant: 0, count: 0 };
+                matrix_zone[zone_id][cat_id].montant += montant;
+                matrix_zone[zone_id][cat_id].count++;
+                if (!totaux_zones[zone_id]) totaux_zones[zone_id] = { montant: 0, count: 0 };
+                totaux_zones[zone_id].montant += montant;
+                totaux_zones[zone_id].count++;
+            }
+
+            if (lieu_id) {
+                if (!matrix_lieu[lieu_id]) matrix_lieu[lieu_id] = {};
+                if (!matrix_lieu[lieu_id][cat_id]) matrix_lieu[lieu_id][cat_id] = { montant: 0, count: 0 };
+                matrix_lieu[lieu_id][cat_id].montant += montant;
+                matrix_lieu[lieu_id][cat_id].count++;
+                if (!totaux_lieux[lieu_id]) totaux_lieux[lieu_id] = { montant: 0, count: 0 };
+                totaux_lieux[lieu_id].montant += montant;
+                totaux_lieux[lieu_id].count++;
+            }
+
+            if (cat_id) {
+                if (!totaux_cats[cat_id]) totaux_cats[cat_id] = { montant: 0, count: 0 };
+                totaux_cats[cat_id].montant += montant;
+                totaux_cats[cat_id].count++;
+            }
+        }
+
+        // ── Déduire les remboursements du grand total uniquement ──
+        grand_montant -= montant_refund;
+
+        this.state.matrix_lieu  = matrix_lieu;
+        this.state.matrix_zone  = matrix_zone;
+        this.state.totaux_lieux = totaux_lieux;
+        this.state.totaux_zones = totaux_zones;
+        this.state.totaux_cats  = totaux_cats;
+        this.state.grand_total  = { montant: grand_montant, count: grand_count };
+
+    } finally {
+        this.state.loading = false;
+        setTimeout(() => {
+            this._renderChartJourSemaine();
+            this._renderHeatmap();
+        }, 50);
     }
+}
 
     toggleZone(zone_id) {
         this.state.expanded_zones[zone_id] = !this.state.expanded_zones[zone_id];
