@@ -437,7 +437,7 @@
                             <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
                                 <th><t t-esc="cat.name"/></th>
                             </t>
-                            <th style="background:rgba(255,255,255,0.15);">Total</th>
+                            <th>Total</th>
                         </tr>
                     </thead>
                     <tbody>
