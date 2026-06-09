@@ -444,14 +444,12 @@ export class TresorerieDetailDashboard extends Component {
 
             const zoneFilter = zoneId ? [['zone_encaissement', '=', zoneId]] : [];
 
-            // ── Domaine AVEC date_encaissement ──
             const domainAvecDate = [
                 ...zoneFilter, ...flagFilter,
                 ['date_encaissement', '>=', this._formatORM(debut)],
                 ['date_encaissement', '<=', this._formatORM(fin)],
             ];
 
-            // ── Domaine SANS date_encaissement (fallback create_date) ──
             const domainSansDate = [
                 ...zoneFilter, ...flagFilter,
                 ['date_encaissement', '=', false],
@@ -459,7 +457,6 @@ export class TresorerieDetailDashboard extends Component {
                 ['reservation.create_date', '<=', this._formatORM(fin)],
             ];
 
-            // ── Domaine remboursements ──
             const refundDomain = [
                 ['date', '>=', this._formatORM(debut)],
                 ['date', '<=', this._formatORM(fin)],
@@ -478,10 +475,8 @@ export class TresorerieDetailDashboard extends Component {
                 this.orm.searchRead("refund.table", refundDomain, ["id", "amount", "reservation"], { limit: 0 }),
             ]);
 
-            // ── Fusion des deux listes de records revenus ──
             const recs = [...recsAvec, ...recsSans];
 
-            // ── Récupérer lieu_depart + categorie_client des réservations (revenus) ──
             const resIds = [...new Set(
                 recs
                     .map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation)
@@ -504,7 +499,6 @@ export class TresorerieDetailDashboard extends Component {
                 }
             }
 
-            // ── Récupérer zone + lieu + categorie des réservations (remboursements) ──
             const refundResIds = [...new Set(
                 refundRecs
                     .map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation)
@@ -544,7 +538,6 @@ export class TresorerieDetailDashboard extends Component {
             let grand_montant  = 0;
             let grand_count    = 0;
 
-            // ── Additionner les revenus ──
             for (const rec of recs) {
                 const res_id  = Array.isArray(rec.reservation) ? rec.reservation[0] : rec.reservation || false;
                 const zone_id = Array.isArray(rec.zone_encaissement) ? rec.zone_encaissement[0] : rec.zone_encaissement || false;
@@ -583,7 +576,6 @@ export class TresorerieDetailDashboard extends Component {
                 }
             }
 
-            // ── Déduire les remboursements partout ──
             for (const ref of refundRecs) {
                 const res_id  = Array.isArray(ref.reservation) ? ref.reservation[0] : ref.reservation || false;
                 const rv      = res_id ? refundResvMap[res_id] : null;
@@ -674,9 +666,10 @@ export class TresorerieDetailDashboard extends Component {
             counts[idx]++;
         }
 
+        // ← MODIFIÉ : couleurs bleu/violet comme réservations
         const COLORS = [
-            "rgba(107,15,58,0.82)","rgba(107,15,58,0.75)","rgba(107,15,58,0.68)",
-            "rgba(107,15,58,0.62)","rgba(107,15,58,0.55)","rgba(190,18,60,0.75)","rgba(190,18,60,0.88)",
+            "rgba(21,101,192,0.82)","rgba(21,101,192,0.75)","rgba(21,101,192,0.68)",
+            "rgba(21,101,192,0.62)","rgba(21,101,192,0.55)","rgba(106,27,154,0.75)","rgba(106,27,154,0.88)",
         ];
 
         const draw = () => {
@@ -807,25 +800,26 @@ export class TresorerieDetailDashboard extends Component {
         `;
     }
 
+    // ← MODIFIÉ : dégradé bleu/violet comme ReservationDetailDashboard
     _heatColor(t) {
         if (t <= 0) return "#f1f5f9";
         if (t < 0.33) {
-            const r = Math.round(254 + (190 - 254) * (t / 0.33));
-            const g = Math.round(202 + (18  - 202) * (t / 0.33));
-            const b = Math.round(202 + (60  - 202) * (t / 0.33));
+            const r = Math.round(186 + (21  - 186) * (t / 0.33));
+            const g = Math.round(230 + (101 - 230) * (t / 0.33));
+            const b = Math.round(253 + (192 - 253) * (t / 0.33));
             return `rgb(${r},${g},${b})`;
         }
         if (t < 0.66) {
             const tt = (t - 0.33) / 0.33;
-            const r  = Math.round(190 + (107 - 190) * tt);
-            const g  = Math.round(18  + (15  - 18)  * tt);
-            const b  = Math.round(60  + (58  - 60)  * tt);
+            const r  = Math.round(21  + (30  - 21)  * tt);
+            const g  = Math.round(101 + (58  - 101) * tt);
+            const b  = Math.round(192 + (138 - 192) * tt);
             return `rgb(${r},${g},${b})`;
         }
         const tt = (t - 0.66) / 0.34;
-        const r  = Math.round(107 + (50  - 107) * tt);
-        const g  = Math.round(15  + (5   - 15)  * tt);
-        const b  = Math.round(58  + (30  - 58)  * tt);
+        const r  = Math.round(30  + (106 - 30)  * tt);
+        const g  = Math.round(58  + (27  - 58)  * tt);
+        const b  = Math.round(138 + (154 - 138) * tt);
         return `rgb(${r},${g},${b})`;
     }
 
