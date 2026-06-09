@@ -200,12 +200,13 @@
                         <td><t t-esc="row.label"/></td>
 
                         <td class="tr-clickable"
-                            t-on-click="() => ouvrirMois(state.annee_n1, row.mois)">
+                            t-on-click="() => this.ouvrirMois(state.annee_n1, row.mois)"
+>
                             <t t-esc="fmtRow(row.tr_n1)"/>
                         </td>
 
                         <td class="tr-clickable"
-                            t-on-click="() => ouvrirMois(state.annee_n, row.mois)">
+                            t-on-click="() => this.ouvrirMois(state.annee_n, row.mois)">
                             <t t-esc="fmtRow(row.tr_n)"/>
                         </td>
 
