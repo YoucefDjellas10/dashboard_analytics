@@ -61,23 +61,20 @@ export class TresorerieDashboard extends Component {
         const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
         const fin   = new Date(annee, mois,     0, 23, 59, 59);
 
-        const zoneId    = this.state.selected_zone ? parseInt(this.state.selected_zone) : null;
+        const zoneId     = this.state.selected_zone ? parseInt(this.state.selected_zone) : null;
         const zoneFilter = zoneId ? [['zone_encaissement', '=', zoneId]] : [];
-
-        const isOldFilter = [['is_old', '=', true]];
-        const isNewFilter = [['is_old', '!=', true]];
-        const flagFilter  = this._isAvantPivot(annee, mois) ? isOldFilter : isNewFilter;
+        const flagFilter = this._isAvantPivot(annee, mois)
+            ? [['is_old', '=', true]]
+            : [['is_old', '!=', true]];
 
         const domainAvecDate = [
-            ...zoneFilter,
-            ...flagFilter,
+            ...zoneFilter, ...flagFilter,
             ['date_encaissement', '>=', this._formatORM(debut)],
             ['date_encaissement', '<=', this._formatORM(fin)],
         ];
 
         const domainSansDate = [
-            ...zoneFilter,
-            ...flagFilter,
+            ...zoneFilter, ...flagFilter,
             ['date_encaissement', '=', false],
             ['reservation.create_date', '>=', this._formatORM(debut)],
             ['reservation.create_date', '<=', this._formatORM(fin)],
@@ -88,9 +85,7 @@ export class TresorerieDashboard extends Component {
             ['date', '<=', this._formatORM(fin)],
             ['status', '=', 'effectuer'],
         ];
-        if (zoneId) {
-            refundDomain.push(['reservation.zone', '=', zoneId]);
-        }
+        if (zoneId) refundDomain.push(['reservation.zone', '=', zoneId]);
 
         const [resAvecDate, resSansDate, resRefund] = await Promise.all([
             this.orm.readGroup("revenue.record", domainAvecDate, ["montant_dzd:sum", "montant:sum"], []),
@@ -121,14 +116,12 @@ export class TresorerieDashboard extends Component {
                 : new Date(2025, 9, 31, 23, 59, 59);
 
             const domOldAvec = [
-                ['zone_encaissement', '=', zoneId],
-                ['is_old', '=', true],
+                ['zone_encaissement', '=', zoneId], ['is_old', '=', true],
                 ['date_encaissement', '>=', this._formatORM(debutAn)],
                 ['date_encaissement', '<=', this._formatORM(finOld)],
             ];
             const domOldSans = [
-                ['zone_encaissement', '=', zoneId],
-                ['is_old', '=', true],
+                ['zone_encaissement', '=', zoneId], ['is_old', '=', true],
                 ['date_encaissement', '=', false],
                 ['reservation.create_date', '>=', this._formatORM(debutAn)],
                 ['reservation.create_date', '<=', this._formatORM(finOld)],
@@ -149,14 +142,12 @@ export class TresorerieDashboard extends Component {
             const debutNew = debutAn >= this._DATE_PIVOT ? debutAn : this._DATE_PIVOT;
 
             const domNewAvec = [
-                ['zone_encaissement', '=', zoneId],
-                ['is_old', '!=', true],
+                ['zone_encaissement', '=', zoneId], ['is_old', '!=', true],
                 ['date_encaissement', '>=', this._formatORM(debutNew)],
                 ['date_encaissement', '<=', this._formatORM(finAn)],
             ];
             const domNewSans = [
-                ['zone_encaissement', '=', zoneId],
-                ['is_old', '!=', true],
+                ['zone_encaissement', '=', zoneId], ['is_old', '!=', true],
                 ['date_encaissement', '=', false],
                 ['reservation.create_date', '>=', this._formatORM(debutNew)],
                 ['reservation.create_date', '<=', this._formatORM(finAn)],
@@ -231,26 +222,6 @@ export class TresorerieDashboard extends Component {
                 this._renderChartLine();
             }, 50);
         }
-    }
-
-    async _loadPieData() {
-        const zones   = await this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" });
-        const results = await Promise.all(
-            zones.map(z => this._fetchZoneTresorerie(this.state.annee_n, z.id))
-        );
-        this.state.pie_data = zones
-            .map((z, i) => ({ zone_name: z.name, tresorerie: results[i] }))
-            .filter(r => r.tresorerie > 0);
-    }
-
-    async _loadPieDataN1() {
-        const zones   = await this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" });
-        const results = await Promise.all(
-            zones.map(z => this._fetchZoneTresorerie(this.state.annee_n1, z.id))
-        );
-        this.state.pie_data_n1 = zones
-            .map((z, i) => ({ zone_name: z.name, tresorerie: results[i] }))
-            .filter(r => r.tresorerie > 0);
     }
 
     // ─── Handlers UI ─────────────────────────────────────────────────────────
@@ -377,92 +348,6 @@ export class TresorerieDashboard extends Component {
         }
     }
 
-    _renderChartPie() {
-        const canvas = document.getElementById("tr-chart-pie");
-        if (!canvas) return;
-        if (this._chartPie) { this._chartPie.destroy(); this._chartPie = null; }
-
-        const labels = this.state.pie_data.map(r => r.zone_name);
-        const data   = this.state.pie_data.map(r => Math.round(r.tresorerie));
-        const COLORS = [
-            "rgba(21,101,192,0.85)","rgba(106,27,154,0.85)","rgba(22,163,74,0.85)",
-            "rgba(220,38,38,0.85)","rgba(234,179,8,0.85)","rgba(14,116,144,0.85)",
-            "rgba(249,115,22,0.85)","rgba(99,102,241,0.85)",
-        ];
-
-        const draw = () => {
-            this._chartPie = new Chart(canvas, {
-                type: "pie",
-                data: {
-                    labels,
-                    datasets: [{
-                        data,
-                        backgroundColor: COLORS.slice(0, labels.length),
-                        borderWidth: 2,
-                        borderColor: "#fff",
-                    }],
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend : { position: "bottom", labels: { font: { weight: "600" }, padding: 16 } },
-                        tooltip: { callbacks: { label: ctx => ` ${ctx.label} : ${this._fmt(ctx.parsed)} DA` } },
-                    },
-                },
-            });
-        };
-
-        if (window.Chart) { draw(); } else {
-            const s = document.createElement("script");
-            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
-            s.onload = draw;
-            document.head.appendChild(s);
-        }
-    }
-
-    _renderChartPieN1() {
-        const canvas = document.getElementById("tr-chart-pie-n1");
-        if (!canvas) return;
-        if (this._chartPieN1) { this._chartPieN1.destroy(); this._chartPieN1 = null; }
-
-        const labels = this.state.pie_data_n1.map(r => r.zone_name);
-        const data   = this.state.pie_data_n1.map(r => Math.round(r.tresorerie));
-        const COLORS = [
-            "rgba(21,101,192,0.85)","rgba(106,27,154,0.85)","rgba(22,163,74,0.85)",
-            "rgba(220,38,38,0.85)","rgba(234,179,8,0.85)","rgba(14,116,144,0.85)",
-            "rgba(249,115,22,0.85)","rgba(99,102,241,0.85)",
-        ];
-
-        const draw = () => {
-            this._chartPieN1 = new Chart(canvas, {
-                type: "pie",
-                data: {
-                    labels,
-                    datasets: [{
-                        data,
-                        backgroundColor: COLORS.slice(0, labels.length),
-                        borderWidth: 2,
-                        borderColor: "#fff",
-                    }],
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend : { position: "bottom", labels: { font: { weight: "600" }, padding: 16 } },
-                        tooltip: { callbacks: { label: ctx => ` ${ctx.label} : ${this._fmt(ctx.parsed)} DA` } },
-                    },
-                },
-            });
-        };
-
-        if (window.Chart) { draw(); } else {
-            const s = document.createElement("script");
-            s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
-            s.onload = draw;
-            document.head.appendChild(s);
-        }
-    }
-
     // ─── Totaux ───────────────────────────────────────────────────────────────
 
     get totalN1()    { return this.state.rows.reduce((s, r) => s + r.tr_n1, 0); }
@@ -542,157 +427,210 @@ export class TresorerieDetailDashboard extends Component {
     }
 
     async _loadDetailData() {
-    this.state.loading = true;
-    try {
-        const p      = this.state.domain_params;
-        const annee  = p.annee  || this.state.annee;
-        const mois   = p.mois   || this.state.mois;
-        const zoneId = p.selected_zone ? parseInt(p.selected_zone) : null;
-        const taux   = this._getTaux(annee);
+        this.state.loading = true;
+        try {
+            const p      = this.state.domain_params;
+            const annee  = p.annee  || this.state.annee;
+            const mois   = p.mois   || this.state.mois;
+            const zoneId = p.selected_zone ? parseInt(p.selected_zone) : null;
+            const taux   = this._getTaux(annee);
 
-        const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
-        const fin   = new Date(annee, mois,     0, 23, 59, 59);
+            const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
+            const fin   = new Date(annee, mois,     0, 23, 59, 59);
 
-        const flagFilter  = this._isAvantPivot(annee, mois)
-            ? [['is_old', '=', true]]
-            : [['is_old', '!=', true]];
-        const zoneFilter  = zoneId ? [['zone_encaissement', '=', zoneId]] : [];
+            const flagFilter = this._isAvantPivot(annee, mois)
+                ? [['is_old', '=', true]]
+                : [['is_old', '!=', true]];
 
-        // ── domaine AVEC date_encaissement ──
-        const domainAvecDate = [
-            ...zoneFilter, ...flagFilter,
-            ['date_encaissement', '>=', this._formatORM(debut)],
-            ['date_encaissement', '<=', this._formatORM(fin)],
-        ];
+            const zoneFilter = zoneId ? [['zone_encaissement', '=', zoneId]] : [];
 
-        // ── domaine SANS date_encaissement (fallback create_date) ──
-        const domainSansDate = [
-            ...zoneFilter, ...flagFilter,
-            ['date_encaissement', '=', false],
-            ['reservation.create_date', '>=', this._formatORM(debut)],
-            ['reservation.create_date', '<=', this._formatORM(fin)],
-        ];
+            // ── Domaine AVEC date_encaissement ──
+            const domainAvecDate = [
+                ...zoneFilter, ...flagFilter,
+                ['date_encaissement', '>=', this._formatORM(debut)],
+                ['date_encaissement', '<=', this._formatORM(fin)],
+            ];
 
-        // ── domaine remboursements ──
-        const refundDomain = [
-            ['date', '>=', this._formatORM(debut)],
-            ['date', '<=', this._formatORM(fin)],
-            ['status', '=', 'effectuer'],
-        ];
-        if (zoneId) refundDomain.push(['reservation.zone', '=', zoneId]);
+            // ── Domaine SANS date_encaissement (fallback create_date) ──
+            const domainSansDate = [
+                ...zoneFilter, ...flagFilter,
+                ['date_encaissement', '=', false],
+                ['reservation.create_date', '>=', this._formatORM(debut)],
+                ['reservation.create_date', '<=', this._formatORM(fin)],
+            ];
 
-        const FIELDS_REC = ["id", "montant", "montant_dzd", "zone_encaissement", "reservation", "date_encaissement"];
+            // ── Domaine remboursements ──
+            const refundDomain = [
+                ['date', '>=', this._formatORM(debut)],
+                ['date', '<=', this._formatORM(fin)],
+                ['status', '=', 'effectuer'],
+            ];
+            if (zoneId) refundDomain.push(['reservation.zone', '=', zoneId]);
 
-        const [zones, lieux, categories, recsAvec, recsSans, resRefund] = await Promise.all([
-            this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" }),
-            this.orm.searchRead("lieux", [], ["id", "name", "zone"], { order: "name asc" }),
-            this.orm.searchRead("categorie.client", [], ["id", "name"], { order: "name asc" }),
-            this.orm.searchRead("revenue.record", domainAvecDate, FIELDS_REC, { limit: 0 }),
-            this.orm.searchRead("revenue.record", domainSansDate, FIELDS_REC, { limit: 0 }),
-            this.orm.readGroup("refund.table", refundDomain, ["amount:sum"], []),
-        ]);
+            const FIELDS_REC = ["id", "montant", "montant_dzd", "zone_encaissement", "reservation", "date_encaissement"];
 
-        // ── Fusion des deux listes de records ──
-        const recs = [...recsAvec, ...recsSans];
+            const [zones, lieux, categories, recsAvec, recsSans, refundRecs] = await Promise.all([
+                this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" }),
+                this.orm.searchRead("lieux", [], ["id", "name", "zone"], { order: "name asc" }),
+                this.orm.searchRead("categorie.client", [], ["id", "name"], { order: "name asc" }),
+                this.orm.searchRead("revenue.record", domainAvecDate, FIELDS_REC, { limit: 0 }),
+                this.orm.searchRead("revenue.record", domainSansDate, FIELDS_REC, { limit: 0 }),
+                this.orm.searchRead("refund.table", refundDomain, ["id", "amount", "reservation"], { limit: 0 }),
+            ]);
 
-        // ── Montant remboursements à déduire ──
-        const montant_refund = ((resRefund[0] ?? {}).amount ?? 0) * taux;
+            // ── Fusion des deux listes de records revenus ──
+            const recs = [...recsAvec, ...recsSans];
 
-        // ... (suite identique : resvMap, matrix, etc.)
-        const resIds = [...new Set(
-            recs
-                .map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation)
-                .filter(Boolean)
-        )];
+            // ── Récupérer lieu_depart + categorie_client des réservations (revenus) ──
+            const resIds = [...new Set(
+                recs
+                    .map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation)
+                    .filter(Boolean)
+            )];
 
-        let resvMap = {};
-        if (resIds.length > 0) {
-            const resvData = await this.orm.searchRead(
-                "reservation",
-                [["id", "in", resIds]],
-                ["id", "lieu_depart", "categorie_client"],
-                { limit: 0 }
-            );
-            for (const rv of resvData) {
-                resvMap[rv.id] = {
-                    lieu_id : Array.isArray(rv.lieu_depart)      ? rv.lieu_depart[0]      : rv.lieu_depart      || false,
-                    cat_id  : Array.isArray(rv.categorie_client) ? rv.categorie_client[0] : rv.categorie_client || false,
-                };
+            let resvMap = {};
+            if (resIds.length > 0) {
+                const resvData = await this.orm.searchRead(
+                    "reservation",
+                    [["id", "in", resIds]],
+                    ["id", "lieu_depart", "categorie_client"],
+                    { limit: 0 }
+                );
+                for (const rv of resvData) {
+                    resvMap[rv.id] = {
+                        lieu_id : Array.isArray(rv.lieu_depart)      ? rv.lieu_depart[0]      : rv.lieu_depart      || false,
+                        cat_id  : Array.isArray(rv.categorie_client) ? rv.categorie_client[0] : rv.categorie_client || false,
+                    };
+                }
             }
+
+            // ── Récupérer zone + lieu + categorie des réservations (remboursements) ──
+            const refundResIds = [...new Set(
+                refundRecs
+                    .map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation)
+                    .filter(Boolean)
+            )];
+
+            let refundResvMap = {};
+            if (refundResIds.length > 0) {
+                const refundResvData = await this.orm.searchRead(
+                    "reservation",
+                    [["id", "in", refundResIds]],
+                    ["id", "zone", "lieu_depart", "categorie_client"],
+                    { limit: 0 }
+                );
+                for (const rv of refundResvData) {
+                    refundResvMap[rv.id] = {
+                        zone_id : Array.isArray(rv.zone)             ? rv.zone[0]             : rv.zone             || false,
+                        lieu_id : Array.isArray(rv.lieu_depart)      ? rv.lieu_depart[0]      : rv.lieu_depart      || false,
+                        cat_id  : Array.isArray(rv.categorie_client) ? rv.categorie_client[0] : rv.categorie_client || false,
+                    };
+                }
+            }
+
+            this.state.zones      = zones;
+            this.state.lieux      = lieux.map(l => ({
+                ...l,
+                zone_id: Array.isArray(l.zone) ? l.zone[0] : l.zone || false,
+            }));
+            this.state.categories = categories;
+            this.state.recs_raw   = recs;
+
+            const matrix_lieu  = {};
+            const matrix_zone  = {};
+            const totaux_lieux = {};
+            const totaux_zones = {};
+            const totaux_cats  = {};
+            let grand_montant  = 0;
+            let grand_count    = 0;
+
+            // ── Additionner les revenus ──
+            for (const rec of recs) {
+                const res_id  = Array.isArray(rec.reservation) ? rec.reservation[0] : rec.reservation || false;
+                const zone_id = Array.isArray(rec.zone_encaissement) ? rec.zone_encaissement[0] : rec.zone_encaissement || false;
+                const rv      = res_id ? resvMap[res_id] : null;
+                const lieu_id = rv?.lieu_id || false;
+                const cat_id  = rv?.cat_id  || false;
+                const montant = (rec.montant_dzd || 0) + ((rec.montant || 0) * taux);
+
+                grand_montant += montant;
+                grand_count++;
+
+                if (zone_id) {
+                    if (!matrix_zone[zone_id]) matrix_zone[zone_id] = {};
+                    if (!matrix_zone[zone_id][cat_id]) matrix_zone[zone_id][cat_id] = { montant: 0, count: 0 };
+                    matrix_zone[zone_id][cat_id].montant += montant;
+                    matrix_zone[zone_id][cat_id].count++;
+                    if (!totaux_zones[zone_id]) totaux_zones[zone_id] = { montant: 0, count: 0 };
+                    totaux_zones[zone_id].montant += montant;
+                    totaux_zones[zone_id].count++;
+                }
+
+                if (lieu_id) {
+                    if (!matrix_lieu[lieu_id]) matrix_lieu[lieu_id] = {};
+                    if (!matrix_lieu[lieu_id][cat_id]) matrix_lieu[lieu_id][cat_id] = { montant: 0, count: 0 };
+                    matrix_lieu[lieu_id][cat_id].montant += montant;
+                    matrix_lieu[lieu_id][cat_id].count++;
+                    if (!totaux_lieux[lieu_id]) totaux_lieux[lieu_id] = { montant: 0, count: 0 };
+                    totaux_lieux[lieu_id].montant += montant;
+                    totaux_lieux[lieu_id].count++;
+                }
+
+                if (cat_id) {
+                    if (!totaux_cats[cat_id]) totaux_cats[cat_id] = { montant: 0, count: 0 };
+                    totaux_cats[cat_id].montant += montant;
+                    totaux_cats[cat_id].count++;
+                }
+            }
+
+            // ── Déduire les remboursements partout ──
+            for (const ref of refundRecs) {
+                const res_id  = Array.isArray(ref.reservation) ? ref.reservation[0] : ref.reservation || false;
+                const rv      = res_id ? refundResvMap[res_id] : null;
+                const zone_id = rv?.zone_id || false;
+                const lieu_id = rv?.lieu_id || false;
+                const cat_id  = rv?.cat_id  || false;
+                const montant = (ref.amount || 0) * taux;
+
+                grand_montant -= montant;
+
+                if (zone_id) {
+                    if (!matrix_zone[zone_id]) matrix_zone[zone_id] = {};
+                    if (!matrix_zone[zone_id][cat_id]) matrix_zone[zone_id][cat_id] = { montant: 0, count: 0 };
+                    matrix_zone[zone_id][cat_id].montant -= montant;
+                    if (!totaux_zones[zone_id]) totaux_zones[zone_id] = { montant: 0, count: 0 };
+                    totaux_zones[zone_id].montant -= montant;
+                }
+
+                if (lieu_id) {
+                    if (!matrix_lieu[lieu_id]) matrix_lieu[lieu_id] = {};
+                    if (!matrix_lieu[lieu_id][cat_id]) matrix_lieu[lieu_id][cat_id] = { montant: 0, count: 0 };
+                    matrix_lieu[lieu_id][cat_id].montant -= montant;
+                    if (!totaux_lieux[lieu_id]) totaux_lieux[lieu_id] = { montant: 0, count: 0 };
+                    totaux_lieux[lieu_id].montant -= montant;
+                }
+
+                if (cat_id) {
+                    if (!totaux_cats[cat_id]) totaux_cats[cat_id] = { montant: 0, count: 0 };
+                    totaux_cats[cat_id].montant -= montant;
+                }
+            }
+
+            this.state.matrix_lieu  = matrix_lieu;
+            this.state.matrix_zone  = matrix_zone;
+            this.state.totaux_lieux = totaux_lieux;
+            this.state.totaux_zones = totaux_zones;
+            this.state.totaux_cats  = totaux_cats;
+            this.state.grand_total  = { montant: grand_montant, count: grand_count };
+
+        } finally {
+            this.state.loading = false;
+            setTimeout(() => {
+                this._renderChartJourSemaine();
+                this._renderHeatmap();
+            }, 50);
         }
-
-        this.state.zones      = zones;
-        this.state.lieux      = lieux.map(l => ({
-            ...l,
-            zone_id: Array.isArray(l.zone) ? l.zone[0] : l.zone || false,
-        }));
-        this.state.categories = categories;
-        this.state.recs_raw   = recs;
-
-        const matrix_lieu  = {};
-        const matrix_zone  = {};
-        const totaux_lieux = {};
-        const totaux_zones = {};
-        const totaux_cats  = {};
-        let grand_montant  = 0;
-        let grand_count    = 0;
-
-        for (const rec of recs) {
-            const res_id  = Array.isArray(rec.reservation) ? rec.reservation[0] : rec.reservation || false;
-            const zone_id = Array.isArray(rec.zone_encaissement) ? rec.zone_encaissement[0] : rec.zone_encaissement || false;
-            const rv      = res_id ? resvMap[res_id] : null;
-            const lieu_id = rv?.lieu_id || false;
-            const cat_id  = rv?.cat_id  || false;
-            const montant = (rec.montant_dzd || 0) + ((rec.montant || 0) * taux);
-
-            grand_montant += montant;
-            grand_count++;
-
-            if (zone_id) {
-                if (!matrix_zone[zone_id]) matrix_zone[zone_id] = {};
-                if (!matrix_zone[zone_id][cat_id]) matrix_zone[zone_id][cat_id] = { montant: 0, count: 0 };
-                matrix_zone[zone_id][cat_id].montant += montant;
-                matrix_zone[zone_id][cat_id].count++;
-                if (!totaux_zones[zone_id]) totaux_zones[zone_id] = { montant: 0, count: 0 };
-                totaux_zones[zone_id].montant += montant;
-                totaux_zones[zone_id].count++;
-            }
-
-            if (lieu_id) {
-                if (!matrix_lieu[lieu_id]) matrix_lieu[lieu_id] = {};
-                if (!matrix_lieu[lieu_id][cat_id]) matrix_lieu[lieu_id][cat_id] = { montant: 0, count: 0 };
-                matrix_lieu[lieu_id][cat_id].montant += montant;
-                matrix_lieu[lieu_id][cat_id].count++;
-                if (!totaux_lieux[lieu_id]) totaux_lieux[lieu_id] = { montant: 0, count: 0 };
-                totaux_lieux[lieu_id].montant += montant;
-                totaux_lieux[lieu_id].count++;
-            }
-
-            if (cat_id) {
-                if (!totaux_cats[cat_id]) totaux_cats[cat_id] = { montant: 0, count: 0 };
-                totaux_cats[cat_id].montant += montant;
-                totaux_cats[cat_id].count++;
-            }
-        }
-
-        // ── Déduire les remboursements du grand total uniquement ──
-        grand_montant -= montant_refund;
-
-        this.state.matrix_lieu  = matrix_lieu;
-        this.state.matrix_zone  = matrix_zone;
-        this.state.totaux_lieux = totaux_lieux;
-        this.state.totaux_zones = totaux_zones;
-        this.state.totaux_cats  = totaux_cats;
-        this.state.grand_total  = { montant: grand_montant, count: grand_count };
-
-    } finally {
-        this.state.loading = false;
-        setTimeout(() => {
-            this._renderChartJourSemaine();
-            this._renderHeatmap();
-        }, 50);
     }
-}
 
     toggleZone(zone_id) {
         this.state.expanded_zones[zone_id] = !this.state.expanded_zones[zone_id];
@@ -810,7 +748,7 @@ export class TresorerieDetailDashboard extends Component {
             }
         }
 
-        const weekKeys    = Object.keys(matrix).sort();
+        const weekKeys     = Object.keys(matrix).sort();
         const JOURS_COURTS = ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"];
 
         const cellSize = 28;
