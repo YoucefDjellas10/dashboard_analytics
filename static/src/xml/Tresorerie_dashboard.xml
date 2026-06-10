@@ -8,165 +8,73 @@
 .o_action_manager { overflow-y:auto !important; }
 
 .tr-header {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:12px;
-    background:#fff;
-    border-radius:16px;
-    padding:16px 24px;
-    margin-bottom:20px;
-    border:1px solid #e2e8f0;
-    box-shadow:0 4px 16px rgba(0,0,0,.07);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+    background:#fff; border-radius:16px; padding:16px 24px; margin-bottom:20px;
+    border:1px solid #e2e8f0; box-shadow:0 4px 16px rgba(0,0,0,.07);
 }
-.tr-title {
-    font-size:20px;
-    font-weight:800;
-    color:#1e293b;
-}
-.tr-select-zone,
-.tr-select-year {
-    border-radius:8px;
-    border:1.5px solid #e2e8f0;
-    font-size:13px;
-    color:#1e293b;
-    background:#f8fafc;
-    padding:7px 12px;
+.tr-title { font-size:20px; font-weight:800; color:#1e293b; }
+.tr-select-zone, .tr-select-year {
+    border-radius:8px; border:1.5px solid #e2e8f0; font-size:13px;
+    color:#1e293b; background:#f8fafc; padding:7px 12px;
 }
 .tr-select-zone { width:220px; }
 .tr-select-year { width:120px; font-weight:700; }
 .tr-table-wrapper {
-    background:#fff;
-    border-radius:16px;
-    border:1px solid #e2e8f0;
-    box-shadow:0 4px 16px rgba(0,0,0,.07);
-    overflow:hidden;
+    background:#fff; border-radius:16px; border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07); overflow:hidden;
 }
-.tr-table {
-    width:100%;
-    border-collapse:collapse;
-}
-/* ← MODIFIÉ : gradient bleu/violet */
-.tr-table thead tr {
-    background:linear-gradient(135deg,#1565c0,#6a1b9a);
-    color:#fff;
-}
-.tr-table th {
-    padding:14px 20px;
-    font-size:13px;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:.6px;
-    text-align:center;
-}
+.tr-table { width:100%; border-collapse:collapse; }
+.tr-table thead tr { background:linear-gradient(135deg,#1565c0,#6a1b9a); color:#fff; }
+.tr-table th { padding:14px 20px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; text-align:center; }
 .tr-table th:first-child { text-align:left; }
-.tr-table td {
-    padding:13px 20px;
-    font-size:14px;
-    text-align:center;
-    border-bottom:1px solid #f1f5f9;
-    color:#1e293b;
-}
-.tr-table td:first-child {
-    text-align:left;
-    font-weight:700;
-    color:#475569;
-}
+.tr-table td { padding:13px 20px; font-size:14px; text-align:center; border-bottom:1px solid #f1f5f9; color:#1e293b; }
+.tr-table td:first-child { text-align:left; font-weight:700; color:#475569; }
 .tr-table tbody tr:hover td { background:#f8fafc; }
-.tr-table tfoot tr {
-    background:linear-gradient(135deg,#f8fafc,#f1f5f9);
-    font-weight:800;
-}
-.tr-table tfoot td {
-    border-top:2px solid #e2e8f0;
-    font-size:14px;
-}
-/* ← MODIFIÉ : bleu */
-.tr-clickable {
-    cursor:pointer;
-    color:#1565c0;
-    font-weight:700;
-    text-decoration:underline dotted;
-}
+.tr-table tfoot tr { background:linear-gradient(135deg,#f8fafc,#f1f5f9); font-weight:800; }
+.tr-table tfoot td { border-top:2px solid #e2e8f0; font-size:14px; }
+.tr-clickable { cursor:pointer; color:#1565c0; font-weight:700; text-decoration:underline dotted; }
 .tr-clickable:hover { color:#6a1b9a; }
-.tr-badge {
-    display:inline-block;
-    padding:3px 10px;
-    border-radius:20px;
-    font-size:12px;
-    font-weight:800;
-    color:#fff;
-}
+.tr-badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:800; color:#fff; }
 .tr-badge-up   { background:#16a34a; }
 .tr-badge-down { background:#dc2626; }
 .tr-badge-null { background:#94a3b8; }
 .tr-btn-retour {
-    display:flex;
-    align-items:center;
-    gap:6px;
-    padding:8px 18px;
-    border-radius:9px;
-    border:1.5px solid #e2e8f0;
-    background:#f8fafc;
-    color:#475569;
-    font-size:13px;
-    font-weight:600;
-    cursor:pointer;
+    display:flex; align-items:center; gap:6px; padding:8px 18px;
+    border-radius:9px; border:1.5px solid #e2e8f0; background:#f8fafc;
+    color:#475569; font-size:13px; font-weight:600; cursor:pointer;
     transition:background .2s, transform .15s;
 }
-.tr-btn-retour:hover {
-    background:#e2e8f0;
-    transform:translateY(-2px);
-}
+.tr-btn-retour:hover { background:#e2e8f0; transform:translateY(-2px); }
 </style>
 
 <div class="tr-header">
-
     <div style="display:flex; align-items:center; gap:10px;">
-        <button class="tr-btn-retour" t-on-click="retourDashboard">
-            ← Retour
-        </button>
-        <div class="tr-title">
-            Comparaison mensuelle de la Trésorerie
-        </div>
+        <button class="tr-btn-retour" t-on-click="retourDashboard">← Retour</button>
+        <div class="tr-title">Comparaison mensuelle de la Trésorerie</div>
     </div>
-
     <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-
         <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Année</span>
-            <select class="tr-select-year form-select form-select-sm"
-                    t-on-change="updateSelectedYear">
+            <select class="tr-select-year form-select form-select-sm" t-on-change="updateSelectedYear">
                 <t t-foreach="state.years" t-as="year" t-key="year">
-                    <option t-att-value="year"
-                            t-att-selected="state.annee_n == year"
-                            t-esc="year"/>
+                    <option t-att-value="year" t-att-selected="state.annee_n == year" t-esc="year"/>
                 </t>
             </select>
         </div>
-
         <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Zone</span>
-            <select class="tr-select-zone form-select form-select-sm"
-                    t-on-change="updateSelectedZone">
+            <select class="tr-select-zone form-select form-select-sm" t-on-change="updateSelectedZone">
                 <option value="">🌍 Toutes les zones</option>
                 <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
-                    <option t-att-value="zone.id"
-                            t-att-selected="state.selected_zone == zone.id"
-                            t-esc="zone.name"/>
+                    <option t-att-value="zone.id" t-att-selected="state.selected_zone == zone.id" t-esc="zone.name"/>
                 </t>
             </select>
         </div>
-
     </div>
-
 </div>
 
 <t t-if="state.loading">
-    <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">
-        ⏳ Chargement…
-    </div>
+    <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">⏳ Chargement…</div>
 </t>
 
 <t t-else="">
@@ -175,8 +83,8 @@
             <thead>
                 <tr>
                     <th>Mois</th>
-                    <th><t t-esc="state.annee_n1"/>(DA)</th>
-                    <th><t t-esc="state.annee_n"/>(DA)</th>
+                    <th><t t-esc="state.annee_n1"/> (DA)</th>
+                    <th><t t-esc="state.annee_n"/> (DA)</th>
                     <th>Évolution</th>
                 </tr>
             </thead>
@@ -184,17 +92,12 @@
                 <t t-foreach="state.rows" t-as="row" t-key="row.mois">
                     <tr>
                         <td><t t-esc="row.label"/></td>
-
-                        <td class="tr-clickable"
-                            t-on-click="() => this.ouvrirMois(state.annee_n1, row.mois)">
+                        <td class="tr-clickable" t-on-click="() => this.ouvrirMois(state.annee_n1, row.mois)">
                             <t t-esc="fmtRow(row.tr_n1)"/>
                         </td>
-
-                        <td class="tr-clickable"
-                            t-on-click="() => this.ouvrirMois(state.annee_n, row.mois)">
+                        <td class="tr-clickable" t-on-click="() => this.ouvrirMois(state.annee_n, row.mois)">
                             <t t-esc="fmtRow(row.tr_n)"/>
                         </td>
-
                         <td>
                             <t t-if="row.delta !== null">
                                 <span t-attf-class="tr-badge {{ row.delta >= 0 ? 'tr-badge-up' : 'tr-badge-down' }}">
@@ -202,9 +105,7 @@
                                     <t t-else="">▼ <t t-esc="row.delta"/> %</t>
                                 </span>
                             </t>
-                            <t t-else="">
-                                <span class="tr-badge tr-badge-null">—</span>
-                            </t>
+                            <t t-else=""><span class="tr-badge tr-badge-null">—</span></t>
                         </td>
                     </tr>
                 </t>
@@ -240,7 +141,6 @@
         </div>
         <canvas id="tr-chart-line" style="width:100%; max-height:400px;"/>
     </div>
-
 </t>
 
 </div>
@@ -248,7 +148,7 @@
 
 
     <!-- ═══════════════════════════════════════════════════════════
-         PAGE DÉTAIL TRÉSORERIE — TresorerieDetailDashboard
+         PAGE DÉTAIL TRÉSORERIE
          ═══════════════════════════════════════════════════════════ -->
     <t t-name="dashboard_analytics.TresorerieDetailDashboard">
 <div style="padding:16px; background:#f1f5f9; min-height:100vh; overflow-y:auto;">
@@ -258,7 +158,6 @@
 .o_action_manager { overflow-y: auto !important; }
 .o_content { overflow-y: auto !important; height: 100% !important; }
 
-/* ── Header ── */
 .trd-header {
     display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
     background:#fff; border-radius:16px; padding:16px 24px; margin-bottom:20px;
@@ -274,7 +173,6 @@
 }
 .trd-btn:hover { background:#e2e8f0; transform:translateY(-2px); }
 
-/* ── Cards ── */
 .trd-card {
     background:#fff; border-radius:16px; border:1px solid #e2e8f0;
     box-shadow:0 4px 16px rgba(0,0,0,.07); overflow:hidden; margin-bottom:20px;
@@ -285,9 +183,8 @@
 }
 .trd-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
 
-/* ── Tableau croisé ── */
+/* ── Tableau croisé commun ── */
 .trd-cross-table { width:100%; border-collapse:collapse; font-size:13px; }
-/* ← MODIFIÉ : gradient bleu/violet */
 .trd-cross-table thead tr { background:linear-gradient(135deg,#1565c0,#6a1b9a); color:#fff; }
 .trd-cross-table thead th {
     padding:12px 16px; font-weight:700; text-transform:uppercase;
@@ -295,7 +192,7 @@
 }
 .trd-cross-table thead th:first-child { text-align:left; }
 
-/* ← MODIFIÉ : zone row bleu/violet */
+/* ── Lignes ZONE (bleu/indigo) ── */
 .trd-zone-row {
     background:linear-gradient(90deg,#eef2ff 0%,#f5f3ff 100%);
     cursor:pointer; user-select:none; border-bottom:1px solid #c7d2fe;
@@ -311,28 +208,47 @@
     border-right:1px solid #c7d2fe;
 }
 .trd-zone-toggle { display:inline-flex; align-items:center; gap:8px; }
-/* ← MODIFIÉ : flèche violet */
 .trd-zone-arrow  { display:inline-block; font-size:11px; transition:transform .2s ease; color:#6366f1; }
 .trd-zone-arrow.open { transform:rotate(90deg); }
-/* ← MODIFIÉ : montant bleu */
 .trd-zone-cell-montant { font-weight:800; color:#4f46e5; font-size:13px; }
 .trd-zone-cell-count   { font-size:11px; color:#818cf8; font-weight:500; }
-/* ← MODIFIÉ : total col violet clair */
 .trd-zone-total-col    { background:#ede9fe !important; border-left:2px solid #c4b5fd !important; }
 
-.trd-lieu-row td {
+/* ── Lignes MODELE (vert/teal) ── */
+.trd-modele-row {
+    background:linear-gradient(90deg,#f0fdf4 0%,#ecfdf5 100%);
+    cursor:pointer; user-select:none; border-bottom:1px solid #bbf7d0;
+}
+.trd-modele-row:hover { background:linear-gradient(90deg,#dcfce7 0%,#d1fae5 100%); }
+.trd-modele-row td {
+    padding:11px 16px; font-weight:800; font-size:13px;
+    color:#065f46; border-bottom:1px solid #bbf7d0;
+}
+.trd-modele-row td:first-child {
+    text-align:left; white-space:nowrap; position:sticky; left:0; z-index:2;
+    background:linear-gradient(90deg,#f0fdf4 0%,#ecfdf5 100%);
+    border-right:1px solid #bbf7d0;
+}
+.trd-modele-toggle { display:inline-flex; align-items:center; gap:8px; }
+.trd-modele-arrow  { display:inline-block; font-size:11px; transition:transform .2s ease; color:#16a34a; }
+.trd-modele-arrow.open { transform:rotate(90deg); }
+.trd-modele-cell-montant { font-weight:800; color:#16a34a; font-size:13px; }
+.trd-modele-cell-count   { font-size:11px; color:#4ade80; font-weight:500; }
+.trd-modele-total-col    { background:#dcfce7 !important; border-left:2px solid #86efac !important; }
+
+/* ── Lignes LIEU / VEHICULE ── */
+.trd-lieu-row td, .trd-vehicule-row td {
     padding:9px 16px; text-align:center; border-bottom:1px solid #f1f5f9;
     color:#1e293b; font-size:13px;
 }
-.trd-lieu-row td:first-child {
+.trd-lieu-row td:first-child, .trd-vehicule-row td:first-child {
     text-align:left; font-weight:600; color:#475569; background:#fafafa;
     white-space:nowrap; position:sticky; left:0; z-index:2;
     border-right:1px solid #e2e8f0; padding-left:32px;
 }
-.trd-lieu-row:hover td            { background:#f0f7ff; }
-.trd-lieu-row:hover td:first-child { background:#e8f0fe; }
+.trd-lieu-row:hover td, .trd-vehicule-row:hover td { background:#f0fdf4; }
+.trd-lieu-row:hover td:first-child, .trd-vehicule-row:hover td:first-child { background:#dcfce7; }
 
-/* ← MODIFIÉ : bleu */
 .trd-cell-montant { font-weight:800; color:#1565c0; font-size:13px; }
 .trd-cell-count   { font-size:11px; color:#94a3b8; font-weight:500; }
 .trd-cell-empty   { color:#e2e8f0; font-size:18px; }
@@ -345,29 +261,15 @@
 .trd-total-row td:first-child { text-align:left; }
 .trd-total-col { background:#f8fafc !important; border-left:2px solid #e2e8f0 !important; }
 
-/* ── Duo charts ── */
 .trd-duo-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
-.trd-chart-title {
-    font-size:14px; font-weight:700; color:#475569;
-    padding:16px 20px 12px; border-bottom:1px solid #f1f5f9;
-}
+.trd-chart-title { font-size:14px; font-weight:700; color:#475569; padding:16px 20px 12px; border-bottom:1px solid #f1f5f9; }
+.trd-heatmap-legend { display:flex; align-items:center; gap:8px; font-size:11px; color:#64748b; font-weight:600; padding:12px 20px 16px; }
+.trd-heatmap-legend-bar { width:120px; height:12px; border-radius:6px; background:linear-gradient(to right,#f1f5f9,#bae6fd,#1565c0,#6a1b9a); }
 
-/* ── Heatmap légende ── */
-.trd-heatmap-legend {
-    display:flex; align-items:center; gap:8px; font-size:11px;
-    color:#64748b; font-weight:600; padding:12px 20px 16px;
-}
-/* ← MODIFIÉ : légende bleu/violet */
-.trd-heatmap-legend-bar {
-    width:120px; height:12px; border-radius:6px;
-    background:linear-gradient(to right,#f1f5f9,#bae6fd,#1565c0,#6a1b9a);
-}
-
-/* ══ RESPONSIVE ══ */
 @media (max-width:1024px) {
     .trd-cross-table { font-size:12px; }
-    .trd-cross-table thead th,
-    .trd-zone-row td, .trd-lieu-row td, .trd-total-row td { padding:8px 10px; }
+    .trd-cross-table thead th, .trd-zone-row td, .trd-modele-row td,
+    .trd-lieu-row td, .trd-vehicule-row td, .trd-total-row td { padding:8px 10px; }
 }
 @media (max-width:768px) {
     .trd-header { padding:12px; gap:8px; border-radius:12px; }
@@ -375,16 +277,16 @@
     .trd-card   { border-radius:12px; margin-bottom:12px; }
     .trd-duo-grid { grid-template-columns:1fr !important; gap:12px; }
     .trd-cross-table { font-size:11px; }
-    .trd-cross-table thead th,
-    .trd-zone-row td, .trd-lieu-row td, .trd-total-row td { padding:6px 8px; }
-    .trd-lieu-row td:first-child { padding-left:20px; }
+    .trd-cross-table thead th, .trd-zone-row td, .trd-modele-row td,
+    .trd-lieu-row td, .trd-vehicule-row td, .trd-total-row td { padding:6px 8px; }
+    .trd-lieu-row td:first-child, .trd-vehicule-row td:first-child { padding-left:20px; }
     canvas { max-height:220px !important; }
     .trd-heatmap-legend-bar { width:80px; }
 }
 @media (max-width:480px) {
     .trd-cross-table { font-size:10px; }
-    .trd-cross-table thead th,
-    .trd-zone-row td, .trd-lieu-row td, .trd-total-row td { padding:5px 6px; }
+    .trd-cross-table thead th, .trd-zone-row td, .trd-modele-row td,
+    .trd-lieu-row td, .trd-vehicule-row td, .trd-total-row td { padding:5px 6px; }
     canvas { max-height:180px !important; }
 }
 </style>
@@ -398,7 +300,6 @@
             <div class="trd-title">💰 Détail de la Trésorerie</div>
             <div class="trd-subtitle"><t t-esc="state.label"/></div>
         </div>
-        <!-- ← MODIFIÉ : card total bleu/violet -->
         <div style="
             background:linear-gradient(135deg,#1565c0 0%,#6a1b9a 100%);
             border-radius:16px; padding:18px 28px 18px 22px; min-width:210px;
@@ -414,20 +315,17 @@
         </div>
     </div>
 
-    <!-- Loading -->
     <t t-if="state.loading">
         <div style="text-align:center; padding:80px; font-size:16px; color:#94a3b8;">⏳ Chargement des données…</div>
     </t>
 
     <t t-else="">
 
-        <!-- Tableau croisé -->
+        <!-- ══ Tableau 1 : Zones / Lieux × Catégories ══ -->
         <div class="trd-card">
             <div class="trd-card-title">
                 🔀 Tableau croisé — Zones / Lieux × Catégories de client
-                <span style="font-size:12px; font-weight:500; color:#94a3b8; margin-left:8px;">
-                    (cliquez sur une zone pour voir ses lieux)
-                </span>
+                <span style="font-size:12px; font-weight:500; color:#94a3b8; margin-left:8px;">(cliquez sur une zone pour voir ses lieux)</span>
             </div>
             <div class="trd-scroll">
                 <table class="trd-cross-table">
@@ -437,13 +335,11 @@
                             <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
                                 <th><t t-esc="cat.name"/></th>
                             </t>
-                            <th>Total</th>
+                            <th style="background:rgba(255,255,255,0.15);">Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
-
-                            <!-- Ligne ZONE -->
                             <tr class="trd-zone-row" t-on-click="() => this.toggleZone(zone.id)">
                                 <td>
                                     <span class="trd-zone-toggle">
@@ -467,8 +363,6 @@
                                     <div class="trd-zone-cell-count">(<t t-esc="tz.count"/> pay)</div>
                                 </td>
                             </tr>
-
-                            <!-- Lignes LIEUX -->
                             <t t-if="isZoneExpanded(zone.id)">
                                 <t t-foreach="getLieuxByZone(zone.id)" t-as="lieu" t-key="lieu.id">
                                     <tr class="trd-lieu-row">
@@ -491,6 +385,98 @@
                                     </tr>
                                 </t>
                             </t>
+                        </t>
+                    </tbody>
+                    <tfoot>
+                        <tr class="trd-total-row">
+                            <td>Total général</td>
+                            <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
+                                <td>
+                                    <t t-set="tc" t-value="getTotalCat(cat.id)"/>
+                                    <div class="trd-cell-montant"><t t-esc="fmtM(tc.montant)"/> DA</div>
+                                    <div class="trd-cell-count">(<t t-esc="tc.count"/> pay)</div>
+                                </td>
+                            </t>
+                            <td class="trd-total-col">
+                                <div class="trd-cell-montant" style="color:#6a1b9a;">
+                                    <t t-esc="fmtM(state.grand_total.montant)"/> DA
+                                </div>
+                                <div class="trd-cell-count">(<t t-esc="state.grand_total.count"/> pay)</div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- ══ Tableau 2 : Modèles / Véhicules × Catégories ══ -->
+        <div class="trd-card">
+            <div class="trd-card-title">
+                🚗 Tableau croisé — Modèles / Véhicules × Catégories de client
+                <span style="font-size:12px; font-weight:500; color:#94a3b8; margin-left:8px;">(cliquez sur un modèle pour voir ses véhicules)</span>
+            </div>
+            <div class="trd-scroll">
+                <table class="trd-cross-table">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;">Modèle / Véhicule</th>
+                            <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
+                                <th><t t-esc="cat.name"/></th>
+                            </t>
+                            <th style="background:rgba(255,255,255,0.15);">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="state.modeles" t-as="modele" t-key="modele.id">
+
+                            <!-- Ligne MODELE -->
+                            <tr class="trd-modele-row" t-on-click="() => this.toggleModele(modele.id)">
+                                <td>
+                                    <span class="trd-modele-toggle">
+                                        <span t-attf-class="trd-modele-arrow {{ isModeleExpanded(modele.id) ? 'open' : '' }}">▶</span>
+                                        🚘 <t t-esc="modele.name"/>
+                                    </span>
+                                </td>
+                                <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
+                                    <td>
+                                        <t t-set="cm" t-value="getCellModele(modele.id, cat.id)"/>
+                                        <t t-if="cm.count > 0">
+                                            <div class="trd-modele-cell-montant"><t t-esc="fmtM(cm.montant)"/> DA</div>
+                                            <div class="trd-modele-cell-count">(<t t-esc="cm.count"/> pay)</div>
+                                        </t>
+                                        <t t-else=""><span class="trd-cell-empty">·</span></t>
+                                    </td>
+                                </t>
+                                <td class="trd-modele-total-col">
+                                    <t t-set="tm" t-value="getTotalModele(modele.id)"/>
+                                    <div class="trd-modele-cell-montant"><t t-esc="fmtM(tm.montant)"/> DA</div>
+                                    <div class="trd-modele-cell-count">(<t t-esc="tm.count"/> pay)</div>
+                                </td>
+                            </tr>
+
+                            <!-- Lignes VEHICULES -->
+                            <t t-if="isModeleExpanded(modele.id)">
+                                <t t-foreach="getVehiculesByModele(modele.id)" t-as="veh" t-key="veh.id">
+                                    <tr class="trd-vehicule-row">
+                                        <td>🚙 <t t-esc="veh.numero"/></td>
+                                        <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
+                                            <td>
+                                                <t t-set="cv" t-value="getCellVehicule(veh.id, cat.id)"/>
+                                                <t t-if="cv.count > 0">
+                                                    <div class="trd-cell-montant"><t t-esc="fmtM(cv.montant)"/> DA</div>
+                                                    <div class="trd-cell-count">(<t t-esc="cv.count"/> pay)</div>
+                                                </t>
+                                                <t t-else=""><span class="trd-cell-empty">·</span></t>
+                                            </td>
+                                        </t>
+                                        <td class="trd-total-col">
+                                            <t t-set="tv" t-value="getTotalVehicule(veh.id)"/>
+                                            <div class="trd-cell-montant"><t t-esc="fmtM(tv.montant)"/> DA</div>
+                                            <div class="trd-cell-count">(<t t-esc="tv.count"/> pay)</div>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </t>
 
                         </t>
                     </tbody>
@@ -505,8 +491,7 @@
                                 </td>
                             </t>
                             <td class="trd-total-col">
-                                <!-- ← MODIFIÉ : couleur violet foncé -->
-                                <div class="trd-cell-montant" style="color:#6a1b9a;">
+                                <div class="trd-cell-montant" style="color:#065f46;">
                                     <t t-esc="fmtM(state.grand_total.montant)"/> DA
                                 </div>
                                 <div class="trd-cell-count">(<t t-esc="state.grand_total.count"/> pay)</div>
@@ -519,7 +504,6 @@
 
         <!-- Duo : Jour semaine + Heatmap -->
         <div class="trd-duo-grid">
-
             <div class="trd-card" style="margin-bottom:0;">
                 <div class="trd-chart-title">
                     📅 Trésorerie par jour de la semaine
@@ -529,7 +513,6 @@
                     <canvas id="trd-chart-jour-semaine" style="width:100%; max-height:320px;"/>
                 </div>
             </div>
-
             <div class="trd-card" style="margin-bottom:0;">
                 <div class="trd-chart-title">🗓️ Heatmap — semaine × jour (DA)</div>
                 <div class="trd-heatmap-legend">
@@ -539,7 +522,6 @@
                 </div>
                 <div id="trd-heatmap-container" style="padding:0 16px 16px; overflow-x:auto;"/>
             </div>
-
         </div>
 
     </t>

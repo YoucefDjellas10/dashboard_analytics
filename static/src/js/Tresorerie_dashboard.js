@@ -27,8 +27,6 @@ export class TresorerieDashboard extends Component {
         onWillStart(() => this._loadZones().then(() => this.loadData()));
     }
 
-    // ─── Utilitaires ──────────────────────────────────────────────────────────
-
     _pad(n) { return String(n).padStart(2, "0"); }
 
     _formatORM(d) {
@@ -103,81 +101,6 @@ export class TresorerieDashboard extends Component {
         return (sum_dzd + (sum_eur * taux)) - (sum_refund * taux);
     }
 
-    async _fetchZoneTresorerie(annee, zoneId) {
-        const taux    = this._getTaux(annee);
-        const debutAn = new Date(annee, 0,  1,  0,  0,  0);
-        const finAn   = new Date(annee, 11, 31, 23, 59, 59);
-
-        let totalRevenue = 0;
-
-        if (debutAn < this._DATE_PIVOT) {
-            const finOld = finAn < this._DATE_PIVOT
-                ? finAn
-                : new Date(2025, 9, 31, 23, 59, 59);
-
-            const domOldAvec = [
-                ['zone_encaissement', '=', zoneId], ['is_old', '=', true],
-                ['date_encaissement', '>=', this._formatORM(debutAn)],
-                ['date_encaissement', '<=', this._formatORM(finOld)],
-            ];
-            const domOldSans = [
-                ['zone_encaissement', '=', zoneId], ['is_old', '=', true],
-                ['date_encaissement', '=', false],
-                ['reservation.create_date', '>=', this._formatORM(debutAn)],
-                ['reservation.create_date', '<=', this._formatORM(finOld)],
-            ];
-
-            const [r1, r2] = await Promise.all([
-                this.orm.readGroup("revenue.record", domOldAvec, ["montant_dzd:sum", "montant:sum"], []),
-                this.orm.readGroup("revenue.record", domOldSans, ["montant_dzd:sum", "montant:sum"], []),
-            ]);
-
-            const o1 = r1[0] ?? {};
-            const o2 = r2[0] ?? {};
-            totalRevenue += (o1.montant_dzd ?? 0) + ((o1.montant ?? 0) * taux)
-                          + (o2.montant_dzd ?? 0) + ((o2.montant ?? 0) * taux);
-        }
-
-        if (finAn >= this._DATE_PIVOT) {
-            const debutNew = debutAn >= this._DATE_PIVOT ? debutAn : this._DATE_PIVOT;
-
-            const domNewAvec = [
-                ['zone_encaissement', '=', zoneId], ['is_old', '!=', true],
-                ['date_encaissement', '>=', this._formatORM(debutNew)],
-                ['date_encaissement', '<=', this._formatORM(finAn)],
-            ];
-            const domNewSans = [
-                ['zone_encaissement', '=', zoneId], ['is_old', '!=', true],
-                ['date_encaissement', '=', false],
-                ['reservation.create_date', '>=', this._formatORM(debutNew)],
-                ['reservation.create_date', '<=', this._formatORM(finAn)],
-            ];
-
-            const [r1, r2] = await Promise.all([
-                this.orm.readGroup("revenue.record", domNewAvec, ["montant_dzd:sum", "montant:sum"], []),
-                this.orm.readGroup("revenue.record", domNewSans, ["montant_dzd:sum", "montant:sum"], []),
-            ]);
-
-            const n1 = r1[0] ?? {};
-            const n2 = r2[0] ?? {};
-            totalRevenue += (n1.montant_dzd ?? 0) + ((n1.montant ?? 0) * taux)
-                          + (n2.montant_dzd ?? 0) + ((n2.montant ?? 0) * taux);
-        }
-
-        const refundDomain = [
-            ['date', '>=', this._formatORM(debutAn)],
-            ['date', '<=', this._formatORM(finAn)],
-            ['status', '=', 'effectuer'],
-            ['reservation.zone', '=', zoneId],
-        ];
-        const resRefund  = await this.orm.readGroup("refund.table", refundDomain, ["amount:sum"], []);
-        const sum_refund = (resRefund[0] ?? {}).amount ?? 0;
-
-        return totalRevenue - (sum_refund * taux);
-    }
-
-    // ─── Chargement principal ─────────────────────────────────────────────────
-
     async loadData() {
         this.state.loading = true;
         try {
@@ -224,8 +147,6 @@ export class TresorerieDashboard extends Component {
         }
     }
 
-    // ─── Handlers UI ─────────────────────────────────────────────────────────
-
     updateSelectedZone(ev) {
         this.state.selected_zone = ev.target.value;
         this.loadData();
@@ -262,8 +183,6 @@ export class TresorerieDashboard extends Component {
             },
         });
     }
-
-    // ─── Charts ───────────────────────────────────────────────────────────────
 
     _renderChart() {
         const canvas = document.getElementById("tr-chart");
@@ -348,8 +267,6 @@ export class TresorerieDashboard extends Component {
         }
     }
 
-    // ─── Totaux ───────────────────────────────────────────────────────────────
-
     get totalN1()    { return this.state.rows.reduce((s, r) => s + r.tr_n1, 0); }
     get totalN()     { return this.state.rows.reduce((s, r) => s + r.tr_n,  0); }
     get totalN1Fmt() { return this._fmt(this.totalN1); }
@@ -384,22 +301,29 @@ export class TresorerieDetailDashboard extends Component {
         const params = props.action?.params || {};
 
         this.state = useState({
-            loading        : true,
-            label          : params.label  || "",
-            annee          : params.annee  || new Date().getFullYear(),
-            mois           : params.mois   || new Date().getMonth() + 1,
-            domain_params  : params.domain_params || {},
-            zones          : [],
-            lieux          : [],
-            categories     : [],
-            matrix_lieu    : {},
-            matrix_zone    : {},
-            totaux_lieux   : {},
-            totaux_zones   : {},
-            totaux_cats    : {},
-            grand_total    : { montant: 0, count: 0 },
-            expanded_zones : {},
-            recs_raw       : [],
+            loading          : true,
+            label            : params.label  || "",
+            annee            : params.annee  || new Date().getFullYear(),
+            mois             : params.mois   || new Date().getMonth() + 1,
+            domain_params    : params.domain_params || {},
+            zones            : [],
+            lieux            : [],
+            categories       : [],
+            modeles          : [],
+            vehicules        : [],
+            matrix_lieu      : {},
+            matrix_zone      : {},
+            matrix_vehicule  : {},
+            matrix_modele    : {},
+            totaux_lieux     : {},
+            totaux_zones     : {},
+            totaux_cats      : {},
+            totaux_vehicules : {},
+            totaux_modeles   : {},
+            grand_total      : { montant: 0, count: 0 },
+            expanded_zones   : {},
+            expanded_modeles : {},
+            recs_raw         : [],
         });
 
         onWillStart(() => this._loadDetailData());
@@ -464,12 +388,14 @@ export class TresorerieDetailDashboard extends Component {
             ];
             if (zoneId) refundDomain.push(['reservation.zone', '=', zoneId]);
 
-            const FIELDS_REC = ["id", "montant", "montant_dzd", "zone_encaissement", "reservation", "date_encaissement"];
+            const FIELDS_REC = ["id", "montant", "montant_dzd", "zone_encaissement", "reservation", "date_encaissement", "vehicule", "modele"];
 
-            const [zones, lieux, categories, recsAvec, recsSans, refundRecs] = await Promise.all([
-                this.orm.searchRead("zone", [], ["id", "name"], { order: "name asc" }),
-                this.orm.searchRead("lieux", [], ["id", "name", "zone"], { order: "name asc" }),
-                this.orm.searchRead("categorie.client", [], ["id", "name"], { order: "name asc" }),
+            const [zones, lieux, categories, modeles, vehicules, recsAvec, recsSans, refundRecs] = await Promise.all([
+                this.orm.searchRead("zone",             [], ["id", "name"],         { order: "name asc" }),
+                this.orm.searchRead("lieux",            [], ["id", "name", "zone"], { order: "name asc" }),
+                this.orm.searchRead("categorie.client", [], ["id", "name"],         { order: "name asc" }),
+                this.orm.searchRead("modele",           [], ["id", "name"],         { order: "name asc" }),
+                this.orm.searchRead("vehicule",         [], ["id", "numero", "modele"], { order: "numero asc" }),
                 this.orm.searchRead("revenue.record", domainAvecDate, FIELDS_REC, { limit: 0 }),
                 this.orm.searchRead("revenue.record", domainSansDate, FIELDS_REC, { limit: 0 }),
                 this.orm.searchRead("refund.table", refundDomain, ["id", "amount", "reservation"], { limit: 0 }),
@@ -477,10 +403,9 @@ export class TresorerieDetailDashboard extends Component {
 
             const recs = [...recsAvec, ...recsSans];
 
+            // ── Map réservations → lieu + catégorie ──
             const resIds = [...new Set(
-                recs
-                    .map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation)
-                    .filter(Boolean)
+                recs.map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation).filter(Boolean)
             )];
 
             let resvMap = {};
@@ -499,10 +424,9 @@ export class TresorerieDetailDashboard extends Component {
                 }
             }
 
+            // ── Map réservations refund → zone + lieu + catégorie ──
             const refundResIds = [...new Set(
-                refundRecs
-                    .map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation)
-                    .filter(Boolean)
+                refundRecs.map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation).filter(Boolean)
             )];
 
             let refundResvMap = {};
@@ -523,32 +447,42 @@ export class TresorerieDetailDashboard extends Component {
             }
 
             this.state.zones      = zones;
-            this.state.lieux      = lieux.map(l => ({
-                ...l,
-                zone_id: Array.isArray(l.zone) ? l.zone[0] : l.zone || false,
-            }));
+            this.state.lieux      = lieux.map(l => ({ ...l, zone_id: Array.isArray(l.zone) ? l.zone[0] : l.zone || false }));
             this.state.categories = categories;
+            this.state.modeles    = modeles;
+            this.state.vehicules  = vehicules.map(v => ({
+                ...v,
+                modele_id: Array.isArray(v.modele) ? v.modele[0] : v.modele || false,
+            }));
             this.state.recs_raw   = recs;
 
-            const matrix_lieu  = {};
-            const matrix_zone  = {};
-            const totaux_lieux = {};
-            const totaux_zones = {};
-            const totaux_cats  = {};
-            let grand_montant  = 0;
-            let grand_count    = 0;
+            const matrix_lieu      = {};
+            const matrix_zone      = {};
+            const matrix_vehicule  = {};
+            const matrix_modele    = {};
+            const totaux_lieux     = {};
+            const totaux_zones     = {};
+            const totaux_cats      = {};
+            const totaux_vehicules = {};
+            const totaux_modeles   = {};
+            let grand_montant = 0;
+            let grand_count   = 0;
 
+            // ── Additionner revenus ──
             for (const rec of recs) {
-                const res_id  = Array.isArray(rec.reservation) ? rec.reservation[0] : rec.reservation || false;
-                const zone_id = Array.isArray(rec.zone_encaissement) ? rec.zone_encaissement[0] : rec.zone_encaissement || false;
-                const rv      = res_id ? resvMap[res_id] : null;
-                const lieu_id = rv?.lieu_id || false;
-                const cat_id  = rv?.cat_id  || false;
-                const montant = (rec.montant_dzd || 0) + ((rec.montant || 0) * taux);
+                const res_id    = Array.isArray(rec.reservation)       ? rec.reservation[0]       : rec.reservation       || false;
+                const zone_id   = Array.isArray(rec.zone_encaissement) ? rec.zone_encaissement[0] : rec.zone_encaissement || false;
+                const veh_id    = Array.isArray(rec.vehicule)          ? rec.vehicule[0]          : rec.vehicule          || false;
+                const mod_id    = Array.isArray(rec.modele)            ? rec.modele[0]            : rec.modele            || false;
+                const rv        = res_id ? resvMap[res_id] : null;
+                const lieu_id   = rv?.lieu_id || false;
+                const cat_id    = rv?.cat_id  || false;
+                const montant   = (rec.montant_dzd || 0) + ((rec.montant || 0) * taux);
 
                 grand_montant += montant;
                 grand_count++;
 
+                // zone × cat
                 if (zone_id) {
                     if (!matrix_zone[zone_id]) matrix_zone[zone_id] = {};
                     if (!matrix_zone[zone_id][cat_id]) matrix_zone[zone_id][cat_id] = { montant: 0, count: 0 };
@@ -559,6 +493,7 @@ export class TresorerieDetailDashboard extends Component {
                     totaux_zones[zone_id].count++;
                 }
 
+                // lieu × cat
                 if (lieu_id) {
                     if (!matrix_lieu[lieu_id]) matrix_lieu[lieu_id] = {};
                     if (!matrix_lieu[lieu_id][cat_id]) matrix_lieu[lieu_id][cat_id] = { montant: 0, count: 0 };
@@ -569,6 +504,29 @@ export class TresorerieDetailDashboard extends Component {
                     totaux_lieux[lieu_id].count++;
                 }
 
+                // modele × cat
+                if (mod_id) {
+                    if (!matrix_modele[mod_id]) matrix_modele[mod_id] = {};
+                    if (!matrix_modele[mod_id][cat_id]) matrix_modele[mod_id][cat_id] = { montant: 0, count: 0 };
+                    matrix_modele[mod_id][cat_id].montant += montant;
+                    matrix_modele[mod_id][cat_id].count++;
+                    if (!totaux_modeles[mod_id]) totaux_modeles[mod_id] = { montant: 0, count: 0 };
+                    totaux_modeles[mod_id].montant += montant;
+                    totaux_modeles[mod_id].count++;
+                }
+
+                // vehicule × cat
+                if (veh_id) {
+                    if (!matrix_vehicule[veh_id]) matrix_vehicule[veh_id] = {};
+                    if (!matrix_vehicule[veh_id][cat_id]) matrix_vehicule[veh_id][cat_id] = { montant: 0, count: 0 };
+                    matrix_vehicule[veh_id][cat_id].montant += montant;
+                    matrix_vehicule[veh_id][cat_id].count++;
+                    if (!totaux_vehicules[veh_id]) totaux_vehicules[veh_id] = { montant: 0, count: 0 };
+                    totaux_vehicules[veh_id].montant += montant;
+                    totaux_vehicules[veh_id].count++;
+                }
+
+                // cat global
                 if (cat_id) {
                     if (!totaux_cats[cat_id]) totaux_cats[cat_id] = { montant: 0, count: 0 };
                     totaux_cats[cat_id].montant += montant;
@@ -576,6 +534,7 @@ export class TresorerieDetailDashboard extends Component {
                 }
             }
 
+            // ── Déduire remboursements ──
             for (const ref of refundRecs) {
                 const res_id  = Array.isArray(ref.reservation) ? ref.reservation[0] : ref.reservation || false;
                 const rv      = res_id ? refundResvMap[res_id] : null;
@@ -608,12 +567,16 @@ export class TresorerieDetailDashboard extends Component {
                 }
             }
 
-            this.state.matrix_lieu  = matrix_lieu;
-            this.state.matrix_zone  = matrix_zone;
-            this.state.totaux_lieux = totaux_lieux;
-            this.state.totaux_zones = totaux_zones;
-            this.state.totaux_cats  = totaux_cats;
-            this.state.grand_total  = { montant: grand_montant, count: grand_count };
+            this.state.matrix_lieu      = matrix_lieu;
+            this.state.matrix_zone      = matrix_zone;
+            this.state.matrix_vehicule  = matrix_vehicule;
+            this.state.matrix_modele    = matrix_modele;
+            this.state.totaux_lieux     = totaux_lieux;
+            this.state.totaux_zones     = totaux_zones;
+            this.state.totaux_cats      = totaux_cats;
+            this.state.totaux_vehicules = totaux_vehicules;
+            this.state.totaux_modeles   = totaux_modeles;
+            this.state.grand_total      = { montant: grand_montant, count: grand_count };
 
         } finally {
             this.state.loading = false;
@@ -624,23 +587,30 @@ export class TresorerieDetailDashboard extends Component {
         }
     }
 
+    // ── Zone expand/collapse ──
     toggleZone(zone_id) {
         this.state.expanded_zones[zone_id] = !this.state.expanded_zones[zone_id];
     }
+    isZoneExpanded(zone_id) { return !!this.state.expanded_zones[zone_id]; }
+    getLieuxByZone(zone_id) { return this.state.lieux.filter(l => l.zone_id === zone_id); }
 
-    isZoneExpanded(zone_id) {
-        return !!this.state.expanded_zones[zone_id];
+    // ── Modele expand/collapse ──
+    toggleModele(modele_id) {
+        this.state.expanded_modeles[modele_id] = !this.state.expanded_modeles[modele_id];
     }
+    isModeleExpanded(modele_id) { return !!this.state.expanded_modeles[modele_id]; }
+    getVehiculesByModele(modele_id) { return this.state.vehicules.filter(v => v.modele_id === modele_id); }
 
-    getLieuxByZone(zone_id) {
-        return this.state.lieux.filter(l => l.zone_id === zone_id);
-    }
-
-    getCellLieu(lieu_id, cat_id) { return this.state.matrix_lieu[lieu_id]?.[cat_id]  || { montant: 0, count: 0 }; }
-    getCellZone(zone_id, cat_id) { return this.state.matrix_zone[zone_id]?.[cat_id]  || { montant: 0, count: 0 }; }
-    getTotalLieu(lieu_id)        { return this.state.totaux_lieux[lieu_id] || { montant: 0, count: 0 }; }
-    getTotalZone(zone_id)        { return this.state.totaux_zones[zone_id] || { montant: 0, count: 0 }; }
-    getTotalCat(cat_id)          { return this.state.totaux_cats[cat_id]   || { montant: 0, count: 0 }; }
+    // ── Getters cellules ──
+    getCellLieu(lieu_id, cat_id)       { return this.state.matrix_lieu[lieu_id]?.[cat_id]         || { montant: 0, count: 0 }; }
+    getCellZone(zone_id, cat_id)       { return this.state.matrix_zone[zone_id]?.[cat_id]         || { montant: 0, count: 0 }; }
+    getCellModele(modele_id, cat_id)   { return this.state.matrix_modele[modele_id]?.[cat_id]     || { montant: 0, count: 0 }; }
+    getCellVehicule(veh_id, cat_id)    { return this.state.matrix_vehicule[veh_id]?.[cat_id]      || { montant: 0, count: 0 }; }
+    getTotalLieu(lieu_id)              { return this.state.totaux_lieux[lieu_id]     || { montant: 0, count: 0 }; }
+    getTotalZone(zone_id)              { return this.state.totaux_zones[zone_id]     || { montant: 0, count: 0 }; }
+    getTotalCat(cat_id)                { return this.state.totaux_cats[cat_id]       || { montant: 0, count: 0 }; }
+    getTotalModele(modele_id)          { return this.state.totaux_modeles[modele_id] || { montant: 0, count: 0 }; }
+    getTotalVehicule(veh_id)           { return this.state.totaux_vehicules[veh_id]  || { montant: 0, count: 0 }; }
 
     fmtM(v) { return this._fmt(v); }
 
@@ -666,7 +636,6 @@ export class TresorerieDetailDashboard extends Component {
             counts[idx]++;
         }
 
-        // ← MODIFIÉ : couleurs bleu/violet comme réservations
         const COLORS = [
             "rgba(21,101,192,0.82)","rgba(21,101,192,0.75)","rgba(21,101,192,0.68)",
             "rgba(21,101,192,0.62)","rgba(21,101,192,0.55)","rgba(106,27,154,0.75)","rgba(106,27,154,0.88)",
@@ -698,12 +667,7 @@ export class TresorerieDetailDashboard extends Component {
                     },
                     scales: {
                         x : { grid: { display: false }, ticks: { font: { weight: "700" } } },
-                        y : {
-                            beginAtZero : true,
-                            ticks       : { font: { weight: "600" } },
-                            grid        : { color: "rgba(0,0,0,.06)" },
-                            title       : { display: true, text: "DA" },
-                        },
+                        y : { beginAtZero: true, ticks: { font: { weight: "600" } }, grid: { color: "rgba(0,0,0,.06)" }, title: { display: true, text: "DA" } },
                     },
                 },
             });
@@ -736,21 +700,15 @@ export class TresorerieDetailDashboard extends Component {
         }
 
         for (const key of Object.keys(matrix)) {
-            for (const v of matrix[key]) {
-                if (v > maxVal) maxVal = v;
-            }
+            for (const v of matrix[key]) { if (v > maxVal) maxVal = v; }
         }
 
         const weekKeys     = Object.keys(matrix).sort();
         const JOURS_COURTS = ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"];
-
-        const cellSize = 28;
-        const cellGap  = 3;
-        const labelW   = 28;
-        const headerH  = 36;
-        const nWeeks   = weekKeys.length;
-        const svgW     = labelW + nWeeks * (cellSize + cellGap);
-        const svgH     = headerH + 7 * (cellSize + cellGap);
+        const cellSize = 28, cellGap = 3, labelW = 28, headerH = 36;
+        const nWeeks = weekKeys.length;
+        const svgW = labelW + nWeeks * (cellSize + cellGap);
+        const svgH = headerH + 7 * (cellSize + cellGap);
 
         let cells = "";
 
@@ -775,32 +733,17 @@ export class TresorerieDetailDashboard extends Component {
                 const intensity = maxVal > 0 ? val / maxVal : 0;
                 const fill      = val === 0 ? "#f1f5f9" : this._heatColor(intensity);
                 const textColor = intensity > 0.5 ? "#fff" : "#1e293b";
-
-                cells += `<rect x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" rx="4" fill="${fill}">
-                    <title>Semaine ${key} — ${JOURS_COURTS[di]} : ${this._fmt(val)} DA</title>
-                </rect>`;
-
+                cells += `<rect x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" rx="4" fill="${fill}"><title>Semaine ${key} — ${JOURS_COURTS[di]} : ${this._fmt(val)} DA</title></rect>`;
                 if (val > 0) {
-                    const lbl = val >= 1000000
-                        ? Math.round(val / 1000000) + "M"
-                        : val >= 1000
-                            ? Math.round(val / 1000) + "k"
-                            : String(Math.round(val));
-                    cells += `<text x="${x + cellSize/2}" y="${y + cellSize/2 + 4}" text-anchor="middle" font-size="8" fill="${textColor}" font-weight="700">${lbl}</text>`;
+                    const lbl = val >= 1000000 ? Math.round(val/1000000)+"M" : val >= 1000 ? Math.round(val/1000)+"k" : String(Math.round(val));
+                    cells += `<text x="${x+cellSize/2}" y="${y+cellSize/2+4}" text-anchor="middle" font-size="8" fill="${textColor}" font-weight="700">${lbl}</text>`;
                 }
             }
         });
 
-        container.innerHTML = `
-            <div style="width:100%; overflow-x:auto; padding-bottom:8px;">
-                <svg viewBox="0 0 ${svgW} ${svgH}" width="${Math.min(svgW, container.clientWidth || svgW)}" height="auto" preserveAspectRatio="xMidYMid meet" style="display:block; max-width:100%;">
-                    ${cells}
-                </svg>
-            </div>
-        `;
+        container.innerHTML = `<div style="width:100%; overflow-x:auto; padding-bottom:8px;"><svg viewBox="0 0 ${svgW} ${svgH}" width="${Math.min(svgW, container.clientWidth || svgW)}" height="auto" preserveAspectRatio="xMidYMid meet" style="display:block; max-width:100%;">${cells}</svg></div>`;
     }
 
-    // ← MODIFIÉ : dégradé bleu/violet comme ReservationDetailDashboard
     _heatColor(t) {
         if (t <= 0) return "#f1f5f9";
         if (t < 0.33) {
