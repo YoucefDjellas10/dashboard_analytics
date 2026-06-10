@@ -468,7 +468,7 @@ export class TresorerieDetailDashboard extends Component {
             const totaux_cats        = {};
             const totaux_vehicules   = {};
             const totaux_modeles     = {};
-            const totaux_modeles_zone = {}; // total par modele (toutes zones)
+            const totaux_modeles_zone = {};
             let grand_montant = 0;
             let grand_count   = 0;
 
@@ -611,14 +611,12 @@ export class TresorerieDetailDashboard extends Component {
         this.state.expanded_zones[zone_id] = !this.state.expanded_zones[zone_id];
     }
     isZoneExpanded(zone_id) { return !!this.state.expanded_zones[zone_id]; }
-    getLieuxByZone(zone_id) { return this.state.lieux.filter(l => l.zone_id === zone_id); }
 
     // ── Modele expand/collapse ──
     toggleModele(modele_id) {
         this.state.expanded_modeles[modele_id] = !this.state.expanded_modeles[modele_id];
     }
     isModeleExpanded(modele_id) { return !!this.state.expanded_modeles[modele_id]; }
-    getVehiculesByModele(modele_id) { return this.state.vehicules.filter(v => v.modele_id === modele_id); }
 
     // ── Getters cellules ──
     getCellLieu(lieu_id, cat_id)       { return this.state.matrix_lieu[lieu_id]?.[cat_id]         || { montant: 0, count: 0 }; }
@@ -641,6 +639,51 @@ export class TresorerieDetailDashboard extends Component {
             if (cell) { montant += cell.montant; count += cell.count; }
         }
         return { montant, count };
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  LIGNES TRIÉES PAR MONTANT DÉCROISSANT — Tableau 1 : Zone × Cat
+    // ══════════════════════════════════════════════════════════════════
+    get sortedZones() {
+        return [...this.state.zones].sort((a, b) =>
+            (this.getTotalZone(b.id).montant) - (this.getTotalZone(a.id).montant)
+        );
+    }
+
+    // Lieux triés par montant décroissant à l'intérieur d'une zone
+    getLieuxByZone(zone_id) {
+        return this.state.lieux
+            .filter(l => l.zone_id === zone_id)
+            .sort((a, b) =>
+                (this.getTotalLieu(b.id).montant) - (this.getTotalLieu(a.id).montant)
+            );
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  LIGNES TRIÉES PAR MONTANT DÉCROISSANT — Tableau 2 : Modèle × Cat
+    // ══════════════════════════════════════════════════════════════════
+    get sortedModeles() {
+        return [...this.state.modeles].sort((a, b) =>
+            (this.getTotalModele(b.id).montant) - (this.getTotalModele(a.id).montant)
+        );
+    }
+
+    // Véhicules triés par montant décroissant à l'intérieur d'un modèle
+    getVehiculesByModele(modele_id) {
+        return this.state.vehicules
+            .filter(v => v.modele_id === modele_id)
+            .sort((a, b) =>
+                (this.getTotalVehicule(b.id).montant) - (this.getTotalVehicule(a.id).montant)
+            );
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  LIGNES TRIÉES PAR MONTANT DÉCROISSANT — Tableau 3 : Modèle × Zone
+    // ══════════════════════════════════════════════════════════════════
+    get sortedModelesZone() {
+        return [...this.state.modeles].sort((a, b) =>
+            (this.getTotalModeleZone(b.id).montant) - (this.getTotalModeleZone(a.id).montant)
+        );
     }
 
     fmtM(v) { return this._fmt(v); }
