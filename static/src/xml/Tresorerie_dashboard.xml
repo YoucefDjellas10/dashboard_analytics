@@ -184,7 +184,7 @@
 .trd-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
 
 /* ══════════════════════════════════════════════════
-   TABLEAU CROISÉ — COULEUR BLEUE/VIOLETTE (palette réservations)
+   TABLEAU CROISÉ — COULEUR BLEUE/VIOLETTE (palette commune)
    ══════════════════════════════════════════════════ */
 .trd-cross-table { width:100%; border-collapse:collapse; font-size:13px; }
 .trd-cross-table thead tr { background:linear-gradient(135deg,#1565c0,#6a1b9a); color:#fff; }
@@ -194,7 +194,7 @@
 }
 .trd-cross-table thead th:first-child { text-align:left; }
 
-/* ── Lignes ZONE (bleu/indigo) ── */
+/* ── Lignes ZONE / MODELE — même style bleu/indigo ── */
 .trd-zone-row {
     background:linear-gradient(90deg,#eef2ff 0%,#f5f3ff 100%);
     cursor:pointer; user-select:none; border-bottom:1px solid #c7d2fe;
@@ -215,28 +215,6 @@
 .trd-zone-cell-montant { font-weight:800; color:#4f46e5; font-size:13px; }
 .trd-zone-cell-count   { font-size:11px; color:#818cf8; font-weight:500; }
 .trd-zone-total-col    { background:#ede9fe !important; border-left:2px solid #c4b5fd !important; }
-
-/* ── Lignes MODELE (violet légèrement plus foncé pour différencier) ── */
-.trd-modele-row {
-    background:linear-gradient(90deg,#f5f3ff 0%,#eef2ff 100%);
-    cursor:pointer; user-select:none; border-bottom:1px solid #a5b4fc;
-}
-.trd-modele-row:hover { background:linear-gradient(90deg,#ede9fe 0%,#e0e7ff 100%); }
-.trd-modele-row td {
-    padding:11px 16px; font-weight:800; font-size:13px;
-    color:#312e81; border-bottom:1px solid #a5b4fc;
-}
-.trd-modele-row td:first-child {
-    text-align:left; white-space:nowrap; position:sticky; left:0; z-index:2;
-    background:linear-gradient(90deg,#f5f3ff 0%,#eef2ff 100%);
-    border-right:1px solid #a5b4fc;
-}
-.trd-modele-toggle { display:inline-flex; align-items:center; gap:8px; }
-.trd-modele-arrow  { display:inline-block; font-size:11px; transition:transform .2s ease; color:#6366f1; }
-.trd-modele-arrow.open { transform:rotate(90deg); }
-.trd-modele-cell-montant { font-weight:800; color:#6366f1; font-size:13px; }
-.trd-modele-cell-count   { font-size:11px; color:#a5b4fc; font-weight:500; }
-.trd-modele-total-col    { background:#c4b5fd !important; border-left:2px solid #a5b4fc !important; }
 
 /* ── Lignes LIEU / VEHICULE ── */
 .trd-lieu-row td, .trd-vehicule-row td {
@@ -272,7 +250,7 @@
 
 @media (max-width:1024px) {
     .trd-cross-table { font-size:12px; }
-    .trd-cross-table thead th, .trd-zone-row td, .trd-modele-row td,
+    .trd-cross-table thead th, .trd-zone-row td,
     .trd-lieu-row td, .trd-vehicule-row td, .trd-total-row td { padding:8px 10px; }
 }
 @media (max-width:768px) {
@@ -281,7 +259,7 @@
     .trd-card   { border-radius:12px; margin-bottom:12px; }
     .trd-duo-grid { grid-template-columns:1fr !important; gap:12px; }
     .trd-cross-table { font-size:11px; }
-    .trd-cross-table thead th, .trd-zone-row td, .trd-modele-row td,
+    .trd-cross-table thead th, .trd-zone-row td,
     .trd-lieu-row td, .trd-vehicule-row td, .trd-total-row td { padding:6px 8px; }
     .trd-lieu-row td:first-child, .trd-vehicule-row td:first-child { padding-left:20px; }
     canvas { max-height:220px !important; }
@@ -289,7 +267,7 @@
 }
 @media (max-width:480px) {
     .trd-cross-table { font-size:10px; }
-    .trd-cross-table thead th, .trd-zone-row td, .trd-modele-row td,
+    .trd-cross-table thead th, .trd-zone-row td,
     .trd-lieu-row td, .trd-vehicule-row td, .trd-total-row td { padding:5px 6px; }
     canvas { max-height:180px !important; }
 }
@@ -433,11 +411,11 @@
                     <tbody>
                         <t t-foreach="sortedModeles" t-as="modele" t-key="modele.id">
 
-                            <!-- Ligne MODELE -->
-                            <tr class="trd-modele-row" t-on-click="() => this.toggleModele(modele.id)">
+                            <!-- Ligne MODELE — mêmes classes que ZONE -->
+                            <tr class="trd-zone-row" t-on-click="() => this.toggleModele(modele.id)">
                                 <td>
-                                    <span class="trd-modele-toggle">
-                                        <span t-attf-class="trd-modele-arrow {{ isModeleExpanded(modele.id) ? 'open' : '' }}">▶</span>
+                                    <span class="trd-zone-toggle">
+                                        <span t-attf-class="trd-zone-arrow {{ isModeleExpanded(modele.id) ? 'open' : '' }}">▶</span>
                                         🚘 <t t-esc="modele.name"/>
                                     </span>
                                 </td>
@@ -445,23 +423,23 @@
                                     <td>
                                         <t t-set="cm" t-value="getCellModele(modele.id, cat.id)"/>
                                         <t t-if="cm.count > 0">
-                                            <div class="trd-modele-cell-montant"><t t-esc="fmtM(cm.montant)"/> DA</div>
-                                            <div class="trd-modele-cell-count">(<t t-esc="cm.count"/> pay)</div>
+                                            <div class="trd-zone-cell-montant"><t t-esc="fmtM(cm.montant)"/> DA</div>
+                                            <div class="trd-zone-cell-count">(<t t-esc="cm.count"/> pay)</div>
                                         </t>
                                         <t t-else=""><span class="trd-cell-empty">·</span></t>
                                     </td>
                                 </t>
-                                <td class="trd-modele-total-col">
+                                <td class="trd-zone-total-col">
                                     <t t-set="tm" t-value="getTotalModele(modele.id)"/>
-                                    <div class="trd-modele-cell-montant"><t t-esc="fmtM(tm.montant)"/> DA</div>
-                                    <div class="trd-modele-cell-count">(<t t-esc="tm.count"/> pay)</div>
+                                    <div class="trd-zone-cell-montant"><t t-esc="fmtM(tm.montant)"/> DA</div>
+                                    <div class="trd-zone-cell-count">(<t t-esc="tm.count"/> pay)</div>
                                 </td>
                             </tr>
 
-                            <!-- Lignes VEHICULES -->
+                            <!-- Lignes VEHICULES — mêmes classes que LIEU -->
                             <t t-if="isModeleExpanded(modele.id)">
                                 <t t-foreach="getVehiculesByModele(modele.id)" t-as="veh" t-key="veh.id">
-                                    <tr class="trd-vehicule-row">
+                                    <tr class="trd-lieu-row">
                                         <td> <t t-esc="veh.numero"/></td>
                                         <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
                                             <td>
@@ -494,8 +472,8 @@
                                     <div class="trd-cell-count">(<t t-esc="tc.count"/> pay)</div>
                                 </td>
                             </t>
-                            <td class="trd-total-col">
-                                <div class="trd-cell-montant" style="color:#312e81;">
+                            <td class="trd-zone-total-col">
+                                <div class="trd-cell-montant" style="color:#1565c0;">
                                     <t t-esc="fmtM(state.grand_total.montant)"/> DA
                                 </div>
                                 <div class="trd-cell-count">(<t t-esc="state.grand_total.count"/> pay)</div>
@@ -525,7 +503,8 @@
                     </thead>
                     <tbody>
                         <t t-foreach="sortedModelesZone" t-as="modele" t-key="modele.id">
-                            <tr class="trd-modele-row" style="cursor:default;">
+                            <!-- Ligne MODELE — mêmes classes que ZONE, sans cursor pointer -->
+                            <tr class="trd-zone-row" style="cursor:default;">
                                 <td style="cursor:default;">
                                     <span style="display:inline-flex; align-items:center; gap:8px;">
                                         🚘 <t t-esc="modele.name"/>
@@ -535,16 +514,16 @@
                                     <td>
                                         <t t-set="cmz" t-value="getCellModeleZone(modele.id, zone.id)"/>
                                         <t t-if="cmz.count > 0">
-                                            <div class="trd-modele-cell-montant"><t t-esc="fmtM(cmz.montant)"/> DA</div>
-                                            <div class="trd-modele-cell-count">(<t t-esc="cmz.count"/> pay)</div>
+                                            <div class="trd-zone-cell-montant"><t t-esc="fmtM(cmz.montant)"/> DA</div>
+                                            <div class="trd-zone-cell-count">(<t t-esc="cmz.count"/> pay)</div>
                                         </t>
                                         <t t-else=""><span class="trd-cell-empty">·</span></t>
                                     </td>
                                 </t>
-                                <td class="trd-modele-total-col">
+                                <td class="trd-zone-total-col">
                                     <t t-set="tmz" t-value="getTotalModeleZone(modele.id)"/>
-                                    <div class="trd-modele-cell-montant"><t t-esc="fmtM(tmz.montant)"/> DA</div>
-                                    <div class="trd-modele-cell-count">(<t t-esc="tmz.count"/> pay)</div>
+                                    <div class="trd-zone-cell-montant"><t t-esc="fmtM(tmz.montant)"/> DA</div>
+                                    <div class="trd-zone-cell-count">(<t t-esc="tmz.count"/> pay)</div>
                                 </td>
                             </tr>
                         </t>
@@ -559,8 +538,8 @@
                                     <div class="trd-cell-count">(<t t-esc="tz.count"/> pay)</div>
                                 </td>
                             </t>
-                            <td class="trd-total-col">
-                                <div class="trd-cell-montant" style="color:#312e81;">
+                            <td class="trd-zone-total-col">
+                                <div class="trd-cell-montant" style="color:#1565c0;">
                                     <t t-esc="fmtM(state.grand_total.montant)"/> DA
                                 </div>
                                 <div class="trd-cell-count">(<t t-esc="state.grand_total.count"/> pay)</div>
