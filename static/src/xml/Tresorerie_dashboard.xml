@@ -337,7 +337,7 @@
                             <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
                                 <th><t t-esc="cat.name"/></th>
                             </t>
-                            <th style="background:rgba(255,255,255,0.15);">Total</th>
+                            <th>Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -425,7 +425,7 @@
                             <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
                                 <th><t t-esc="cat.name"/></th>
                             </t>
-                            <th style="background:rgba(255,255,255,0.15);">Total</th>
+                            <th>Total</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -518,7 +518,7 @@
                             <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
                                 <th><t t-esc="zone.name"/></th>
                             </t>
-                            <th style="background:rgba(255,255,255,0.15);">Total</th>
+                            <th>Total</th>
                         </tr>
                     </thead>
                     <tbody>
