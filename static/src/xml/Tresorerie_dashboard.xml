@@ -502,6 +502,71 @@
             </div>
         </div>
 
+        <!-- ══ Tableau 3 : Modèles × Zones ══ -->
+        <div class="trd-card">
+            <div class="trd-card-title">
+                🗺️ Tableau croisé — Modèles × Zones
+                <span style="font-size:12px; font-weight:500; color:#94a3b8; margin-left:8px;">Trésorerie par modèle de véhicule et par zone</span>
+            </div>
+            <div class="trd-scroll">
+                <table class="trd-cross-table">
+                    <thead>
+                        <tr>
+                            <th style="min-width:180px;">Modèle</th>
+                            <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+                                <th><t t-esc="zone.name"/></th>
+                            </t>
+                            <th style="background:rgba(255,255,255,0.15);">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="state.modeles" t-as="modele" t-key="modele.id">
+                            <tr class="trd-modele-row" style="cursor:default;">
+                                <td style="cursor:default;">
+                                    <span style="display:inline-flex; align-items:center; gap:8px;">
+                                        🚘 <t t-esc="modele.name"/>
+                                    </span>
+                                </td>
+                                <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+                                    <td>
+                                        <t t-set="cmz" t-value="getCellModeleZone(modele.id, zone.id)"/>
+                                        <t t-if="cmz.count > 0">
+                                            <div class="trd-modele-cell-montant"><t t-esc="fmtM(cmz.montant)"/> DA</div>
+                                            <div class="trd-modele-cell-count">(<t t-esc="cmz.count"/> pay)</div>
+                                        </t>
+                                        <t t-else=""><span class="trd-cell-empty">·</span></t>
+                                    </td>
+                                </t>
+                                <td class="trd-modele-total-col">
+                                    <t t-set="tmz" t-value="getTotalModeleZone(modele.id)"/>
+                                    <div class="trd-modele-cell-montant"><t t-esc="fmtM(tmz.montant)"/> DA</div>
+                                    <div class="trd-modele-cell-count">(<t t-esc="tmz.count"/> pay)</div>
+                                </td>
+                            </tr>
+                        </t>
+                    </tbody>
+                    <tfoot>
+                        <tr class="trd-total-row">
+                            <td>Total général</td>
+                            <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+                                <td>
+                                    <t t-set="tz" t-value="getTotalZoneAllModeles(zone.id)"/>
+                                    <div class="trd-cell-montant"><t t-esc="fmtM(tz.montant)"/> DA</div>
+                                    <div class="trd-cell-count">(<t t-esc="tz.count"/> pay)</div>
+                                </td>
+                            </t>
+                            <td class="trd-total-col">
+                                <div class="trd-cell-montant" style="color:#065f46;">
+                                    <t t-esc="fmtM(state.grand_total.montant)"/> DA
+                                </div>
+                                <div class="trd-cell-count">(<t t-esc="state.grand_total.count"/> pay)</div>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
         <!-- Duo : Jour semaine + Heatmap -->
         <div class="trd-duo-grid">
             <div class="trd-card" style="margin-bottom:0;">

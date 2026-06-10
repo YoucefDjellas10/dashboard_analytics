@@ -322,8 +322,10 @@ export class TresorerieDetailDashboard extends Component {
             totaux_modeles   : {},
             grand_total      : { montant: 0, count: 0 },
             expanded_zones   : {},
-            expanded_modeles : {},
-            recs_raw         : [],
+            expanded_modeles    : {},
+            matrix_modele_zone  : {},
+            totaux_modeles_zone : {},
+            recs_raw            : [],
         });
 
         onWillStart(() => this._loadDetailData());
@@ -456,15 +458,17 @@ export class TresorerieDetailDashboard extends Component {
             }));
             this.state.recs_raw   = recs;
 
-            const matrix_lieu      = {};
-            const matrix_zone      = {};
-            const matrix_vehicule  = {};
-            const matrix_modele    = {};
-            const totaux_lieux     = {};
-            const totaux_zones     = {};
-            const totaux_cats      = {};
-            const totaux_vehicules = {};
-            const totaux_modeles   = {};
+            const matrix_lieu        = {};
+            const matrix_zone        = {};
+            const matrix_vehicule    = {};
+            const matrix_modele      = {};
+            const matrix_modele_zone = {};
+            const totaux_lieux       = {};
+            const totaux_zones       = {};
+            const totaux_cats        = {};
+            const totaux_vehicules   = {};
+            const totaux_modeles     = {};
+            const totaux_modeles_zone = {}; // total par modele (toutes zones)
             let grand_montant = 0;
             let grand_count   = 0;
 
@@ -513,6 +517,19 @@ export class TresorerieDetailDashboard extends Component {
                     if (!totaux_modeles[mod_id]) totaux_modeles[mod_id] = { montant: 0, count: 0 };
                     totaux_modeles[mod_id].montant += montant;
                     totaux_modeles[mod_id].count++;
+                }
+
+                // modele × zone
+                if (mod_id && zone_id) {
+                    if (!matrix_modele_zone[mod_id]) matrix_modele_zone[mod_id] = {};
+                    if (!matrix_modele_zone[mod_id][zone_id]) matrix_modele_zone[mod_id][zone_id] = { montant: 0, count: 0 };
+                    matrix_modele_zone[mod_id][zone_id].montant += montant;
+                    matrix_modele_zone[mod_id][zone_id].count++;
+                }
+                if (mod_id) {
+                    if (!totaux_modeles_zone[mod_id]) totaux_modeles_zone[mod_id] = { montant: 0, count: 0 };
+                    totaux_modeles_zone[mod_id].montant += montant;
+                    totaux_modeles_zone[mod_id].count++;
                 }
 
                 // vehicule × cat
@@ -567,15 +584,17 @@ export class TresorerieDetailDashboard extends Component {
                 }
             }
 
-            this.state.matrix_lieu      = matrix_lieu;
-            this.state.matrix_zone      = matrix_zone;
-            this.state.matrix_vehicule  = matrix_vehicule;
-            this.state.matrix_modele    = matrix_modele;
-            this.state.totaux_lieux     = totaux_lieux;
-            this.state.totaux_zones     = totaux_zones;
-            this.state.totaux_cats      = totaux_cats;
-            this.state.totaux_vehicules = totaux_vehicules;
-            this.state.totaux_modeles   = totaux_modeles;
+            this.state.matrix_lieu        = matrix_lieu;
+            this.state.matrix_zone        = matrix_zone;
+            this.state.matrix_vehicule    = matrix_vehicule;
+            this.state.matrix_modele      = matrix_modele;
+            this.state.matrix_modele_zone = matrix_modele_zone;
+            this.state.totaux_lieux       = totaux_lieux;
+            this.state.totaux_zones       = totaux_zones;
+            this.state.totaux_cats        = totaux_cats;
+            this.state.totaux_vehicules   = totaux_vehicules;
+            this.state.totaux_modeles     = totaux_modeles;
+            this.state.totaux_modeles_zone = totaux_modeles_zone;
             this.state.grand_total      = { montant: grand_montant, count: grand_count };
 
         } finally {
@@ -611,6 +630,18 @@ export class TresorerieDetailDashboard extends Component {
     getTotalCat(cat_id)                { return this.state.totaux_cats[cat_id]       || { montant: 0, count: 0 }; }
     getTotalModele(modele_id)          { return this.state.totaux_modeles[modele_id] || { montant: 0, count: 0 }; }
     getTotalVehicule(veh_id)           { return this.state.totaux_vehicules[veh_id]  || { montant: 0, count: 0 }; }
+
+    // ── Modele × Zone ──
+    getCellModeleZone(modele_id, zone_id) { return this.state.matrix_modele_zone[modele_id]?.[zone_id] || { montant: 0, count: 0 }; }
+    getTotalModeleZone(modele_id)         { return this.state.totaux_modeles_zone[modele_id] || { montant: 0, count: 0 }; }
+    getTotalZoneAllModeles(zone_id) {
+        let montant = 0, count = 0;
+        for (const mod_id of Object.keys(this.state.matrix_modele_zone)) {
+            const cell = this.state.matrix_modele_zone[mod_id][zone_id];
+            if (cell) { montant += cell.montant; count += cell.count; }
+        }
+        return { montant, count };
+    }
 
     fmtM(v) { return this._fmt(v); }
 
