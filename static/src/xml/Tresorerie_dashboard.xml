@@ -24,16 +24,16 @@
     box-shadow:0 4px 16px rgba(0,0,0,.07); overflow:hidden;
 }
 .tr-table { width:100%; border-collapse:collapse; }
-.tr-table thead tr { background:linear-gradient(135deg,#1565c0,#6a1b9a); color:#fff; }
+.tr-table thead tr { background:linear-gradient(135deg,#065f46,#16a34a); color:#fff; }
 .tr-table th { padding:14px 20px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; text-align:center; }
 .tr-table th:first-child { text-align:left; }
 .tr-table td { padding:13px 20px; font-size:14px; text-align:center; border-bottom:1px solid #f1f5f9; color:#1e293b; }
 .tr-table td:first-child { text-align:left; font-weight:700; color:#475569; }
-.tr-table tbody tr:hover td { background:#f8fafc; }
-.tr-table tfoot tr { background:linear-gradient(135deg,#f8fafc,#f1f5f9); font-weight:800; }
-.tr-table tfoot td { border-top:2px solid #e2e8f0; font-size:14px; }
-.tr-clickable { cursor:pointer; color:#1565c0; font-weight:700; text-decoration:underline dotted; }
-.tr-clickable:hover { color:#6a1b9a; }
+.tr-table tbody tr:hover td { background:#f0fdf4; }
+.tr-table tfoot tr { background:linear-gradient(135deg,#f0fdf4,#dcfce7); font-weight:800; }
+.tr-table tfoot td { border-top:2px solid #bbf7d0; font-size:14px; }
+.tr-clickable { cursor:pointer; color:#065f46; font-weight:700; text-decoration:underline dotted; }
+.tr-clickable:hover { color:#16a34a; }
 .tr-badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:800; color:#fff; }
 .tr-badge-up   { background:#16a34a; }
 .tr-badge-down { background:#dc2626; }
@@ -183,58 +183,60 @@
 }
 .trd-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
 
-/* ── Tableau croisé commun ── */
+/* ══════════════════════════════════════════════════
+   TABLEAU CROISÉ — COULEUR VERTE UNIFORME (tous les 3 tableaux)
+   ══════════════════════════════════════════════════ */
 .trd-cross-table { width:100%; border-collapse:collapse; font-size:13px; }
-.trd-cross-table thead tr { background:linear-gradient(135deg,#1565c0,#6a1b9a); color:#fff; }
+.trd-cross-table thead tr { background:linear-gradient(135deg,#065f46,#16a34a); color:#fff; }
 .trd-cross-table thead th {
     padding:12px 16px; font-weight:700; text-transform:uppercase;
     letter-spacing:.5px; text-align:center; white-space:nowrap;
 }
 .trd-cross-table thead th:first-child { text-align:left; }
 
-/* ── Lignes ZONE (bleu/indigo) ── */
+/* ── Lignes ZONE (vert/teal) ── */
 .trd-zone-row {
-    background:linear-gradient(90deg,#eef2ff 0%,#f5f3ff 100%);
-    cursor:pointer; user-select:none; border-bottom:1px solid #c7d2fe;
-}
-.trd-zone-row:hover { background:linear-gradient(90deg,#e0e7ff 0%,#ede9fe 100%); }
-.trd-zone-row td {
-    padding:11px 16px; font-weight:800; font-size:13px;
-    color:#3730a3; border-bottom:1px solid #c7d2fe;
-}
-.trd-zone-row td:first-child {
-    text-align:left; white-space:nowrap; position:sticky; left:0; z-index:2;
-    background:linear-gradient(90deg,#eef2ff 0%,#f5f3ff 100%);
-    border-right:1px solid #c7d2fe;
-}
-.trd-zone-toggle { display:inline-flex; align-items:center; gap:8px; }
-.trd-zone-arrow  { display:inline-block; font-size:11px; transition:transform .2s ease; color:#6366f1; }
-.trd-zone-arrow.open { transform:rotate(90deg); }
-.trd-zone-cell-montant { font-weight:800; color:#4f46e5; font-size:13px; }
-.trd-zone-cell-count   { font-size:11px; color:#818cf8; font-weight:500; }
-.trd-zone-total-col    { background:#ede9fe !important; border-left:2px solid #c4b5fd !important; }
-
-/* ── Lignes MODELE (vert/teal) ── */
-.trd-modele-row {
     background:linear-gradient(90deg,#f0fdf4 0%,#ecfdf5 100%);
     cursor:pointer; user-select:none; border-bottom:1px solid #bbf7d0;
 }
-.trd-modele-row:hover { background:linear-gradient(90deg,#dcfce7 0%,#d1fae5 100%); }
-.trd-modele-row td {
+.trd-zone-row:hover { background:linear-gradient(90deg,#dcfce7 0%,#d1fae5 100%); }
+.trd-zone-row td {
     padding:11px 16px; font-weight:800; font-size:13px;
     color:#065f46; border-bottom:1px solid #bbf7d0;
 }
-.trd-modele-row td:first-child {
+.trd-zone-row td:first-child {
     text-align:left; white-space:nowrap; position:sticky; left:0; z-index:2;
     background:linear-gradient(90deg,#f0fdf4 0%,#ecfdf5 100%);
     border-right:1px solid #bbf7d0;
 }
+.trd-zone-toggle { display:inline-flex; align-items:center; gap:8px; }
+.trd-zone-arrow  { display:inline-block; font-size:11px; transition:transform .2s ease; color:#16a34a; }
+.trd-zone-arrow.open { transform:rotate(90deg); }
+.trd-zone-cell-montant { font-weight:800; color:#16a34a; font-size:13px; }
+.trd-zone-cell-count   { font-size:11px; color:#4ade80; font-weight:500; }
+.trd-zone-total-col    { background:#dcfce7 !important; border-left:2px solid #86efac !important; }
+
+/* ── Lignes MODELE (vert légèrement plus foncé pour différencier) ── */
+.trd-modele-row {
+    background:linear-gradient(90deg,#ecfdf5 0%,#f0fdf4 100%);
+    cursor:pointer; user-select:none; border-bottom:1px solid #86efac;
+}
+.trd-modele-row:hover { background:linear-gradient(90deg,#d1fae5 0%,#dcfce7 100%); }
+.trd-modele-row td {
+    padding:11px 16px; font-weight:800; font-size:13px;
+    color:#064e3b; border-bottom:1px solid #86efac;
+}
+.trd-modele-row td:first-child {
+    text-align:left; white-space:nowrap; position:sticky; left:0; z-index:2;
+    background:linear-gradient(90deg,#ecfdf5 0%,#f0fdf4 100%);
+    border-right:1px solid #86efac;
+}
 .trd-modele-toggle { display:inline-flex; align-items:center; gap:8px; }
-.trd-modele-arrow  { display:inline-block; font-size:11px; transition:transform .2s ease; color:#16a34a; }
+.trd-modele-arrow  { display:inline-block; font-size:11px; transition:transform .2s ease; color:#059669; }
 .trd-modele-arrow.open { transform:rotate(90deg); }
-.trd-modele-cell-montant { font-weight:800; color:#16a34a; font-size:13px; }
-.trd-modele-cell-count   { font-size:11px; color:#4ade80; font-weight:500; }
-.trd-modele-total-col    { background:#dcfce7 !important; border-left:2px solid #86efac !important; }
+.trd-modele-cell-montant { font-weight:800; color:#059669; font-size:13px; }
+.trd-modele-cell-count   { font-size:11px; color:#6ee7b7; font-weight:500; }
+.trd-modele-total-col    { background:#a7f3d0 !important; border-left:2px solid #6ee7b7 !important; }
 
 /* ── Lignes LIEU / VEHICULE ── */
 .trd-lieu-row td, .trd-vehicule-row td {
@@ -242,29 +244,29 @@
     color:#1e293b; font-size:13px;
 }
 .trd-lieu-row td:first-child, .trd-vehicule-row td:first-child {
-    text-align:left; font-weight:600; color:#475569; background:#fafafa;
+    text-align:left; font-weight:600; color:#475569; background:#f0fdf4;
     white-space:nowrap; position:sticky; left:0; z-index:2;
-    border-right:1px solid #e2e8f0; padding-left:32px;
+    border-right:1px solid #bbf7d0; padding-left:32px;
 }
 .trd-lieu-row:hover td, .trd-vehicule-row:hover td { background:#f0fdf4; }
 .trd-lieu-row:hover td:first-child, .trd-vehicule-row:hover td:first-child { background:#dcfce7; }
 
-.trd-cell-montant { font-weight:800; color:#1565c0; font-size:13px; }
+.trd-cell-montant { font-weight:800; color:#065f46; font-size:13px; }
 .trd-cell-count   { font-size:11px; color:#94a3b8; font-weight:500; }
 .trd-cell-empty   { color:#e2e8f0; font-size:18px; }
 
 .trd-total-row td {
-    background:linear-gradient(135deg,#f8fafc,#f1f5f9) !important;
-    font-weight:800 !important; border-top:2px solid #e2e8f0 !important;
+    background:linear-gradient(135deg,#ecfdf5,#d1fae5) !important;
+    font-weight:800 !important; border-top:2px solid #6ee7b7 !important;
     font-size:13px; padding:11px 16px; text-align:center;
 }
 .trd-total-row td:first-child { text-align:left; }
-.trd-total-col { background:#f8fafc !important; border-left:2px solid #e2e8f0 !important; }
+.trd-total-col { background:#bbf7d0 !important; border-left:2px solid #6ee7b7 !important; }
 
 .trd-duo-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
 .trd-chart-title { font-size:14px; font-weight:700; color:#475569; padding:16px 20px 12px; border-bottom:1px solid #f1f5f9; }
 .trd-heatmap-legend { display:flex; align-items:center; gap:8px; font-size:11px; color:#64748b; font-weight:600; padding:12px 20px 16px; }
-.trd-heatmap-legend-bar { width:120px; height:12px; border-radius:6px; background:linear-gradient(to right,#f1f5f9,#bae6fd,#1565c0,#6a1b9a); }
+.trd-heatmap-legend-bar { width:120px; height:12px; border-radius:6px; background:linear-gradient(to right,#f1f5f9,#bbf7d0,#16a34a,#064e3b); }
 
 @media (max-width:1024px) {
     .trd-cross-table { font-size:12px; }
@@ -301,9 +303,9 @@
             <div class="trd-subtitle"><t t-esc="state.label"/></div>
         </div>
         <div style="
-            background:linear-gradient(135deg,#1565c0 0%,#6a1b9a 100%);
+            background:linear-gradient(135deg,#065f46 0%,#16a34a 100%);
             border-radius:16px; padding:18px 28px 18px 22px; min-width:210px;
-            box-shadow:0 8px 32px rgba(21,101,192,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+            box-shadow:0 8px 32px rgba(6,95,70,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
         ">
             <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.65); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:4px;">Total encaissé</div>
             <div style="font-size:24px; font-weight:900; color:#fff; line-height:1; letter-spacing:-1px;">
@@ -339,7 +341,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+                        <!-- MODIFICATION 2 : tri décroissant via sortedZones -->
+                        <t t-foreach="sortedZones" t-as="zone" t-key="zone.id">
                             <tr class="trd-zone-row" t-on-click="() => this.toggleZone(zone.id)">
                                 <td>
                                     <span class="trd-zone-toggle">
@@ -364,6 +367,7 @@
                                 </td>
                             </tr>
                             <t t-if="isZoneExpanded(zone.id)">
+                                <!-- getLieuxByZone retourne déjà trié décroissant -->
                                 <t t-foreach="getLieuxByZone(zone.id)" t-as="lieu" t-key="lieu.id">
                                     <tr class="trd-lieu-row">
                                         <td>📍 <t t-esc="lieu.name"/></td>
@@ -398,7 +402,7 @@
                                 </td>
                             </t>
                             <td class="trd-total-col">
-                                <div class="trd-cell-montant" style="color:#6a1b9a;">
+                                <div class="trd-cell-montant" style="color:#065f46;">
                                     <t t-esc="fmtM(state.grand_total.montant)"/> DA
                                 </div>
                                 <div class="trd-cell-count">(<t t-esc="state.grand_total.count"/> pay)</div>
@@ -412,7 +416,7 @@
         <!-- ══ Tableau 2 : Modèles / Véhicules × Catégories ══ -->
         <div class="trd-card">
             <div class="trd-card-title">
-                🚗 Tableau croisé — Modèles / Véhicules × Catégories de client
+                 Tableau croisé — Modèles / Véhicules × Catégories de client
                 <span style="font-size:12px; font-weight:500; color:#94a3b8; margin-left:8px;">(cliquez sur un modèle pour voir ses véhicules)</span>
             </div>
             <div class="trd-scroll">
@@ -427,7 +431,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <t t-foreach="state.modeles" t-as="modele" t-key="modele.id">
+                        <!-- MODIFICATION 2 : tri décroissant via sortedModeles -->
+                        <t t-foreach="sortedModeles" t-as="modele" t-key="modele.id">
 
                             <!-- Ligne MODELE -->
                             <tr class="trd-modele-row" t-on-click="() => this.toggleModele(modele.id)">
@@ -454,11 +459,11 @@
                                 </td>
                             </tr>
 
-                            <!-- Lignes VEHICULES -->
+                            <!-- Lignes VEHICULES — getVehiculesByModele retourne déjà trié décroissant, actifs uniquement -->
                             <t t-if="isModeleExpanded(modele.id)">
                                 <t t-foreach="getVehiculesByModele(modele.id)" t-as="veh" t-key="veh.id">
                                     <tr class="trd-vehicule-row">
-                                        <td>🚙 <t t-esc="veh.numero"/></td>
+                                        <td> <t t-esc="veh.numero"/></td>
                                         <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
                                             <td>
                                                 <t t-set="cv" t-value="getCellVehicule(veh.id, cat.id)"/>
@@ -491,7 +496,7 @@
                                 </td>
                             </t>
                             <td class="trd-total-col">
-                                <div class="trd-cell-montant" style="color:#065f46;">
+                                <div class="trd-cell-montant" style="color:#064e3b;">
                                     <t t-esc="fmtM(state.grand_total.montant)"/> DA
                                 </div>
                                 <div class="trd-cell-count">(<t t-esc="state.grand_total.count"/> pay)</div>
@@ -520,7 +525,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <t t-foreach="state.modeles" t-as="modele" t-key="modele.id">
+                        <!-- MODIFICATION 2 : tri décroissant via sortedModelesZone -->
+                        <t t-foreach="sortedModelesZone" t-as="modele" t-key="modele.id">
                             <tr class="trd-modele-row" style="cursor:default;">
                                 <td style="cursor:default;">
                                     <span style="display:inline-flex; align-items:center; gap:8px;">
@@ -556,7 +562,7 @@
                                 </td>
                             </t>
                             <td class="trd-total-col">
-                                <div class="trd-cell-montant" style="color:#065f46;">
+                                <div class="trd-cell-montant" style="color:#064e3b;">
                                     <t t-esc="fmtM(state.grand_total.montant)"/> DA
                                 </div>
                                 <div class="trd-cell-count">(<t t-esc="state.grand_total.count"/> pay)</div>

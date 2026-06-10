@@ -199,8 +199,8 @@ export class TresorerieDashboard extends Component {
                 data: {
                     labels,
                     datasets: [
-                        { label: String(this.state.annee_n1), data: dataN1, backgroundColor: "rgba(21,101,192,0.75)", borderRadius: 6, borderSkipped: false },
-                        { label: String(this.state.annee_n),  data: dataN,  backgroundColor: "rgba(106,27,154,0.75)", borderRadius: 6, borderSkipped: false },
+                        { label: String(this.state.annee_n1), data: dataN1, backgroundColor: "rgba(6,95,70,0.75)",  borderRadius: 6, borderSkipped: false },
+                        { label: String(this.state.annee_n),  data: dataN,  backgroundColor: "rgba(22,163,74,0.75)", borderRadius: 6, borderSkipped: false },
                     ],
                 },
                 options: {
@@ -241,8 +241,8 @@ export class TresorerieDashboard extends Component {
                 data: {
                     labels,
                     datasets: [
-                        { label: String(this.state.annee_n1), data: dataN1, borderColor: "rgba(21,101,192,1)", backgroundColor: "rgba(21,101,192,0.1)", borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
-                        { label: String(this.state.annee_n),  data: dataN,  borderColor: "rgba(106,27,154,1)", backgroundColor: "rgba(106,27,154,0.1)", borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
+                        { label: String(this.state.annee_n1), data: dataN1, borderColor: "rgba(6,95,70,1)",   backgroundColor: "rgba(6,95,70,0.1)",   borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
+                        { label: String(this.state.annee_n),  data: dataN,  borderColor: "rgba(22,163,74,1)", backgroundColor: "rgba(22,163,74,0.1)", borderWidth: 3, pointRadius: 5, pointHoverRadius: 7, fill: true, tension: 0.4 },
                     ],
                 },
                 options: {
@@ -397,7 +397,8 @@ export class TresorerieDetailDashboard extends Component {
                 this.orm.searchRead("lieux",            [], ["id", "name", "zone"], { order: "name asc" }),
                 this.orm.searchRead("categorie.client", [], ["id", "name"],         { order: "name asc" }),
                 this.orm.searchRead("modele",           [], ["id", "name"],         { order: "name asc" }),
-                this.orm.searchRead("vehicule",         [], ["id", "numero", "modele"], { order: "numero asc" }),
+                // MODIFICATION 3 : uniquement les véhicules actifs (active_test = True)
+                this.orm.searchRead("vehicule", [["active_test", "=", true]], ["id", "numero", "modele"], { order: "numero asc" }),
                 this.orm.searchRead("revenue.record", domainAvecDate, FIELDS_REC, { limit: 0 }),
                 this.orm.searchRead("revenue.record", domainSansDate, FIELDS_REC, { limit: 0 }),
                 this.orm.searchRead("refund.table", refundDomain, ["id", "amount", "reservation"], { limit: 0 }),
@@ -452,6 +453,7 @@ export class TresorerieDetailDashboard extends Component {
             this.state.lieux      = lieux.map(l => ({ ...l, zone_id: Array.isArray(l.zone) ? l.zone[0] : l.zone || false }));
             this.state.categories = categories;
             this.state.modeles    = modeles;
+            // MODIFICATION 3 : les véhicules déjà filtrés côté ORM (active_test = True)
             this.state.vehicules  = vehicules.map(v => ({
                 ...v,
                 modele_id: Array.isArray(v.modele) ? v.modele[0] : v.modele || false,
@@ -471,6 +473,10 @@ export class TresorerieDetailDashboard extends Component {
             const totaux_modeles_zone = {};
             let grand_montant = 0;
             let grand_count   = 0;
+
+            // ── Set des IDs de véhicules actifs pour filtrage rapide ──
+            // MODIFICATION 3 : on ne comptabilise dans matrix_vehicule que les véhicules actifs
+            const activeVehiculeIds = new Set(this.state.vehicules.map(v => v.id));
 
             // ── Additionner revenus ──
             for (const rec of recs) {
@@ -532,8 +538,8 @@ export class TresorerieDetailDashboard extends Component {
                     totaux_modeles_zone[mod_id].count++;
                 }
 
-                // vehicule × cat
-                if (veh_id) {
+                // MODIFICATION 3 : vehicule × cat — seulement si le véhicule est actif
+                if (veh_id && activeVehiculeIds.has(veh_id)) {
                     if (!matrix_vehicule[veh_id]) matrix_vehicule[veh_id] = {};
                     if (!matrix_vehicule[veh_id][cat_id]) matrix_vehicule[veh_id][cat_id] = { montant: 0, count: 0 };
                     matrix_vehicule[veh_id][cat_id].montant += montant;
@@ -642,7 +648,7 @@ export class TresorerieDetailDashboard extends Component {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  LIGNES TRIÉES PAR MONTANT DÉCROISSANT — Tableau 1 : Zone × Cat
+    //  MODIFICATION 2 — Tri décroissant par montant — Tableau 1 : Zone × Cat
     // ══════════════════════════════════════════════════════════════════
     get sortedZones() {
         return [...this.state.zones].sort((a, b) =>
@@ -650,7 +656,7 @@ export class TresorerieDetailDashboard extends Component {
         );
     }
 
-    // Lieux triés par montant décroissant à l'intérieur d'une zone
+    // MODIFICATION 2 — Lieux triés décroissant à l'intérieur d'une zone
     getLieuxByZone(zone_id) {
         return this.state.lieux
             .filter(l => l.zone_id === zone_id)
@@ -660,7 +666,7 @@ export class TresorerieDetailDashboard extends Component {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  LIGNES TRIÉES PAR MONTANT DÉCROISSANT — Tableau 2 : Modèle × Cat
+    //  MODIFICATION 2 — Tri décroissant par montant — Tableau 2 : Modèle × Cat
     // ══════════════════════════════════════════════════════════════════
     get sortedModeles() {
         return [...this.state.modeles].sort((a, b) =>
@@ -668,7 +674,7 @@ export class TresorerieDetailDashboard extends Component {
         );
     }
 
-    // Véhicules triés par montant décroissant à l'intérieur d'un modèle
+    // MODIFICATION 2 + 3 — Véhicules actifs triés décroissant à l'intérieur d'un modèle
     getVehiculesByModele(modele_id) {
         return this.state.vehicules
             .filter(v => v.modele_id === modele_id)
@@ -678,7 +684,7 @@ export class TresorerieDetailDashboard extends Component {
     }
 
     // ══════════════════════════════════════════════════════════════════
-    //  LIGNES TRIÉES PAR MONTANT DÉCROISSANT — Tableau 3 : Modèle × Zone
+    //  MODIFICATION 2 — Tri décroissant par montant — Tableau 3 : Modèle × Zone
     // ══════════════════════════════════════════════════════════════════
     get sortedModelesZone() {
         return [...this.state.modeles].sort((a, b) =>
@@ -711,8 +717,8 @@ export class TresorerieDetailDashboard extends Component {
         }
 
         const COLORS = [
-            "rgba(21,101,192,0.82)","rgba(21,101,192,0.75)","rgba(21,101,192,0.68)",
-            "rgba(21,101,192,0.62)","rgba(21,101,192,0.55)","rgba(106,27,154,0.75)","rgba(106,27,154,0.88)",
+            "rgba(6,95,70,0.82)","rgba(6,95,70,0.75)","rgba(6,95,70,0.68)",
+            "rgba(6,95,70,0.62)","rgba(6,95,70,0.55)","rgba(22,163,74,0.75)","rgba(22,163,74,0.88)",
         ];
 
         const draw = () => {
@@ -767,7 +773,7 @@ export class TresorerieDetailDashboard extends Component {
             if (!rec.date_encaissement) continue;
             const d      = new Date(rec.date_encaissement);
             const { week, year } = this._getISOWeek(d);
-            const key    = `${year}-${String(week).padStart(2, "0")}`;
+            const key    = `${year}-${String(week).padStart(2, "00")}`;
             if (!matrix[key]) matrix[key] = new Array(7).fill(0);
             const dayIdx = (d.getDay() + 6) % 7;
             matrix[key][dayIdx] += (rec.montant_dzd || 0) + ((rec.montant || 0) * taux);
@@ -821,22 +827,22 @@ export class TresorerieDetailDashboard extends Component {
     _heatColor(t) {
         if (t <= 0) return "#f1f5f9";
         if (t < 0.33) {
-            const r = Math.round(186 + (21  - 186) * (t / 0.33));
-            const g = Math.round(230 + (101 - 230) * (t / 0.33));
-            const b = Math.round(253 + (192 - 253) * (t / 0.33));
+            const r = Math.round(187 + (6   - 187) * (t / 0.33));
+            const g = Math.round(247 + (95  - 247) * (t / 0.33));
+            const b = Math.round(208 + (70  - 208) * (t / 0.33));
             return `rgb(${r},${g},${b})`;
         }
         if (t < 0.66) {
             const tt = (t - 0.33) / 0.33;
-            const r  = Math.round(21  + (30  - 21)  * tt);
-            const g  = Math.round(101 + (58  - 101) * tt);
-            const b  = Math.round(192 + (138 - 192) * tt);
+            const r  = Math.round(6   + (4   - 6)   * tt);
+            const g  = Math.round(95  + (120 - 95)  * tt);
+            const b  = Math.round(70  + (87  - 70)  * tt);
             return `rgb(${r},${g},${b})`;
         }
         const tt = (t - 0.66) / 0.34;
-        const r  = Math.round(30  + (106 - 30)  * tt);
-        const g  = Math.round(58  + (27  - 58)  * tt);
-        const b  = Math.round(138 + (154 - 138) * tt);
+        const r  = Math.round(4   + (2   - 4)   * tt);
+        const g  = Math.round(120 + (78  - 120) * tt);
+        const b  = Math.round(87  + (39  - 87)  * tt);
         return `rgb(${r},${g},${b})`;
     }
 
