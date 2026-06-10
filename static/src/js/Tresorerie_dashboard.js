@@ -397,7 +397,6 @@ export class TresorerieDetailDashboard extends Component {
                 this.orm.searchRead("lieux",            [], ["id", "name", "zone"], { order: "name asc" }),
                 this.orm.searchRead("categorie.client", [], ["id", "name"],         { order: "name asc" }),
                 this.orm.searchRead("modele",           [], ["id", "name"],         { order: "name asc" }),
-                // Uniquement les véhicules actifs (active_test = True)
                 this.orm.searchRead("vehicule", [["active_test", "=", true]], ["id", "numero", "modele"], { order: "numero asc" }),
                 this.orm.searchRead("revenue.record", domainAvecDate, FIELDS_REC, { limit: 0 }),
                 this.orm.searchRead("revenue.record", domainSansDate, FIELDS_REC, { limit: 0 }),
@@ -406,7 +405,6 @@ export class TresorerieDetailDashboard extends Component {
 
             const recs = [...recsAvec, ...recsSans];
 
-            // ── Map réservations → lieu + catégorie ──
             const resIds = [...new Set(
                 recs.map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation).filter(Boolean)
             )];
@@ -427,7 +425,6 @@ export class TresorerieDetailDashboard extends Component {
                 }
             }
 
-            // ── Map réservations refund → zone + lieu + catégorie ──
             const refundResIds = [...new Set(
                 refundRecs.map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation).filter(Boolean)
             )];
@@ -453,7 +450,6 @@ export class TresorerieDetailDashboard extends Component {
             this.state.lieux      = lieux.map(l => ({ ...l, zone_id: Array.isArray(l.zone) ? l.zone[0] : l.zone || false }));
             this.state.categories = categories;
             this.state.modeles    = modeles;
-            // Véhicules déjà filtrés côté ORM (active_test = True)
             this.state.vehicules  = vehicules.map(v => ({
                 ...v,
                 modele_id: Array.isArray(v.modele) ? v.modele[0] : v.modele || false,
@@ -474,10 +470,8 @@ export class TresorerieDetailDashboard extends Component {
             let grand_montant = 0;
             let grand_count   = 0;
 
-            // Set des IDs de véhicules actifs pour filtrage rapide
             const activeVehiculeIds = new Set(this.state.vehicules.map(v => v.id));
 
-            // ── Additionner revenus ──
             for (const rec of recs) {
                 const res_id    = Array.isArray(rec.reservation)       ? rec.reservation[0]       : rec.reservation       || false;
                 const zone_id   = Array.isArray(rec.zone_encaissement) ? rec.zone_encaissement[0] : rec.zone_encaissement || false;
@@ -491,7 +485,6 @@ export class TresorerieDetailDashboard extends Component {
                 grand_montant += montant;
                 grand_count++;
 
-                // zone × cat
                 if (zone_id) {
                     if (!matrix_zone[zone_id]) matrix_zone[zone_id] = {};
                     if (!matrix_zone[zone_id][cat_id]) matrix_zone[zone_id][cat_id] = { montant: 0, count: 0 };
@@ -502,7 +495,6 @@ export class TresorerieDetailDashboard extends Component {
                     totaux_zones[zone_id].count++;
                 }
 
-                // lieu × cat
                 if (lieu_id) {
                     if (!matrix_lieu[lieu_id]) matrix_lieu[lieu_id] = {};
                     if (!matrix_lieu[lieu_id][cat_id]) matrix_lieu[lieu_id][cat_id] = { montant: 0, count: 0 };
@@ -513,7 +505,6 @@ export class TresorerieDetailDashboard extends Component {
                     totaux_lieux[lieu_id].count++;
                 }
 
-                // modele × cat
                 if (mod_id) {
                     if (!matrix_modele[mod_id]) matrix_modele[mod_id] = {};
                     if (!matrix_modele[mod_id][cat_id]) matrix_modele[mod_id][cat_id] = { montant: 0, count: 0 };
@@ -524,7 +515,6 @@ export class TresorerieDetailDashboard extends Component {
                     totaux_modeles[mod_id].count++;
                 }
 
-                // modele × zone
                 if (mod_id && zone_id) {
                     if (!matrix_modele_zone[mod_id]) matrix_modele_zone[mod_id] = {};
                     if (!matrix_modele_zone[mod_id][zone_id]) matrix_modele_zone[mod_id][zone_id] = { montant: 0, count: 0 };
@@ -537,7 +527,6 @@ export class TresorerieDetailDashboard extends Component {
                     totaux_modeles_zone[mod_id].count++;
                 }
 
-                // vehicule × cat — seulement si le véhicule est actif
                 if (veh_id && activeVehiculeIds.has(veh_id)) {
                     if (!matrix_vehicule[veh_id]) matrix_vehicule[veh_id] = {};
                     if (!matrix_vehicule[veh_id][cat_id]) matrix_vehicule[veh_id][cat_id] = { montant: 0, count: 0 };
@@ -548,7 +537,6 @@ export class TresorerieDetailDashboard extends Component {
                     totaux_vehicules[veh_id].count++;
                 }
 
-                // cat global
                 if (cat_id) {
                     if (!totaux_cats[cat_id]) totaux_cats[cat_id] = { montant: 0, count: 0 };
                     totaux_cats[cat_id].montant += montant;
@@ -556,7 +544,6 @@ export class TresorerieDetailDashboard extends Component {
                 }
             }
 
-            // ── Déduire remboursements ──
             for (const ref of refundRecs) {
                 const res_id  = Array.isArray(ref.reservation) ? ref.reservation[0] : ref.reservation || false;
                 const rv      = res_id ? refundResvMap[res_id] : null;
@@ -611,19 +598,16 @@ export class TresorerieDetailDashboard extends Component {
         }
     }
 
-    // ── Zone expand/collapse ──
     toggleZone(zone_id) {
         this.state.expanded_zones[zone_id] = !this.state.expanded_zones[zone_id];
     }
     isZoneExpanded(zone_id) { return !!this.state.expanded_zones[zone_id]; }
 
-    // ── Modele expand/collapse ──
     toggleModele(modele_id) {
         this.state.expanded_modeles[modele_id] = !this.state.expanded_modeles[modele_id];
     }
     isModeleExpanded(modele_id) { return !!this.state.expanded_modeles[modele_id]; }
 
-    // ── Getters cellules ──
     getCellLieu(lieu_id, cat_id)       { return this.state.matrix_lieu[lieu_id]?.[cat_id]         || { montant: 0, count: 0 }; }
     getCellZone(zone_id, cat_id)       { return this.state.matrix_zone[zone_id]?.[cat_id]         || { montant: 0, count: 0 }; }
     getCellModele(modele_id, cat_id)   { return this.state.matrix_modele[modele_id]?.[cat_id]     || { montant: 0, count: 0 }; }
@@ -634,7 +618,6 @@ export class TresorerieDetailDashboard extends Component {
     getTotalModele(modele_id)          { return this.state.totaux_modeles[modele_id] || { montant: 0, count: 0 }; }
     getTotalVehicule(veh_id)           { return this.state.totaux_vehicules[veh_id]  || { montant: 0, count: 0 }; }
 
-    // ── Modele × Zone ──
     getCellModeleZone(modele_id, zone_id) { return this.state.matrix_modele_zone[modele_id]?.[zone_id] || { montant: 0, count: 0 }; }
     getTotalModeleZone(modele_id)         { return this.state.totaux_modeles_zone[modele_id] || { montant: 0, count: 0 }; }
     getTotalZoneAllModeles(zone_id) {
@@ -646,7 +629,6 @@ export class TresorerieDetailDashboard extends Component {
         return { montant, count };
     }
 
-    // ── Zones triées décroissant ──
     get sortedZones() {
         return [...this.state.zones].sort((a, b) =>
             (this.getTotalZone(b.id).montant) - (this.getTotalZone(a.id).montant)
@@ -661,11 +643,8 @@ export class TresorerieDetailDashboard extends Component {
             );
     }
 
-    // ── Modèles triés décroissant — MODIFICATION 1 : uniquement ceux ayant des véhicules actifs ──
     get sortedModeles() {
-        // Set des modele_id ayant au moins un véhicule actif
         const activeModeleIds = new Set(this.state.vehicules.map(v => v.modele_id).filter(Boolean));
-
         return [...this.state.modeles]
             .filter(m => activeModeleIds.has(m.id))
             .sort((a, b) =>
@@ -673,7 +652,6 @@ export class TresorerieDetailDashboard extends Component {
             );
     }
 
-    // Véhicules actifs triés décroissant à l'intérieur d'un modèle
     getVehiculesByModele(modele_id) {
         return this.state.vehicules
             .filter(v => v.modele_id === modele_id)
@@ -682,10 +660,8 @@ export class TresorerieDetailDashboard extends Component {
             );
     }
 
-    // ── Modèles × Zone triés décroissant — MODIFICATION 1 : uniquement ceux ayant des véhicules actifs ──
     get sortedModelesZone() {
         const activeModeleIds = new Set(this.state.vehicules.map(v => v.modele_id).filter(Boolean));
-
         return [...this.state.modeles]
             .filter(m => activeModeleIds.has(m.id))
             .sort((a, b) =>
@@ -826,6 +802,7 @@ export class TresorerieDetailDashboard extends Component {
     }
 
     _heatColor(t) {
+        // Palette bleu → violet (identique aux réservations)
         if (t <= 0) return "#f1f5f9";
         if (t < 0.33) {
             const r = Math.round(186 + (21  - 186) * (t / 0.33));
