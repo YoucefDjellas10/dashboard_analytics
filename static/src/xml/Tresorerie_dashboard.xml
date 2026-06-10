@@ -256,7 +256,7 @@
 .trd-cell-empty   { color:#e2e8f0; font-size:18px; }
 
 .trd-total-row td {
-    background:linear-gradient(135deg,#f8fafc,#f1f5f9) !important;
+    background:linear-gradient(135deg,#f8fafc,#f1f5f9);
     font-weight:800 !important; border-top:2px solid #e2e8f0 !important;
     font-size:13px; padding:11px 16px; text-align:center;
 }
