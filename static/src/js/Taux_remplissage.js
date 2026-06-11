@@ -112,9 +112,7 @@ export class TauxRemplissageDashboard extends Component {
 
         } finally {
             this.state.loading = false;
-            setTimeout(() => {
-                this._renderChart();
-            }, 50);
+            setTimeout(() => this._renderChart(), 50);
         }
     }
 
@@ -132,11 +130,10 @@ export class TauxRemplissageDashboard extends Component {
         this.action.doAction("dashboard_analytics.action_dashboard_statistiques");
     }
 
-    // ── Clic sur une ligne du tableau → ouvre le détail par zone ──
     onClickMois(ev) {
-        const tr   = ev.currentTarget;
-        const mois = parseInt(tr.dataset.mois);
-        const label = this.state.rows[mois - 1]?.label + " " + this.state.annee_n;
+        const tr    = ev.currentTarget;
+        const mois  = parseInt(tr.dataset.mois);
+        const label = (this.state.rows[mois - 1]?.label || "") + " " + this.state.annee_n;
 
         this.action.doAction({
             type   : "ir.actions.client",
@@ -186,7 +183,11 @@ export class TauxRemplissageDashboard extends Component {
                     },
                     scales: {
                         x: { grid: { display: false }, ticks: { font: { weight: "600" } } },
-                        y: { beginAtZero: true, max: 100, grid: { color: "rgba(0,0,0,.06)" }, ticks: { font: { weight: "600" }, callback: v => `${v} %` } },
+                        y: {
+                            beginAtZero: true, max: 100,
+                            grid: { color: "rgba(0,0,0,.06)" },
+                            ticks: { font: { weight: "600" }, callback: v => `${v} %` },
+                        },
                     },
                 },
             });
@@ -214,15 +215,12 @@ export class TauxRemplissageDashboard extends Component {
 }
 
 TauxRemplissageDashboard.template = "dashboard_analytics.TauxRemplissageDashboard";
-
-registry
-    .category("actions")
-    .add("dashboard_analytics.action_taux_remplissage_dashboard", TauxRemplissageDashboard);
+registry.category("actions").add("dashboard_analytics.action_taux_remplissage_dashboard", TauxRemplissageDashboard);
 
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  COMPOSANT DÉTAIL — TauxRemplissageDetailDashboard
-//  Affiche le taux par zone pour un mois donné
+//  Tableau croisé : Zones (expand/collapse) → Véhicules × Taux
 // ═══════════════════════════════════════════════════════════════════════════
 
 export class TauxRemplissageDetailDashboard extends Component {
@@ -234,12 +232,17 @@ export class TauxRemplissageDetailDashboard extends Component {
         const params = this.props.action?.params || {};
 
         this.state = useState({
-            loading       : true,
-            annee         : params.annee         || new Date().getFullYear(),
-            mois          : params.mois          || 1,
-            label         : params.label         || "",
-            selected_zone : params.selected_zone || "",
-            rows          : [],   // { zone_id, zone_name, taux, nbVehicules, joursReserves, nbJoursPeriode }
+            loading        : true,
+            annee          : params.annee         || new Date().getFullYear(),
+            mois           : params.mois          || 1,
+            label          : params.label         || "",
+            selected_zone  : params.selected_zone || "",
+            zones          : [],
+            // zone_rows[zone_id] = { taux, nbVehicules, joursReserves, nbJoursPeriode }
+            zone_rows      : {},
+            // veh_rows[zone_id]  = [{ veh_id, veh_name, taux, joursReserves, nbJoursPeriode }]
+            veh_rows       : {},
+            expanded_zones : {},
         });
 
         onWillStart(() => this._loadDetailData());
@@ -261,62 +264,100 @@ export class TauxRemplissageDetailDashboard extends Component {
             const fin   = new Date(annee, mois,     0, 23, 59, 59);
             const nbJoursPeriode = Math.round((fin - debut) / (1000 * 60 * 60 * 24));
 
-            // Charger toutes les zones (ou seulement la zone filtrée)
+            // Charger les zones (toutes ou filtrée)
             let zonesDomain = [];
             if (selected_zone) zonesDomain = [["id", "=", parseInt(selected_zone)]];
             const zones = await this.orm.searchRead("zone", zonesDomain, ["id", "name"], { order: "name asc" });
+            this.state.zones = zones;
 
-            // Pour chaque zone : réservations + véhicules en parallèle
-            const rowPromises = zones.map(async (zone) => {
-                const domainRes = [
-                    ["status",           "=",  "confirmee"],
-                    ["date_heure_debut", "<=", this._formatORM(fin)],
-                    ["date_heure_fin",   ">=", this._formatORM(debut)],
-                    ["zone",             "=",  zone.id],
-                ];
-                const domainVeh = [
-                    ["zone",        "=",  zone.id],
-                    ["active_test", "=",  true],
-                ];
+            // Pour chaque zone : réservations + véhicules
+            const zone_rows = {};
+            const veh_rows  = {};
 
-                const [resList, vehList] = await Promise.all([
-                    this.orm.searchRead("reservation", domainRes, ["date_heure_debut", "date_heure_fin"]),
-                    this.orm.searchRead("vehicule", domainVeh, ["id"]),
-                ]);
+            await Promise.all(zones.map(async (zone) => {
+                // Réservations de la zone sur le mois
+                const resList = await this.orm.searchRead("reservation",
+                    [
+                        ["status",           "=",  "confirmee"],
+                        ["date_heure_debut", "<=", this._formatORM(fin)],
+                        ["date_heure_fin",   ">=", this._formatORM(debut)],
+                        ["zone",             "=",  zone.id],
+                    ],
+                    ["date_heure_debut", "date_heure_fin", "vehicule"]
+                );
+
+                // Véhicules actifs de la zone
+                const vehList = await this.orm.searchRead("vehicule",
+                    [["zone", "=", zone.id], ["active_test", "=", true]],
+                    ["id", "name", "numero"]
+                );
 
                 const nbVehicules = vehList.length;
 
-                let joursReserves = 0;
+                // ── Calcul taux global de la zone ──
+                let joursZone = 0;
                 for (const r of resList) {
                     const deb = new Date(r.date_heure_debut);
                     const fn  = new Date(r.date_heure_fin);
                     const s   = deb < debut ? debut : deb;
                     const e   = fn  > fin   ? fin   : fn;
                     const j   = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
-                    if (j > 0) joursReserves += j;
+                    if (j > 0) joursZone += j;
                 }
 
-                let taux = 0;
+                let tauxZone = 0;
                 if (nbVehicules > 0 && nbJoursPeriode > 0) {
-                    taux = Math.min(100, Math.round((joursReserves / (nbVehicules * nbJoursPeriode)) * 100));
+                    tauxZone = Math.min(100, Math.round((joursZone / (nbVehicules * nbJoursPeriode)) * 100));
                 }
 
-                return {
-                    zone_id        : zone.id,
-                    zone_name      : zone.name,
-                    taux,
+                zone_rows[zone.id] = {
+                    taux         : tauxZone,
                     nbVehicules,
-                    joursReserves,
+                    joursReserves: joursZone,
                     nbJoursPeriode,
                 };
-            });
 
-            this.state.rows = await Promise.all(rowPromises);
+                // ── Calcul taux par véhicule ──
+                const vehMap = {};
+                for (const veh of vehList) {
+                    vehMap[veh.id] = { veh_id: veh.id, veh_name: veh.numero || veh.name, joursReserves: 0, nbJoursPeriode, taux: 0 };
+                }
+
+                for (const r of resList) {
+                    const vehId = Array.isArray(r.vehicule) ? r.vehicule[0] : r.vehicule;
+                    if (!vehId || !vehMap[vehId]) continue;
+                    const deb = new Date(r.date_heure_debut);
+                    const fn  = new Date(r.date_heure_fin);
+                    const s   = deb < debut ? debut : deb;
+                    const e   = fn  > fin   ? fin   : fn;
+                    const j   = Math.ceil((e - s) / (1000 * 60 * 60 * 24));
+                    if (j > 0) vehMap[vehId].joursReserves += j;
+                }
+
+                for (const v of Object.values(vehMap)) {
+                    v.taux = nbJoursPeriode > 0
+                        ? Math.min(100, Math.round((v.joursReserves / nbJoursPeriode) * 100))
+                        : 0;
+                }
+
+                veh_rows[zone.id] = Object.values(vehMap).sort((a, b) => b.taux - a.taux);
+            }));
+
+            this.state.zone_rows = zone_rows;
+            this.state.veh_rows  = veh_rows;
 
         } finally {
             this.state.loading = false;
             setTimeout(() => this._renderDetailChart(), 50);
         }
+    }
+
+    toggleZone(zone_id) {
+        this.state.expanded_zones[zone_id] = !this.state.expanded_zones[zone_id];
+    }
+
+    isZoneExpanded(zone_id) {
+        return !!this.state.expanded_zones[zone_id];
     }
 
     retour() {
@@ -330,9 +371,9 @@ export class TauxRemplissageDetailDashboard extends Component {
     }
 
     get moyenneDetail() {
-        const rows = this.state.rows.filter(r => r.taux > 0);
-        if (rows.length === 0) return 0;
-        return Math.round(rows.reduce((s, r) => s + r.taux, 0) / rows.length);
+        const vals = Object.values(this.state.zone_rows).map(r => r.taux).filter(v => v > 0);
+        if (vals.length === 0) return 0;
+        return Math.round(vals.reduce((s, v) => s + v, 0) / vals.length);
     }
 
     _renderDetailChart() {
@@ -340,8 +381,8 @@ export class TauxRemplissageDetailDashboard extends Component {
         if (!canvas) return;
         if (this._chart) { this._chart.destroy(); this._chart = null; }
 
-        const labels = this.state.rows.map(r => r.zone_name);
-        const data   = this.state.rows.map(r => r.taux);
+        const labels = this.state.zones.map(z => z.name);
+        const data   = this.state.zones.map(z => this.state.zone_rows[z.id]?.taux || 0);
 
         const draw = () => {
             this._chart = new Chart(canvas, {
@@ -349,7 +390,7 @@ export class TauxRemplissageDetailDashboard extends Component {
                 data: {
                     labels,
                     datasets: [{
-                        label           : `Taux de remplissage (%)`,
+                        label           : "Taux de remplissage (%)",
                         data,
                         backgroundColor : data.map(v =>
                             v >= 75 ? "rgba(22,163,74,0.8)" :
@@ -365,7 +406,6 @@ export class TauxRemplissageDetailDashboard extends Component {
                     plugins: {
                         legend  : { position: "top", labels: { font: { weight: "bold" } } },
                         tooltip : { callbacks: { label: ctx => ` ${ctx.parsed.y} %` } },
-                        datalabels: false,
                     },
                     scales: {
                         x: { grid: { display: false }, ticks: { font: { weight: "600" } } },
@@ -389,7 +429,4 @@ export class TauxRemplissageDetailDashboard extends Component {
 }
 
 TauxRemplissageDetailDashboard.template = "dashboard_analytics.TauxRemplissageDetailDashboard";
-
-registry
-    .category("actions")
-    .add("dashboard_analytics.action_taux_remplissage_detail_dashboard", TauxRemplissageDetailDashboard);
+registry.category("actions").add("dashboard_analytics.action_taux_remplissage_detail_dashboard", TauxRemplissageDetailDashboard);

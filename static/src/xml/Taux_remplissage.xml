@@ -12,151 +12,72 @@
 .o_action_manager { overflow-y:auto !important; }
 
 .tx-header {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:12px;
-    background:#fff;
-    border-radius:16px;
-    padding:16px 24px;
-    margin-bottom:20px;
-    border:1px solid #e2e8f0;
-    box-shadow:0 4px 16px rgba(0,0,0,.07);
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:12px; background:#fff; border-radius:16px;
+    padding:16px 24px; margin-bottom:20px;
+    border:1px solid #e2e8f0; box-shadow:0 4px 16px rgba(0,0,0,.07);
 }
-.tx-title {
-    font-size:20px;
-    font-weight:800;
-    color:#1e293b;
-}
-.tx-select-zone,
-.tx-select-year {
-    border-radius:8px;
-    border:1.5px solid #e2e8f0;
-    font-size:13px;
-    color:#1e293b;
-    background:#f8fafc;
-    padding:7px 12px;
+.tx-title { font-size:20px; font-weight:800; color:#1e293b; }
+.tx-select-zone, .tx-select-year {
+    border-radius:8px; border:1.5px solid #e2e8f0; font-size:13px;
+    color:#1e293b; background:#f8fafc; padding:7px 12px;
 }
 .tx-select-zone { width:220px; }
 .tx-select-year { width:120px; font-weight:700; }
 .tx-table-wrapper {
-    background:#fff;
-    border-radius:16px;
-    border:1px solid #e2e8f0;
-    box-shadow:0 4px 16px rgba(0,0,0,.07);
-    overflow:hidden;
+    background:#fff; border-radius:16px; border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07); overflow:hidden;
 }
-.tx-table {
-    width:100%;
-    border-collapse:collapse;
-}
-.tx-table thead tr {
-    background:linear-gradient(135deg,#0e4f4f,#0e7490);
-    color:#fff;
-}
+.tx-table { width:100%; border-collapse:collapse; }
+.tx-table thead tr { background:linear-gradient(135deg,#0e4f4f,#0e7490); color:#fff; }
 .tx-table th {
-    padding:14px 20px;
-    font-size:13px;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:.6px;
-    text-align:center;
+    padding:14px 20px; font-size:13px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.6px; text-align:center;
 }
 .tx-table th:first-child { text-align:left; }
 .tx-table td {
-    padding:13px 20px;
-    font-size:14px;
-    text-align:center;
-    border-bottom:1px solid #f1f5f9;
-    color:#1e293b;
+    padding:13px 20px; font-size:14px; text-align:center;
+    border-bottom:1px solid #f1f5f9; color:#1e293b;
 }
-.tx-table td:first-child {
-    text-align:left;
-    font-weight:700;
-    color:#475569;
-}
-.tx-table tbody tr:hover td { background:#f0fdfa; }
-.tx-table tfoot tr {
-    background:linear-gradient(135deg,#f8fafc,#f1f5f9);
-    font-weight:800;
-}
-.tx-table tfoot td {
-    border-top:2px solid #e2e8f0;
-    font-size:14px;
-}
-/* Ligne cliquable */
-.tx-row-clickable {
-    cursor:pointer;
-    transition:background .15s;
-}
-.tx-row-clickable td:first-child {
-    color:#0e7490 !important;
-    text-decoration:underline dotted;
-}
+.tx-table td:first-child { text-align:left; font-weight:700; color:#0e7490; }
+.tx-table tfoot tr { background:linear-gradient(135deg,#f0fdfa,#e0f2fe); font-weight:800; }
+.tx-table tfoot td { border-top:2px solid #a5f3fc; font-size:14px; }
+.tx-row-clickable { cursor:pointer; transition:background .15s; }
 .tx-row-clickable:hover td { background:#ecfeff !important; }
 .tx-row-clickable:hover td:first-child { color:#0e4f4f !important; }
-
 .tx-btn-retour {
-    display:flex;
-    align-items:center;
-    gap:6px;
-    padding:8px 18px;
-    border-radius:9px;
-    border:1.5px solid #e2e8f0;
-    background:#f8fafc;
-    color:#475569;
-    font-size:13px;
-    font-weight:600;
-    cursor:pointer;
+    display:flex; align-items:center; gap:6px; padding:8px 18px;
+    border-radius:9px; border:1.5px solid #e2e8f0; background:#f8fafc;
+    color:#475569; font-size:13px; font-weight:600; cursor:pointer;
     transition:background .2s, transform .15s;
 }
-.tx-btn-retour:hover {
-    background:#e2e8f0;
-    transform:translateY(-2px);
-}
+.tx-btn-retour:hover { background:#e2e8f0; transform:translateY(-2px); }
 .tx-progress-bg {
-    background:rgba(0,0,0,.08);
-    border-radius:10px;
-    height:8px;
-    overflow:hidden;
-    margin-top:6px;
-    min-width:120px;
+    background:rgba(0,0,0,.08); border-radius:10px; height:8px;
+    overflow:hidden; margin-top:0; min-width:120px;
 }
 </style>
 
 <div class="tx-header">
     <div style="display:flex; align-items:center; gap:10px;">
-        <button class="tx-btn-retour" t-on-click="retourDashboard">
-            ← Retour
-        </button>
-        <div class="tx-title">
-            Taux de remplissage — <t t-esc="state.annee_n"/>
-        </div>
+        <button class="tx-btn-retour" t-on-click="retourDashboard">← Retour</button>
+        <div class="tx-title">Taux de remplissage — <t t-esc="state.annee_n"/></div>
     </div>
-
     <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
         <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Année</span>
-            <select class="tx-select-year form-select form-select-sm"
-                    t-on-change="updateSelectedYear">
+            <select class="tx-select-year form-select form-select-sm" t-on-change="updateSelectedYear">
                 <t t-foreach="state.years" t-as="year" t-key="year">
-                    <option t-att-value="year"
-                            t-att-selected="state.annee_n == year"
-                            t-esc="year"/>
+                    <option t-att-value="year" t-att-selected="state.annee_n == year" t-esc="year"/>
                 </t>
             </select>
         </div>
-
         <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Zone</span>
-            <select class="tx-select-zone form-select form-select-sm"
-                    t-on-change="updateSelectedZone">
+            <select class="tx-select-zone form-select form-select-sm" t-on-change="updateSelectedZone">
                 <option value="">🌍 Toutes les zones</option>
                 <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
-                    <option t-att-value="zone.id"
-                            t-att-selected="state.selected_zone == zone.id"
-                            t-esc="zone.name"/>
+                    <option t-att-value="zone.id" t-att-selected="state.selected_zone == zone.id" t-esc="zone.name"/>
                 </t>
             </select>
         </div>
@@ -164,18 +85,14 @@
 </div>
 
 <t t-if="state.loading">
-    <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">
-        ⏳ Chargement…
-    </div>
+    <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">⏳ Chargement…</div>
 </t>
 
 <t t-else="">
-
     <!-- Carte moyenne annuelle -->
     <div style="display:flex; gap:16px; margin-bottom:20px; flex-wrap:wrap;">
         <div style="background:linear-gradient(135deg,#cffafe,#a5f3fc); border-radius:16px;
-                    padding:20px 28px; border:none; box-shadow:0 6px 20px rgba(0,0,0,.1);
-                    flex:1; min-width:200px;">
+                    padding:20px 28px; box-shadow:0 6px 20px rgba(0,0,0,.1); flex:1; min-width:200px;">
             <div style="font-size:14px; font-weight:700; color:#164e4e; margin-bottom:6px;">
                 Moyenne annuelle <t t-esc="state.annee_n"/>
             </div>
@@ -198,46 +115,34 @@
                     <th>Barre</th>
                 </tr>
             </thead>
-
             <tbody>
                 <t t-foreach="state.rows" t-as="row" t-key="row.mois">
-                    <tr class="tx-row-clickable"
-                        t-att-data-mois="row.mois"
-                        t-on-click="onClickMois">
+                    <tr class="tx-row-clickable" t-att-data-mois="row.mois" t-on-click="onClickMois">
+                        <td>🔍 <t t-esc="row.label"/></td>
                         <td>
-                            🔍 <t t-esc="row.label"/>
-                        </td>
-                        <td>
-                            <span t-attf-style="font-size:16px; font-weight:900;
-                                color:{{ tauxColor(row.taux) }};">
+                            <span t-attf-style="font-size:16px; font-weight:900; color:{{ tauxColor(row.taux) }};">
                                 <t t-esc="row.taux"/> %
                             </span>
                         </td>
                         <td style="min-width:160px;">
                             <div class="tx-progress-bg">
-                                <div t-attf-style="width:{{row.taux}}%; height:100%;
-                                    background:{{ tauxColor(row.taux) }};
-                                    border-radius:10px; transition:width .6s;"/>
+                                <div t-attf-style="width:{{row.taux}}%; height:100%; background:{{ tauxColor(row.taux) }}; border-radius:10px; transition:width .6s;"/>
                             </div>
                         </td>
                     </tr>
                 </t>
             </tbody>
-
             <tfoot>
                 <tr>
                     <td>Moyenne</td>
                     <td>
-                        <span t-attf-style="font-size:16px; font-weight:900;
-                            color:{{ tauxColor(moyenneTaux) }};">
+                        <span t-attf-style="font-size:16px; font-weight:900; color:{{ tauxColor(moyenneTaux) }};">
                             <t t-esc="moyenneTaux"/> %
                         </span>
                     </td>
                     <td>
                         <div class="tx-progress-bg">
-                            <div t-attf-style="width:{{moyenneTaux}}%; height:100%;
-                                background:{{ tauxColor(moyenneTaux) }};
-                                border-radius:10px;"/>
+                            <div t-attf-style="width:{{moyenneTaux}}%; height:100%; background:{{ tauxColor(moyenneTaux) }}; border-radius:10px;"/>
                         </div>
                     </td>
                 </tr>
@@ -245,14 +150,13 @@
         </table>
     </div>
 
-    <!-- Graphique barres mensuel -->
+    <!-- Graphique barres -->
     <div class="tx-table-wrapper" style="margin-top:20px; padding:24px;">
         <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
             📊 Taux de remplissage mensuel — <t t-esc="state.annee_n"/>
         </div>
         <canvas id="tr-remplissage-chart" style="width:100%; max-height:400px;"/>
     </div>
-
 </t>
 
 </div>
@@ -261,7 +165,7 @@
 
     <!-- ═══════════════════════════════════════════════════════════
          TEMPLATE DÉTAIL — TauxRemplissageDetailDashboard
-         Taux par zone pour un mois donné
+         Zones expand/collapse → véhicules en dessous
          ═══════════════════════════════════════════════════════════ -->
     <t t-name="dashboard_analytics.TauxRemplissageDetailDashboard">
 <div style="padding:16px; background:#f1f5f9; min-height:100vh;">
@@ -270,98 +174,90 @@
 .o_view_controller { overflow-y:auto !important; height:100% !important; }
 .o_action_manager { overflow-y:auto !important; }
 
+/* ── Header ── */
 .trd-header {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:12px;
-    background:#fff;
-    border-radius:16px;
-    padding:16px 24px;
-    margin-bottom:20px;
-    border:1px solid #e2e8f0;
-    box-shadow:0 4px 16px rgba(0,0,0,.07);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+    background:#fff; border-radius:16px; padding:16px 24px; margin-bottom:20px;
+    border:1px solid #e2e8f0; box-shadow:0 4px 16px rgba(0,0,0,.07);
 }
 .trd-title    { font-size:18px; font-weight:800; color:#1e293b; }
 .trd-subtitle { font-size:13px; color:#64748b; font-weight:500; margin-top:2px; }
 .trd-btn {
-    display:flex;
-    align-items:center;
-    gap:6px;
-    padding:8px 18px;
-    border-radius:9px;
-    border:1.5px solid #e2e8f0;
-    background:#f8fafc;
-    color:#475569;
-    font-size:13px;
-    font-weight:600;
-    cursor:pointer;
+    display:flex; align-items:center; gap:6px; padding:8px 18px;
+    border-radius:9px; border:1.5px solid #e2e8f0; background:#f8fafc;
+    color:#475569; font-size:13px; font-weight:600; cursor:pointer;
     transition:background .2s, transform .15s;
 }
 .trd-btn:hover { background:#e2e8f0; transform:translateY(-2px); }
 
-.trd-table-wrapper {
-    background:#fff;
-    border-radius:16px;
-    border:1px solid #e2e8f0;
-    box-shadow:0 4px 16px rgba(0,0,0,.07);
-    overflow:hidden;
-    margin-bottom:20px;
+/* ── Card ── */
+.trd-card {
+    background:#fff; border-radius:16px; border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07); overflow:hidden; margin-bottom:20px;
 }
-.trd-table {
-    width:100%;
-    border-collapse:collapse;
+.trd-card-title {
+    font-size:15px; font-weight:800; color:#1e293b;
+    padding:18px 24px 12px; border-bottom:1px solid #f1f5f9;
 }
-.trd-table thead tr {
-    background:linear-gradient(135deg,#0e4f4f,#0e7490);
-    color:#fff;
+.trd-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+/* ── Tableau croisé ── */
+.trd-cross-table { width:100%; border-collapse:collapse; font-size:13px; }
+.trd-cross-table thead tr { background:linear-gradient(135deg,#0e4f4f,#0e7490); color:#fff; }
+.trd-cross-table thead th {
+    padding:12px 16px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.5px; text-align:center; white-space:nowrap;
 }
-.trd-table th {
-    padding:14px 20px;
-    font-size:13px;
-    font-weight:700;
-    text-transform:uppercase;
-    letter-spacing:.6px;
-    text-align:center;
+.trd-cross-table thead th:first-child { text-align:left; }
+
+/* ── Ligne ZONE ── */
+.trd-zone-row {
+    background:linear-gradient(90deg,#ecfeff 0%,#cffafe 100%);
+    cursor:pointer; user-select:none; border-bottom:1px solid #a5f3fc;
 }
-.trd-table th:first-child { text-align:left; }
-.trd-table td {
-    padding:13px 20px;
-    font-size:14px;
-    text-align:center;
-    border-bottom:1px solid #f1f5f9;
-    color:#1e293b;
+.trd-zone-row:hover { background:linear-gradient(90deg,#cffafe 0%,#a5f3fc 100%); }
+.trd-zone-row td {
+    padding:11px 16px; font-weight:800; font-size:13px;
+    color:#0e4f4f; border-bottom:1px solid #a5f3fc;
 }
-.trd-table td:first-child {
-    text-align:left;
-    font-weight:700;
-    color:#0e7490;
+.trd-zone-row td:first-child {
+    text-align:left; white-space:nowrap; position:sticky; left:0; z-index:2;
+    background:linear-gradient(90deg,#ecfeff 0%,#cffafe 100%);
+    border-right:1px solid #a5f3fc;
 }
-.trd-table tbody tr:hover td { background:#f0fdfa; }
-.trd-table tfoot tr {
-    background:linear-gradient(135deg,#f0fdfa,#e0f2fe);
-    font-weight:800;
+.trd-zone-toggle { display:inline-flex; align-items:center; gap:8px; }
+.trd-zone-arrow  { display:inline-block; font-size:11px; transition:transform .2s ease; color:#0e7490; }
+.trd-zone-arrow.open { transform:rotate(90deg); }
+
+/* ── Ligne VÉHICULE ── */
+.trd-veh-row td {
+    padding:9px 16px; text-align:center; border-bottom:1px solid #f1f5f9;
+    color:#1e293b; font-size:13px;
 }
-.trd-table tfoot td {
-    border-top:2px solid #a5f3fc;
-    font-size:14px;
+.trd-veh-row td:first-child {
+    text-align:left; font-weight:600; color:#475569; background:#fafafa;
+    white-space:nowrap; position:sticky; left:0; z-index:2;
+    border-right:1px solid #e2e8f0; padding-left:32px;
 }
-.trd-progress-bg {
-    background:rgba(0,0,0,.08);
-    border-radius:10px;
-    height:10px;
-    overflow:hidden;
-    min-width:160px;
+.trd-veh-row:hover td            { background:#f0fdfa; }
+.trd-veh-row:hover td:first-child { background:#e0f2fe; }
+
+/* ── Total row ── */
+.trd-total-row td {
+    background:linear-gradient(135deg,#f0fdfa,#e0f2fe) !important;
+    font-weight:800 !important; border-top:2px solid #a5f3fc !important;
+    font-size:13px; padding:11px 16px; text-align:center;
+}
+.trd-total-row td:first-child { text-align:left; }
+
+/* ── Progress inline ── */
+.trd-prog-bg {
+    background:rgba(0,0,0,.08); border-radius:8px; height:8px;
+    overflow:hidden; min-width:100px; display:inline-block; width:100%;
 }
 .trd-badge-veh {
-    display:inline-block;
-    background:#e0f2fe;
-    color:#0369a1;
-    border-radius:20px;
-    padding:3px 10px;
-    font-size:12px;
-    font-weight:700;
+    display:inline-block; background:#e0f2fe; color:#0369a1;
+    border-radius:20px; padding:2px 9px; font-size:12px; font-weight:700;
 }
 </style>
 
@@ -375,15 +271,12 @@
             <div class="trd-subtitle"><t t-esc="state.label"/></div>
         </div>
         <!-- Badge moyenne -->
-        <div style="
-            background:linear-gradient(135deg,#0e4f4f 0%,#0e7490 100%);
-            border-radius:16px; padding:18px 28px 18px 22px; min-width:160px;
-            box-shadow:0 8px 32px rgba(14,116,144,0.35);
-        ">
-            <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.65); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:6px;">
-                Moyenne
-            </div>
-            <div style="font-size:32px; font-weight:900; color:#fff; line-height:1; letter-spacing:-1px;">
+        <div style="background:linear-gradient(135deg,#0e4f4f 0%,#0e7490 100%);
+                    border-radius:16px; padding:18px 28px 18px 22px; min-width:160px;
+                    box-shadow:0 8px 32px rgba(14,116,144,0.35);">
+            <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.65);
+                        text-transform:uppercase; letter-spacing:1.2px; margin-bottom:6px;">Moyenne</div>
+            <div style="font-size:32px; font-weight:900; color:#fff; line-height:1;">
                 <t t-esc="moyenneDetail"/> %
             </div>
         </div>
@@ -398,74 +291,118 @@
 
     <t t-else="">
 
-        <!-- Tableau des zones -->
-        <div class="trd-table-wrapper">
-            <table class="trd-table">
-                <thead>
-                    <tr>
-                        <th>Zone</th>
-                        <th>Taux de remplissage</th>
-                        <th>Barre</th>
-                        <th>Véhicules</th>
-                        <th>Jours réservés</th>
-                        <th>Jours période</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <t t-foreach="state.rows" t-as="row" t-key="row.zone_id">
+        <!-- Tableau zones expand/collapse -->
+        <div class="trd-card">
+            <div class="trd-card-title">
+                🔀 Taux de remplissage par zone et par véhicule
+                <span style="font-size:12px; font-weight:500; color:#94a3b8; margin-left:8px;">
+                    (cliquez sur une zone pour voir ses véhicules)
+                </span>
+            </div>
+            <div class="trd-scroll">
+                <table class="trd-cross-table">
+                    <thead>
                         <tr>
-                            <td>🗺️ <t t-esc="row.zone_name"/></td>
+                            <th style="min-width:220px;">Zone / Véhicule</th>
+                            <th>Taux de remplissage</th>
+                            <th style="min-width:180px;">Barre</th>
+                            <th>Jours réservés</th>
+                            <th>Jours période</th>
+                            <th>Véhicules</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+
+                            <!-- ── Ligne ZONE ── -->
+                            <tr class="trd-zone-row" t-on-click="() => this.toggleZone(zone.id)">
+                                <td>
+                                    <span class="trd-zone-toggle">
+                                        <span t-attf-class="trd-zone-arrow {{ isZoneExpanded(zone.id) ? 'open' : '' }}">▶</span>
+                                        🗺️ <t t-esc="zone.name"/>
+                                    </span>
+                                </td>
+                                <td>
+                                    <t t-set="zr" t-value="state.zone_rows[zone.id] || {}"/>
+                                    <span t-attf-style="font-size:15px; font-weight:900; color:{{ tauxColor(zr.taux || 0) }};">
+                                        <t t-esc="zr.taux || 0"/> %
+                                    </span>
+                                </td>
+                                <td>
+                                    <t t-set="zr" t-value="state.zone_rows[zone.id] || {}"/>
+                                    <div class="trd-prog-bg">
+                                        <div t-attf-style="width:{{zr.taux || 0}}%; height:100%;
+                                            background:{{ tauxColor(zr.taux || 0) }};
+                                            border-radius:8px; transition:width .6s;"/>
+                                    </div>
+                                </td>
+                                <td style="font-weight:800; color:#0e7490;">
+                                    <t t-set="zr" t-value="state.zone_rows[zone.id] || {}"/>
+                                    <t t-esc="zr.joursReserves || 0"/> j
+                                </td>
+                                <td style="color:#64748b;">
+                                    <t t-set="zr" t-value="state.zone_rows[zone.id] || {}"/>
+                                    <t t-esc="zr.nbJoursPeriode || 0"/> j
+                                </td>
+                                <td>
+                                    <t t-set="zr" t-value="state.zone_rows[zone.id] || {}"/>
+                                    <span class="trd-badge-veh">🚗 <t t-esc="zr.nbVehicules || 0"/></span>
+                                </td>
+                            </tr>
+
+                            <!-- ── Lignes VÉHICULES (si zone expanded) ── -->
+                            <t t-if="isZoneExpanded(zone.id)">
+                                <t t-foreach="state.veh_rows[zone.id] || []" t-as="veh" t-key="veh.veh_id">
+                                    <tr class="trd-veh-row">
+                                        <td>🚗 <t t-esc="veh.veh_name"/></td>
+                                        <td>
+                                            <span t-attf-style="font-size:14px; font-weight:800; color:{{ tauxColor(veh.taux) }};">
+                                                <t t-esc="veh.taux"/> %
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="trd-prog-bg">
+                                                <div t-attf-style="width:{{veh.taux}}%; height:100%;
+                                                    background:{{ tauxColor(veh.taux) }};
+                                                    border-radius:8px; transition:width .6s;"/>
+                                            </div>
+                                        </td>
+                                        <td style="color:#0e7490; font-weight:700;">
+                                            <t t-esc="veh.joursReserves"/> j
+                                        </td>
+                                        <td style="color:#64748b;">
+                                            <t t-esc="veh.nbJoursPeriode"/> j
+                                        </td>
+                                        <td>—</td>
+                                    </tr>
+                                </t>
+                            </t>
+
+                        </t>
+                    </tbody>
+                    <tfoot>
+                        <tr class="trd-total-row">
+                            <td>Moyenne générale</td>
                             <td>
-                                <span t-attf-style="font-size:16px; font-weight:900;
-                                    color:{{ tauxColor(row.taux) }};">
-                                    <t t-esc="row.taux"/> %
+                                <span t-attf-style="font-size:15px; font-weight:900; color:{{ tauxColor(moyenneDetail) }};">
+                                    <t t-esc="moyenneDetail"/> %
                                 </span>
                             </td>
-                            <td style="min-width:180px;">
-                                <div class="trd-progress-bg">
-                                    <div t-attf-style="width:{{row.taux}}%; height:100%;
-                                        background:{{ tauxColor(row.taux) }};
-                                        border-radius:10px; transition:width .6s;"/>
+                            <td>
+                                <div class="trd-prog-bg">
+                                    <div t-attf-style="width:{{moyenneDetail}}%; height:100%;
+                                        background:{{ tauxColor(moyenneDetail) }}; border-radius:8px;"/>
                                 </div>
                             </td>
-                            <td>
-                                <span class="trd-badge-veh">
-                                    🚗 <t t-esc="row.nbVehicules"/>
-                                </span>
-                            </td>
-                            <td style="font-weight:700; color:#0e7490;">
-                                <t t-esc="row.joursReserves"/> j
-                            </td>
-                            <td style="color:#64748b;">
-                                <t t-esc="row.nbJoursPeriode"/> j
-                            </td>
+                            <td colspan="3"/>
                         </tr>
-                    </t>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td>Moyenne</td>
-                        <td>
-                            <span t-attf-style="font-size:16px; font-weight:900;
-                                color:{{ tauxColor(moyenneDetail) }};">
-                                <t t-esc="moyenneDetail"/> %
-                            </span>
-                        </td>
-                        <td>
-                            <div class="trd-progress-bg">
-                                <div t-attf-style="width:{{moyenneDetail}}%; height:100%;
-                                    background:{{ tauxColor(moyenneDetail) }};
-                                    border-radius:10px;"/>
-                            </div>
-                        </td>
-                        <td colspan="3"/>
-                    </tr>
-                </tfoot>
-            </table>
+                    </tfoot>
+                </table>
+            </div>
         </div>
 
         <!-- Graphique barres par zone -->
-        <div class="trd-table-wrapper" style="padding:24px;">
+        <div class="trd-card" style="padding:24px;">
             <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
                 📊 Taux de remplissage par zone — <t t-esc="state.label"/>
             </div>
