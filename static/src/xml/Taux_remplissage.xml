@@ -346,7 +346,7 @@
                                 </td>
                                 <td>
                                     <t t-set="zr" t-value="state.zone_rows[zone.id] || {}"/>
-                                    <span class="trd-badge-veh">🚗 <t t-esc="zr.nbVehicules || 0"/></span>
+                                    <span class="trd-badge-veh"><t t-esc="zr.nbVehicules || 0"/></span>
                                 </td>
                             </tr>
 
@@ -354,7 +354,7 @@
                             <t t-if="isZoneExpanded(zone.id)">
                                 <t t-foreach="state.veh_rows[zone.id] || []" t-as="veh" t-key="veh.veh_id">
                                     <tr class="trd-veh-row">
-                                        <td>🚗 <t t-esc="veh.veh_name"/></td>
+                                        <td><t t-esc="veh.veh_name"/></td>
                                         <td>
                                             <span t-attf-style="font-size:14px; font-weight:800; color:{{ tauxColor(veh.taux) }};">
                                                 <t t-esc="veh.taux"/> %
