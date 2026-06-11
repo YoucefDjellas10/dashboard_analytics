@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         TEMPLATE PRINCIPAL — TauxRemplissageDashboard
+         ═══════════════════════════════════════════════════════════ -->
     <t t-name="dashboard_analytics.TauxRemplissageDashboard">
 <div style="padding:16px; background:#f1f5f9;">
 <style>
@@ -72,7 +76,7 @@
     font-weight:700;
     color:#475569;
 }
-.tx-table tbody tr:hover td { background:#f8fafc; }
+.tx-table tbody tr:hover td { background:#f0fdfa; }
 .tx-table tfoot tr {
     background:linear-gradient(135deg,#f8fafc,#f1f5f9);
     font-weight:800;
@@ -81,11 +85,18 @@
     border-top:2px solid #e2e8f0;
     font-size:14px;
 }
-.tx-clickable {
+/* Ligne cliquable */
+.tx-row-clickable {
     cursor:pointer;
-    font-weight:700;
+    transition:background .15s;
+}
+.tx-row-clickable td:first-child {
+    color:#0e7490 !important;
     text-decoration:underline dotted;
 }
+.tx-row-clickable:hover td { background:#ecfeff !important; }
+.tx-row-clickable:hover td:first-child { color:#0e4f4f !important; }
+
 .tx-btn-retour {
     display:flex;
     align-items:center;
@@ -112,28 +123,9 @@
     margin-top:6px;
     min-width:120px;
 }
-.tx-legend {
-    display:flex;
-    align-items:center;
-    gap:20px;
-    flex-wrap:wrap;
-    padding:12px 20px;
-    background:#f8fafc;
-    border-top:1px solid #e2e8f0;
-    font-size:12px;
-    font-weight:600;
-}
-.tx-legend-dot {
-    width:12px;
-    height:12px;
-    border-radius:50%;
-    display:inline-block;
-    margin-right:5px;
-}
 </style>
 
 <div class="tx-header">
-
     <div style="display:flex; align-items:center; gap:10px;">
         <button class="tx-btn-retour" t-on-click="retourDashboard">
             ← Retour
@@ -144,7 +136,6 @@
     </div>
 
     <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-
         <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Année</span>
             <select class="tx-select-year form-select form-select-sm"
@@ -169,9 +160,7 @@
                 </t>
             </select>
         </div>
-
     </div>
-
 </div>
 
 <t t-if="state.loading">
@@ -199,64 +188,64 @@
         </div>
     </div>
 
-    <!-- Tableau -->
+    <!-- Tableau cliquable -->
     <div class="tx-table-wrapper">
-<table class="tx-table">
-    <thead>
-        <tr>
-            <th>Mois</th>
-            <th>Taux de remplissage</th>
-            <th>Barre</th>
-        </tr>
-    </thead>
+        <table class="tx-table">
+            <thead>
+                <tr>
+                    <th>Mois</th>
+                    <th>Taux de remplissage</th>
+                    <th>Barre</th>
+                </tr>
+            </thead>
 
-    <tbody>
-        <t t-foreach="state.rows" t-as="row" t-key="row.mois">
-            <tr>
-                <td><t t-esc="row.label"/></td>
+            <tbody>
+                <t t-foreach="state.rows" t-as="row" t-key="row.mois">
+                    <tr class="tx-row-clickable"
+                        t-att-data-mois="row.mois"
+                        t-on-click="onClickMois">
+                        <td>
+                            🔍 <t t-esc="row.label"/>
+                        </td>
+                        <td>
+                            <span t-attf-style="font-size:16px; font-weight:900;
+                                color:{{ tauxColor(row.taux) }};">
+                                <t t-esc="row.taux"/> %
+                            </span>
+                        </td>
+                        <td style="min-width:160px;">
+                            <div class="tx-progress-bg">
+                                <div t-attf-style="width:{{row.taux}}%; height:100%;
+                                    background:{{ tauxColor(row.taux) }};
+                                    border-radius:10px; transition:width .6s;"/>
+                            </div>
+                        </td>
+                    </tr>
+                </t>
+            </tbody>
 
-                <td>
-                    <span t-attf-style="font-size:16px; font-weight:900;
-                        color:{{ tauxColor(row.taux) }};">
-                        <t t-esc="row.taux"/> %
-                    </span>
-                </td>
-
-                <td style="min-width:160px;">
-                    <div class="tx-progress-bg">
-                        <div t-attf-style="width:{{row.taux}}%; height:100%;
-                            background:{{ tauxColor(row.taux) }};
-                            border-radius:10px; transition:width .6s;"/>
-                    </div>
-                </td>
-            </tr>
-        </t>
-    </tbody>
-
-    <tfoot>
-        <tr>
-            <td>Moyenne</td>
-
-            <td>
-                <span t-attf-style="font-size:16px; font-weight:900;
-                    color:{{ tauxColor(moyenneTaux) }};">
-                    <t t-esc="moyenneTaux"/> %
-                </span>
-            </td>
-
-            <td>
-                <div class="tx-progress-bg">
-                    <div t-attf-style="width:{{moyenneTaux}}%; height:100%;
-                        background:{{ tauxColor(moyenneTaux) }};
-                        border-radius:10px;"/>
-                </div>
-            </td>
-        </tr>
-    </tfoot>
-</table>
+            <tfoot>
+                <tr>
+                    <td>Moyenne</td>
+                    <td>
+                        <span t-attf-style="font-size:16px; font-weight:900;
+                            color:{{ tauxColor(moyenneTaux) }};">
+                            <t t-esc="moyenneTaux"/> %
+                        </span>
+                    </td>
+                    <td>
+                        <div class="tx-progress-bg">
+                            <div t-attf-style="width:{{moyenneTaux}}%; height:100%;
+                                background:{{ tauxColor(moyenneTaux) }};
+                                border-radius:10px;"/>
+                        </div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
     </div>
 
-    <!-- Graphique barres -->
+    <!-- Graphique barres mensuel -->
     <div class="tx-table-wrapper" style="margin-top:20px; padding:24px;">
         <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
             📊 Taux de remplissage mensuel — <t t-esc="state.annee_n"/>
@@ -264,16 +253,228 @@
         <canvas id="tr-remplissage-chart" style="width:100%; max-height:400px;"/>
     </div>
 
-    <!-- Graphique pie par zone -->
-    <div class="tx-table-wrapper" style="margin-top:20px; padding:24px;">
-        <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
-             Taux de remplissage par zone — <t t-esc="state.annee_n"/>
-        </div>
-        <canvas id="tr-remplissage-pie" style="width:100%; max-height:400px;"/>
-    </div>
-
 </t>
 
 </div>
     </t>
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+         TEMPLATE DÉTAIL — TauxRemplissageDetailDashboard
+         Taux par zone pour un mois donné
+         ═══════════════════════════════════════════════════════════ -->
+    <t t-name="dashboard_analytics.TauxRemplissageDetailDashboard">
+<div style="padding:16px; background:#f1f5f9; min-height:100vh;">
+<style>
+.o_action { overflow-y:auto !important; height:100% !important; }
+.o_view_controller { overflow-y:auto !important; height:100% !important; }
+.o_action_manager { overflow-y:auto !important; }
+
+.trd-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    background:#fff;
+    border-radius:16px;
+    padding:16px 24px;
+    margin-bottom:20px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+}
+.trd-title    { font-size:18px; font-weight:800; color:#1e293b; }
+.trd-subtitle { font-size:13px; color:#64748b; font-weight:500; margin-top:2px; }
+.trd-btn {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:8px 18px;
+    border-radius:9px;
+    border:1.5px solid #e2e8f0;
+    background:#f8fafc;
+    color:#475569;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .2s, transform .15s;
+}
+.trd-btn:hover { background:#e2e8f0; transform:translateY(-2px); }
+
+.trd-table-wrapper {
+    background:#fff;
+    border-radius:16px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+    overflow:hidden;
+    margin-bottom:20px;
+}
+.trd-table {
+    width:100%;
+    border-collapse:collapse;
+}
+.trd-table thead tr {
+    background:linear-gradient(135deg,#0e4f4f,#0e7490);
+    color:#fff;
+}
+.trd-table th {
+    padding:14px 20px;
+    font-size:13px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.6px;
+    text-align:center;
+}
+.trd-table th:first-child { text-align:left; }
+.trd-table td {
+    padding:13px 20px;
+    font-size:14px;
+    text-align:center;
+    border-bottom:1px solid #f1f5f9;
+    color:#1e293b;
+}
+.trd-table td:first-child {
+    text-align:left;
+    font-weight:700;
+    color:#0e7490;
+}
+.trd-table tbody tr:hover td { background:#f0fdfa; }
+.trd-table tfoot tr {
+    background:linear-gradient(135deg,#f0fdfa,#e0f2fe);
+    font-weight:800;
+}
+.trd-table tfoot td {
+    border-top:2px solid #a5f3fc;
+    font-size:14px;
+}
+.trd-progress-bg {
+    background:rgba(0,0,0,.08);
+    border-radius:10px;
+    height:10px;
+    overflow:hidden;
+    min-width:160px;
+}
+.trd-badge-veh {
+    display:inline-block;
+    background:#e0f2fe;
+    color:#0369a1;
+    border-radius:20px;
+    padding:3px 10px;
+    font-size:12px;
+    font-weight:700;
+}
+</style>
+
+    <!-- Header -->
+    <div class="trd-header">
+        <div>
+            <button class="trd-btn" t-on-click="retour">← Retour</button>
+        </div>
+        <div style="flex:1; padding:0 16px;">
+            <div class="trd-title">📋 Détail par zone — Taux de remplissage</div>
+            <div class="trd-subtitle"><t t-esc="state.label"/></div>
+        </div>
+        <!-- Badge moyenne -->
+        <div style="
+            background:linear-gradient(135deg,#0e4f4f 0%,#0e7490 100%);
+            border-radius:16px; padding:18px 28px 18px 22px; min-width:160px;
+            box-shadow:0 8px 32px rgba(14,116,144,0.35);
+        ">
+            <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.65); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:6px;">
+                Moyenne
+            </div>
+            <div style="font-size:32px; font-weight:900; color:#fff; line-height:1; letter-spacing:-1px;">
+                <t t-esc="moyenneDetail"/> %
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <t t-if="state.loading">
+        <div style="text-align:center; padding:80px; font-size:16px; color:#94a3b8;">
+            ⏳ Chargement des données…
+        </div>
+    </t>
+
+    <t t-else="">
+
+        <!-- Tableau des zones -->
+        <div class="trd-table-wrapper">
+            <table class="trd-table">
+                <thead>
+                    <tr>
+                        <th>Zone</th>
+                        <th>Taux de remplissage</th>
+                        <th>Barre</th>
+                        <th>Véhicules</th>
+                        <th>Jours réservés</th>
+                        <th>Jours période</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-foreach="state.rows" t-as="row" t-key="row.zone_id">
+                        <tr>
+                            <td>🗺️ <t t-esc="row.zone_name"/></td>
+                            <td>
+                                <span t-attf-style="font-size:16px; font-weight:900;
+                                    color:{{ tauxColor(row.taux) }};">
+                                    <t t-esc="row.taux"/> %
+                                </span>
+                            </td>
+                            <td style="min-width:180px;">
+                                <div class="trd-progress-bg">
+                                    <div t-attf-style="width:{{row.taux}}%; height:100%;
+                                        background:{{ tauxColor(row.taux) }};
+                                        border-radius:10px; transition:width .6s;"/>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="trd-badge-veh">
+                                    🚗 <t t-esc="row.nbVehicules"/>
+                                </span>
+                            </td>
+                            <td style="font-weight:700; color:#0e7490;">
+                                <t t-esc="row.joursReserves"/> j
+                            </td>
+                            <td style="color:#64748b;">
+                                <t t-esc="row.nbJoursPeriode"/> j
+                            </td>
+                        </tr>
+                    </t>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td>Moyenne</td>
+                        <td>
+                            <span t-attf-style="font-size:16px; font-weight:900;
+                                color:{{ tauxColor(moyenneDetail) }};">
+                                <t t-esc="moyenneDetail"/> %
+                            </span>
+                        </td>
+                        <td>
+                            <div class="trd-progress-bg">
+                                <div t-attf-style="width:{{moyenneDetail}}%; height:100%;
+                                    background:{{ tauxColor(moyenneDetail) }};
+                                    border-radius:10px;"/>
+                            </div>
+                        </td>
+                        <td colspan="3"/>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Graphique barres par zone -->
+        <div class="trd-table-wrapper" style="padding:24px;">
+            <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
+                📊 Taux de remplissage par zone — <t t-esc="state.label"/>
+            </div>
+            <canvas id="trd-chart" style="width:100%; max-height:400px;"/>
+        </div>
+
+    </t>
+
+</div>
+    </t>
+
 </templates>
