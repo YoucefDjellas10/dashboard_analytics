@@ -166,7 +166,7 @@ export class TauxRemplissageDashboard extends Component {
                         label           : `Taux de remplissage ${this.state.annee_n} (%)`,
                         data,
                         backgroundColor : data.map(v =>
-                            v >= 75 ? "rgba(22,163,74,0.8)" :
+                            v >= 70 ? "rgba(22,163,74,0.8)" :
                             v >= 40 ? "rgba(234,179,8,0.8)" :
                                       "rgba(220,38,38,0.8)"
                         ),
@@ -208,7 +208,7 @@ export class TauxRemplissageDashboard extends Component {
     }
 
     tauxColor(val) {
-        if (val >= 75) return "#16a34a";
+        if (val >= 70) return "#16a34a";
         if (val >= 40) return "#ca8a04";
         return "#dc2626";
     }
@@ -286,10 +286,10 @@ export class TauxRemplissageDetailDashboard extends Component {
                     ["date_heure_debut", "date_heure_fin", "vehicule"]
                 );
 
-                // Véhicules actifs de la zone
+                // Véhicules actifs de la zone — on récupère aussi model_name
                 const vehList = await this.orm.searchRead("vehicule",
                     [["zone", "=", zone.id], ["active_test", "=", true]],
-                    ["id", "name", "numero"]
+                    ["id", "name", "numero", "model_name"]
                 );
 
                 const nbVehicules = vehList.length;
@@ -320,7 +320,20 @@ export class TauxRemplissageDetailDashboard extends Component {
                 // ── Calcul taux par véhicule ──
                 const vehMap = {};
                 for (const veh of vehList) {
-                    vehMap[veh.id] = { veh_id: veh.id, veh_name: veh.numero || veh.name, joursReserves: 0, nbJoursPeriode, taux: 0 };
+                    // Construire le label : "ModelName (numero)" ou fallback
+                    const modelPart = veh.model_name || "";
+                    const numPart   = veh.numero     || veh.name || "";
+                    const veh_name  = modelPart
+                        ? `${modelPart} (${numPart})`
+                        : numPart;
+
+                    vehMap[veh.id] = {
+                        veh_id       : veh.id,
+                        veh_name,
+                        joursReserves: 0,
+                        nbJoursPeriode,
+                        taux         : 0,
+                    };
                 }
 
                 for (const r of resList) {
@@ -365,7 +378,7 @@ export class TauxRemplissageDetailDashboard extends Component {
     }
 
     tauxColor(val) {
-        if (val >= 75) return "#16a34a";
+        if (val >= 70) return "#16a34a";
         if (val >= 40) return "#ca8a04";
         return "#dc2626";
     }
@@ -393,7 +406,7 @@ export class TauxRemplissageDetailDashboard extends Component {
                         label           : "Taux de remplissage (%)",
                         data,
                         backgroundColor : data.map(v =>
-                            v >= 75 ? "rgba(22,163,74,0.8)" :
+                            v >= 70 ? "rgba(22,163,74,0.8)" :
                             v >= 40 ? "rgba(234,179,8,0.8)" :
                                       "rgba(220,38,38,0.8)"
                         ),
