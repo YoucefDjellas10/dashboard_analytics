@@ -262,14 +262,14 @@
             <div class="trd-title">📋 Détail par zone — Taux de remplissage</div>
             <div class="trd-subtitle"><t t-esc="state.label"/></div>
         </div>
-        <!-- MODIF 1 : badge "Taux de remplissage" au lieu de "Moyenne" -->
+        <!-- Badge : affiche le taux du mois passé depuis la page principale -->
         <div style="background:linear-gradient(135deg,#0e4f4f 0%,#0e7490 100%);
                     border-radius:16px; padding:18px 28px 18px 22px; min-width:160px;
                     box-shadow:0 8px 32px rgba(14,116,144,0.35);">
             <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.65);
                         text-transform:uppercase; letter-spacing:1.2px; margin-bottom:6px;">Taux de remplissage</div>
             <div style="font-size:32px; font-weight:900; color:#fff; line-height:1;">
-                <t t-esc="moyenneDetail"/> %
+                <t t-esc="state.taux_mois"/> %
             </div>
         </div>
     </div>
@@ -372,7 +372,6 @@
 
                         </t>
                     </tbody>
-                    <!-- MODIF 2 : tfoot supprimé (plus de "Moyenne générale") -->
                 </table>
             </div>
         </div>

@@ -133,7 +133,8 @@ export class TauxRemplissageDashboard extends Component {
     onClickMois(ev) {
         const tr    = ev.currentTarget;
         const mois  = parseInt(tr.dataset.mois);
-        const label = (this.state.rows[mois - 1]?.label || "") + " " + this.state.annee_n;
+        const row   = this.state.rows[mois - 1];
+        const label = (row?.label || "") + " " + this.state.annee_n;
 
         this.action.doAction({
             type   : "ir.actions.client",
@@ -145,6 +146,7 @@ export class TauxRemplissageDashboard extends Component {
                 mois,
                 label,
                 selected_zone : this.state.selected_zone,
+                taux_mois     : row?.taux || 0,
             },
         });
     }
@@ -237,10 +239,9 @@ export class TauxRemplissageDetailDashboard extends Component {
             mois           : params.mois          || 1,
             label          : params.label         || "",
             selected_zone  : params.selected_zone || "",
+            taux_mois      : params.taux_mois     || 0,
             zones          : [],
-            // zone_rows[zone_id] = { taux, nbVehicules, joursReserves, nbJoursPeriode }
             zone_rows      : {},
-            // veh_rows[zone_id]  = [{ veh_id, veh_name, taux, joursReserves, nbJoursPeriode }]
             veh_rows       : {},
             expanded_zones : {},
         });
@@ -264,18 +265,15 @@ export class TauxRemplissageDetailDashboard extends Component {
             const fin   = new Date(annee, mois,     0, 23, 59, 59);
             const nbJoursPeriode = Math.round((fin - debut) / (1000 * 60 * 60 * 24));
 
-            // Charger les zones (toutes ou filtrée)
             let zonesDomain = [];
             if (selected_zone) zonesDomain = [["id", "=", parseInt(selected_zone)]];
             const zones = await this.orm.searchRead("zone", zonesDomain, ["id", "name"], { order: "name asc" });
             this.state.zones = zones;
 
-            // Pour chaque zone : réservations + véhicules
             const zone_rows = {};
             const veh_rows  = {};
 
             await Promise.all(zones.map(async (zone) => {
-                // Réservations de la zone sur le mois
                 const resList = await this.orm.searchRead("reservation",
                     [
                         ["status",           "=",  "confirmee"],
@@ -286,7 +284,6 @@ export class TauxRemplissageDetailDashboard extends Component {
                     ["date_heure_debut", "date_heure_fin", "vehicule"]
                 );
 
-                // Véhicules actifs de la zone — on récupère aussi model_name
                 const vehList = await this.orm.searchRead("vehicule",
                     [["zone", "=", zone.id], ["active_test", "=", true]],
                     ["id", "name", "numero", "model_name"]
@@ -294,7 +291,6 @@ export class TauxRemplissageDetailDashboard extends Component {
 
                 const nbVehicules = vehList.length;
 
-                // ── Calcul taux global de la zone ──
                 let joursZone = 0;
                 for (const r of resList) {
                     const deb = new Date(r.date_heure_debut);
@@ -317,10 +313,8 @@ export class TauxRemplissageDetailDashboard extends Component {
                     nbJoursPeriode,
                 };
 
-                // ── Calcul taux par véhicule ──
                 const vehMap = {};
                 for (const veh of vehList) {
-                    // Construire le label : "ModelName (numero)" ou fallback
                     const modelPart = veh.model_name || "";
                     const numPart   = veh.numero     || veh.name || "";
                     const veh_name  = modelPart
