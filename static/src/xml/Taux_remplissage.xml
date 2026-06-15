@@ -242,14 +242,6 @@
 .trd-veh-row:hover td            { background:#f0fdfa; }
 .trd-veh-row:hover td:first-child { background:#e0f2fe; }
 
-/* ── Total row ── */
-.trd-total-row td {
-    background:linear-gradient(135deg,#f0fdfa,#e0f2fe) !important;
-    font-weight:800 !important; border-top:2px solid #a5f3fc !important;
-    font-size:13px; padding:11px 16px; text-align:center;
-}
-.trd-total-row td:first-child { text-align:left; }
-
 /* ── Progress inline ── */
 .trd-prog-bg {
     background:rgba(0,0,0,.08); border-radius:8px; height:8px;
@@ -270,12 +262,12 @@
             <div class="trd-title">📋 Détail par zone — Taux de remplissage</div>
             <div class="trd-subtitle"><t t-esc="state.label"/></div>
         </div>
-        <!-- Badge moyenne -->
+        <!-- MODIF 1 : badge "Taux de remplissage" au lieu de "Moyenne" -->
         <div style="background:linear-gradient(135deg,#0e4f4f 0%,#0e7490 100%);
                     border-radius:16px; padding:18px 28px 18px 22px; min-width:160px;
                     box-shadow:0 8px 32px rgba(14,116,144,0.35);">
             <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.65);
-                        text-transform:uppercase; letter-spacing:1.2px; margin-bottom:6px;">Moyenne</div>
+                        text-transform:uppercase; letter-spacing:1.2px; margin-bottom:6px;">Taux de remplissage</div>
             <div style="font-size:32px; font-weight:900; color:#fff; line-height:1;">
                 <t t-esc="moyenneDetail"/> %
             </div>
@@ -380,23 +372,7 @@
 
                         </t>
                     </tbody>
-                    <tfoot>
-                        <tr class="trd-total-row">
-                            <td>Moyenne générale</td>
-                            <td>
-                                <span t-attf-style="font-size:15px; font-weight:900; color:{{ tauxColor(moyenneDetail) }};">
-                                    <t t-esc="moyenneDetail"/> %
-                                </span>
-                            </td>
-                            <td>
-                                <div class="trd-prog-bg">
-                                    <div t-attf-style="width:{{moyenneDetail}}%; height:100%;
-                                        background:{{ tauxColor(moyenneDetail) }}; border-radius:8px;"/>
-                                </div>
-                            </td>
-                            <td colspan="3"/>
-                        </tr>
-                    </tfoot>
+                    <!-- MODIF 2 : tfoot supprimé (plus de "Moyenne générale") -->
                 </table>
             </div>
         </div>
