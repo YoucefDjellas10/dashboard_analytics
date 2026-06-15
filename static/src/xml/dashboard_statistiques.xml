@@ -73,6 +73,27 @@
 }
 .dash-taux-span2 { grid-column: span 1; }
 
+.dash-previsionnel-badge {
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    background:rgba(157,23,77,0.12);
+    border:1.5px solid rgba(157,23,77,0.28);
+    color:#9d174d;
+    border-radius:20px;
+    padding:4px 12px;
+    font-size:12px;
+    font-weight:800;
+}
+.dash-previsionnel-label {
+    font-size:11px;
+    font-weight:600;
+    color:#9d174d;
+    opacity:0.75;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+}
+
 @media (max-width: 768px) {
     .dash-filtres {
         flex-direction:column;
@@ -286,6 +307,15 @@
         <div class="dash-card-body-sm">
             <div class="dash-card-titre">Trésorerie</div>
             <div class="dash-card-valeur"><t t-esc="tresorerieFormatted"/> DA</div>
+
+            <!-- ── Montant prévisionnel ── -->
+            <div style="margin-top:10px; display:flex; align-items:center; justify-content:flex-end; gap:6px;">
+                <span class="dash-previsionnel-label">Prévisionnel</span>
+                <span class="dash-previsionnel-badge">
+                    🔮 <t t-esc="previsionnelFormatted"/> DA
+                </span>
+            </div>
+
             <t t-if="state.prev_tresorerie_da !== null">
                 <div class="dash-card-prev" style="margin-top:8px;"><t t-esc="fmt(state.prev_tresorerie_da)"/> DA</div>
             </t>
@@ -368,7 +398,7 @@
         </div>
     </div>
 
-    <!-- 7. Taux de remplissage — pas de delta, pas de N-1 -->
+    <!-- 7. Taux de remplissage -->
     <div class="dash-card dash-taux-span2" style="cursor:pointer; color:#164e4e;
                 background:linear-gradient(135deg,#cffafe,#a5f3fc);"
          t-on-click="ouvrirTauxRemplissage">

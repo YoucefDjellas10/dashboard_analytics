@@ -20,6 +20,7 @@ export class DashboardStatistiques extends Component {
             panier_moyen_da        : 0,
             total_depense_da       : 0,
             taux_remplissage       : 0,
+            total_previsionnel_da  : 0,
 
             // ── Période N-1 ──
             prev_reservations      : null,
@@ -82,15 +83,10 @@ export class DashboardStatistiques extends Component {
         return Math.round((fin - debut) / (1000 * 60 * 60 * 24));
     }
 
-    // Date pivot identique au Python : datetime(2025, 11, 1)
     _DATE_PIVOT = new Date(2025, 10, 1, 0, 0, 0);
 
     // ─────────────────────────────────────────
     //  Calcul trésorerie pour une période
-    //  Même logique que tresorerie_dashboard.js :
-    //    - debut < pivot  → is_old = True  + date_encaissement OU reservation.create_date
-    //    - debut >= pivot → is_old != True + date_encaissement OU reservation.create_date
-    //  Pour une période qui chevauche le pivot, on cumule les deux parties.
     // ─────────────────────────────────────────
 
     async _fetchTresorerie(debut, fin, taux, zoneId) {
@@ -98,10 +94,8 @@ export class DashboardStatistiques extends Component {
 
         let totalRevenue = 0;
 
-        // ── Partie OLD (is_old = True) ────────────────────────────────────────
-        // S'applique uniquement si une portion de la période est avant le pivot
         if (debut < this._DATE_PIVOT) {
-            const finOld = fin < this._DATE_PIVOT ? fin : new Date(this._DATE_PIVOT - 1); // 1ms avant le pivot
+            const finOld = fin < this._DATE_PIVOT ? fin : new Date(this._DATE_PIVOT - 1);
 
             const domOldAvec = [
                 ...zoneFilter,
@@ -128,8 +122,6 @@ export class DashboardStatistiques extends Component {
                           + (o2.montant_dzd ?? 0) + ((o2.montant ?? 0) * taux);
         }
 
-        // ── Partie NEW (is_old != True) ───────────────────────────────────────
-        // S'applique si une portion de la période est après le pivot
         if (fin >= this._DATE_PIVOT) {
             const debutNew = debut >= this._DATE_PIVOT ? debut : this._DATE_PIVOT;
 
@@ -158,7 +150,6 @@ export class DashboardStatistiques extends Component {
                           + (n2.montant_dzd ?? 0) + ((n2.montant ?? 0) * taux);
         }
 
-        // ── Remboursements ────────────────────────────────────────────────────
         const refundDomain = [
             ['date', '>=', this._formatORM(debut)],
             ['date', '<=', this._formatORM(fin)],
@@ -176,9 +167,6 @@ export class DashboardStatistiques extends Component {
 
     // ─────────────────────────────────────────
     //  Taux de change selon la période
-    //  (260 avant 2026, 270 depuis 2026)
-    //  Pour une période qui chevauche deux années,
-    //  on utilise le taux de l'année de début.
     // ─────────────────────────────────────────
 
     _getTaux(debut) {
@@ -236,8 +224,15 @@ export class DashboardStatistiques extends Component {
         const zoneId = this.state.selected_zone ? parseInt(this.state.selected_zone) : null;
         const taux   = this._getTaux(debut);
 
-        // Toutes les requêtes sauf trésorerie en parallèle
-        const [resResult, depResult, tauxResult, vehiculesResult, resDatesList] =
+        // ── Domaine prévisionnel : reste_payer des réservations dont date_heure_debut est dans la période ──
+        const domainPrevisionnel = [
+            ["status",           "=",  "confirmee"],
+            ["date_heure_debut", ">=", this._formatORM(debut)],
+            ["date_heure_debut", "<=", this._formatORM(fin)],
+        ];
+        if (zoneId) domainPrevisionnel.push(["zone", "=", zoneId]);
+
+        const [resResult, depResult, tauxResult, vehiculesResult, resDatesList, prevResult] =
             await Promise.all([
 
                 this.orm.readGroup("reservation",
@@ -265,9 +260,14 @@ export class DashboardStatistiques extends Component {
                     this._buildDomainDates(debutStr, finStr),
                     ["date_heure_debut", "date_heure_fin"]
                 ),
+
+                // ── NOUVEAU : somme des reste_payer (prévisionnel) ──
+                this.orm.readGroup("reservation",
+                    domainPrevisionnel,
+                    ["reste_payer:sum"], []
+                ),
             ]);
 
-        // Trésorerie avec la logique correcte (is_old + pivot)
         const tresorerie_da = await this._fetchTresorerie(debut, fin, taux, zoneId);
 
         const rowRes = resResult[0] ?? {};
@@ -278,6 +278,10 @@ export class DashboardStatistiques extends Component {
         const ca_da      = caEuro * tauxDB;
         const panier_da  = count > 0 ? (caEuro / count) * tauxDB : 0;
         const depense_da = (depResult[0] ?? {}).montant_da ?? 0;
+
+        // reste_payer est en EUR → conversion en DA
+        const previsionnel_eur = (prevResult[0] ?? {}).reste_payer ?? 0;
+        const previsionnel_da  = previsionnel_eur * tauxDB;
 
         // Taux de remplissage
         const nbJoursPeriode = this._nbJours(debut, fin);
@@ -298,7 +302,7 @@ export class DashboardStatistiques extends Component {
             taux_remplissage = Math.min(100, Math.round(tauxCalc));
         }
 
-        return { count, ca_da, tresorerie_da, panier_da, depense_da, taux_remplissage };
+        return { count, ca_da, tresorerie_da, panier_da, depense_da, taux_remplissage, previsionnel_da };
     }
 
     // ─────────────────────────────────────────
@@ -342,6 +346,7 @@ export class DashboardStatistiques extends Component {
             this.state.panier_moyen_da        = cur.panier_da;
             this.state.total_depense_da       = cur.depense_da;
             this.state.taux_remplissage       = cur.taux_remplissage;
+            this.state.total_previsionnel_da  = cur.previsionnel_da;
 
             // Période N-1
             this.state.prev_reservations     = prv.count;
@@ -436,11 +441,12 @@ export class DashboardStatistiques extends Component {
     get anneeActuelle()  { return this.state.date_debut ? this.state.date_debut.slice(0, 4) : ""; }
     get anneePrecedente(){ return this.state.date_debut ? String(parseInt(this.state.date_debut.slice(0, 4)) - 1) : ""; }
 
-    get caFormatted()         { return this.fmt(this.state.total_ca_da); }
-    get tresorerieFormatted() { return this.fmt(this.state.total_tresorerie_da); }
-    get panierFormatted()     { return this.fmt(this.state.panier_moyen_da); }
-    get depenseFormatted()    { return this.fmt(this.state.total_depense_da); }
-    get balanceFormatted()    { return this.fmt(this.balance); }
+    get caFormatted()             { return this.fmt(this.state.total_ca_da); }
+    get tresorerieFormatted()     { return this.fmt(this.state.total_tresorerie_da); }
+    get panierFormatted()         { return this.fmt(this.state.panier_moyen_da); }
+    get depenseFormatted()        { return this.fmt(this.state.total_depense_da); }
+    get balanceFormatted()        { return this.fmt(this.balance); }
+    get previsionnelFormatted()   { return this.fmt(this.state.total_previsionnel_da); }
 }
 
 DashboardStatistiques.template = "dashboard_analytics.DashboardStatistiques";
