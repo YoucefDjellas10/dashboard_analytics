@@ -312,8 +312,11 @@
                 <div class="dash-card-prev" style="margin-top:8px;"><t t-esc="fmt(state.prev_tresorerie_da)"/> DA</div>
             </t>
 
-            <!-- ── Ligne : pourcentage + prévisionnel côte à côte ── -->
-            <div style="margin-top:10px; display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap;">
+            <!-- ── Ligne : prévisionnel à gauche + pourcentage à droite ── -->
+            <div style="margin-top:10px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                <span class="dash-previsionnel-badge">
+                     <t t-esc="previsionnelFormatted"/> DA
+                </span>
                 <t t-if="deltaTresorerie">
                     <div t-attf-style="display:inline-block; padding:3px 10px;
                                        border-radius:20px; font-size:12px; font-weight:800;
@@ -322,9 +325,6 @@
                         <t t-else="">▼ <t t-esc="deltaTresorerie.val"/> %</t>
                     </div>
                 </t>
-                <span class="dash-previsionnel-badge">
-                     <t t-esc="previsionnelFormatted"/> DA
-                </span>
             </div>
         </div>
     </div>
