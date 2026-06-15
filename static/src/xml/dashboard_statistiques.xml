@@ -308,25 +308,24 @@
             <div class="dash-card-titre">Trésorerie</div>
             <div class="dash-card-valeur"><t t-esc="tresorerieFormatted"/> DA</div>
 
-            <!-- ── Montant prévisionnel ── -->
-            <div style="margin-top:10px; display:flex; align-items:center; justify-content:flex-end; gap:6px;">
-                <span class="dash-previsionnel-label">Prévisionnel</span>
-                <span class="dash-previsionnel-badge">
-                    🔮 <t t-esc="previsionnelFormatted"/> DA
-                </span>
-            </div>
-
             <t t-if="state.prev_tresorerie_da !== null">
                 <div class="dash-card-prev" style="margin-top:8px;"><t t-esc="fmt(state.prev_tresorerie_da)"/> DA</div>
             </t>
-            <t t-if="deltaTresorerie">
-                <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 10px;
-                                   border-radius:20px; font-size:12px; font-weight:800;
-                                   background:{{ deltaTresorerie.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
-                    <t t-if="deltaTresorerie.positive">▲ +<t t-esc="deltaTresorerie.val"/> %</t>
-                    <t t-else="">▼ <t t-esc="deltaTresorerie.val"/> %</t>
-                </div>
-            </t>
+
+            <!-- ── Ligne : pourcentage + prévisionnel côte à côte ── -->
+            <div style="margin-top:10px; display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap;">
+                <t t-if="deltaTresorerie">
+                    <div t-attf-style="display:inline-block; padding:3px 10px;
+                                       border-radius:20px; font-size:12px; font-weight:800;
+                                       background:{{ deltaTresorerie.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
+                        <t t-if="deltaTresorerie.positive">▲ +<t t-esc="deltaTresorerie.val"/> %</t>
+                        <t t-else="">▼ <t t-esc="deltaTresorerie.val"/> %</t>
+                    </div>
+                </t>
+                <span class="dash-previsionnel-badge">
+                     <t t-esc="previsionnelFormatted"/> DA
+                </span>
+            </div>
         </div>
     </div>
 
