@@ -344,98 +344,16 @@
     color:#0f172a;
 }
 .roi-cell-empty { color:#cbd5e1; font-size:11px; }
-.roi-cell-diag   { background:#fef9c3 !important; }
-
-</style>
-
-<div class="roi-header">
-    <div style="display:flex; align-items:center; gap:10px;">
-        <button class="ca-btn-retour" t-on-click="retour"
-                style="display:flex;align-items:center;gap:6px;padding:8px 18px;border-radius:9px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:13px;font-weight:600;cursor:pointer;">
-            ← Retour
-        </button>
-        <div>
-            <div class="roi-title">📐 Tableau ROI — Retour sur Investissement</div>
-            <div class="roi-subtitle">
-                Année <t t-esc="state.annee"/> —
-                Lignes = mois de création | Colonnes = mois de départ (12 mois)
-            </div>
-        </div>
-    </div>
-    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 18px; font-size:12px; color:#1e40af; font-weight:600;">
-        Total : <t t-esc="grandTotalFmt"/> DA
-    </div>
-</div>
-
-<t t-if="state.loading">
-    <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">
-        ⏳ Chargement de la matrice ROI…
-    </div>
-</t>
-
-<t t-else="">
-    <div class="roi-table-wrapper">
-        <table class="roi-table">
-            <thead>
-                <tr>
-                    <th>Créé \ Départ</th>
-                    <t t-foreach="MOIS_LABELS_COLONNES" t-as="ml" t-key="ml_index">
-                        <th><t t-esc="ml"/></th>
-                    </t>
-                    <th>Total créé</th>
-                </tr>
-            </thead>
-            <tbody>
-                <t t-foreach="state.matrix" t-as="row" t-key="row_index">
-                    <tr>
-                        <td><t t-esc="MOIS_LABELS_LIGNES[row_index]"/></td>
-                        <t t-foreach="row" t-as="ca" t-key="ca_index">
-                            <td t-att-class="ca_index === row_index ? 'roi-cell-diag' : ''">
-                                <t t-if="ca >= 1">
-                                    <t t-esc="fmtCell(ca)"/>
-                                </t>
-                                <t t-else="">
-                                    <span class="roi-cell-empty">—</span>
-                                </t>
-                            </td>
-                        </t>
-                        <td><t t-esc="fmtCell(state.totaux_row[row_index])"/></td>
-                    </tr>
-                </t>
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td>Total départ</td>
-                    <t t-foreach="state.totaux_col" t-as="tc" t-key="tc_index">
-                        <td><t t-esc="fmtCell(tc)"/></td>
-                    </t>
-                    <td><t t-esc="grandTotalFmt"/></td>
-                </tr>
-            </tfoot>
-        </table>
-    </div>
-</t>
-
-</div>
-    </t>
-
-    <!-- ROI ENCAISSEMENT DASHBOARD TEMPLATE -->
-    <t t-name="dashboard_analytics.RoiEncaissementDashboard">
-<div style="padding:16px; background:#f1f5f9; height:100%; overflow-y:auto;">
-<style>
-.roi-enc-header {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:12px;
-    background:#fff;
-    border-radius:16px;
-    padding:16px 24px;
-    margin-bottom:20px;
-    border:1px solid #e2e8f0;
-    box-shadow:0 4px 16px rgba(0,0,0,.07);
+.roi-cell-diag  { background:#fef9c3 !important; }
+.roi-clickable {
+    cursor:pointer;
+    color:#1565c0;
+    font-weight:700;
+    text-decoration:underline dotted;
 }
+.roi-clickable:hover { color:#0f4c81; }
+
+/* ── ROI Encaissement ── */
 .roi-enc-table-wrapper {
     background:#fff;
     border-radius:16px;
@@ -513,79 +431,41 @@
     text-decoration:underline dotted;
 }
 .roi-enc-clickable:hover { color:#059669; }
-.roi-enc-select-year {
-    border-radius:8px;
-    border:1.5px solid #e2e8f0;
-    font-size:13px;
-    color:#1e293b;
-    background:#f8fafc;
-    padding:7px 12px;
-    width:120px;
-    font-weight:700;
-}
 </style>
 
-<div class="roi-enc-header">
+<div class="roi-header">
     <div style="display:flex; align-items:center; gap:10px;">
         <button class="ca-btn-retour" t-on-click="retour"
                 style="display:flex;align-items:center;gap:6px;padding:8px 18px;border-radius:9px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:13px;font-weight:600;cursor:pointer;">
             ← Retour
         </button>
         <div>
-            <div style="font-size:20px; font-weight:800; color:#1e293b;">
-                💰 Tableau ROI — Encaissements
-            </div>
-            <div style="font-size:13px; color:#64748b; margin-top:3px;">
+            <div class="roi-title">📐 Tableau ROI — Retour sur Investissement</div>
+            <div class="roi-subtitle">
                 Année <t t-esc="state.annee"/> —
-                Lignes = mois de création du paiement | Colonnes = mois d'encaissement
+                Lignes = mois de création | Colonnes = mois de départ (12 mois)
             </div>
         </div>
     </div>
-    <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-        <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Année</span>
-            <select class="roi-enc-select-year form-select form-select-sm"
-                    t-on-change="updateSelectedYear">
-                <t t-foreach="state.years" t-as="year" t-key="year">
-                    <option t-att-value="year"
-                            t-att-selected="state.annee == year"
-                            t-esc="year"/>
-                </t>
-            </select>
-        </div>
-        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px 18px; font-size:12px; color:#065f46; font-weight:600;">
-            Total : <t t-esc="grandTotalFmt"/> DA
-        </div>
+    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 18px; font-size:12px; color:#1e40af; font-weight:600;">
+        Total CA : <t t-esc="grandTotalFmt"/> DA
     </div>
 </div>
 
+<!-- ══════════════════════════════════════════
+     TABLEAU 1 — ROI Chiffre d'affaires
+════════════════════════════════════════════ -->
 <t t-if="state.loading">
     <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">
-        ⏳ Chargement de la matrice encaissements…
+        ⏳ Chargement de la matrice ROI…
     </div>
 </t>
-
 <t t-else="">
-
-    <div style="display:flex; gap:20px; margin-bottom:12px; flex-wrap:wrap; font-size:12px; color:#64748b;">
-        <span>
-            <span style="display:inline-block; width:12px; height:12px; background:#fef9c3; border:1px solid #e2e8f0; border-radius:2px; margin-right:4px;"></span>
-            Diagonale = créé et encaissé le même mois
-        </span>
-        <span>
-            <span style="display:inline-block; width:12px; height:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:2px; margin-right:4px;"></span>
-            Colonne Total = total encaissé par mois de création
-        </span>
-        <span style="color:#94a3b8; font-style:italic;">
-            ⚠ Paiements sans date d'encaissement → classés par date de réservation
-        </span>
-    </div>
-
-    <div class="roi-enc-table-wrapper">
-        <table class="roi-enc-table">
+    <div class="roi-table-wrapper">
+        <table class="roi-table">
             <thead>
                 <tr>
-                    <th>Créé \ Encaissé</th>
+                    <th>Créé \ Départ</th>
                     <t t-foreach="MOIS_LABELS_COLONNES" t-as="ml" t-key="ml_index">
                         <th><t t-esc="ml"/></th>
                     </t>
@@ -597,15 +477,15 @@
                     <tr>
                         <td><t t-esc="MOIS_LABELS_LIGNES[row_index]"/></td>
                         <t t-foreach="row" t-as="ca" t-key="ca_index">
-                            <td t-att-class="ca_index === row_index ? 'roi-enc-cell-diag' : ''">
+                            <td t-att-class="ca_index === row_index ? 'roi-cell-diag' : ''">
                                 <t t-if="ca >= 1">
-                                    <span class="roi-enc-clickable"
+                                    <span class="roi-clickable"
                                           t-on-click="() => this.ouvrirDetail(row_index + 1, ca_index + 1)">
                                         <t t-esc="fmtCell(ca)"/>
                                     </span>
                                 </t>
                                 <t t-else="">
-                                    <span class="roi-enc-cell-empty">—</span>
+                                    <span class="roi-cell-empty">—</span>
                                 </t>
                             </td>
                         </t>
@@ -615,7 +495,7 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td>Total encaissé</td>
+                    <td>Total départ</td>
                     <t t-foreach="state.totaux_col" t-as="tc" t-key="tc_index">
                         <td><t t-esc="fmtCell(tc)"/></td>
                     </t>
@@ -625,6 +505,79 @@
         </table>
     </div>
 </t>
+
+<!-- ══════════════════════════════════════════
+     TABLEAU 2 — ROI Encaissements
+════════════════════════════════════════════ -->
+<div style="margin-top:28px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+                background:#fff; border-radius:16px; padding:16px 24px; margin-bottom:16px;
+                border:1px solid #e2e8f0; box-shadow:0 4px 16px rgba(0,0,0,.07);">
+        <div>
+            <div style="font-size:18px; font-weight:800; color:#1e293b;">💰 ROI — Encaissements</div>
+            <div style="font-size:13px; color:#64748b; margin-top:3px;">
+                Lignes = mois de création du paiement | Colonnes = mois d'encaissement
+                <span style="color:#94a3b8; font-style:italic; margin-left:8px;">
+                    ⚠ Sans date d'encaissement → classé par date de réservation
+                </span>
+            </div>
+        </div>
+        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:10px 18px; font-size:12px; color:#065f46; font-weight:600;">
+            Total Encaissé : <t t-esc="grandTotalEncFmt"/> DA
+        </div>
+    </div>
+
+    <t t-if="state.loading_enc">
+        <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">
+            ⏳ Chargement des encaissements…
+        </div>
+    </t>
+    <t t-else="">
+        <div class="roi-enc-table-wrapper">
+            <table class="roi-enc-table">
+                <thead>
+                    <tr>
+                        <th>Créé \ Encaissé</th>
+                        <t t-foreach="MOIS_LABELS_COLONNES" t-as="ml" t-key="ml_index">
+                            <th><t t-esc="ml"/></th>
+                        </t>
+                        <th>Total créé</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-foreach="state.matrix_enc" t-as="row" t-key="row_index">
+                        <tr>
+                            <td><t t-esc="MOIS_LABELS_LIGNES[row_index]"/></td>
+                            <t t-foreach="row" t-as="ca" t-key="ca_index">
+                                <td t-att-class="ca_index === row_index ? 'roi-enc-cell-diag' : ''">
+                                    <t t-if="ca >= 1">
+                                        <span class="roi-enc-clickable"
+                                              t-on-click="() => this.ouvrirDetailEnc(row_index + 1, ca_index + 1)">
+                                            <t t-esc="fmtCell(ca)"/>
+                                        </span>
+                                    </t>
+                                    <t t-else="">
+                                        <span class="roi-enc-cell-empty">—</span>
+                                    </t>
+                                </td>
+                            </t>
+                            <td><t t-esc="fmtCell(state.totaux_row_enc[row_index])"/></td>
+                        </tr>
+                    </t>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td>Total encaissé</td>
+                        <t t-foreach="state.totaux_col_enc" t-as="tc" t-key="tc_index">
+                            <td><t t-esc="fmtCell(tc)"/></td>
+                        </t>
+                        <td><t t-esc="grandTotalEncFmt"/></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </t>
+</div>
 
 </div>
     </t>
