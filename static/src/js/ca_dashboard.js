@@ -441,14 +441,25 @@ export class RoiDashboard extends Component {
         this.orm    = useService("orm");
         this.action = useService("action");
 
-        const ctx = this.props.action?.context ?? {};
+        const ctx         = this.props.action?.context ?? {};
+        const currentYear = new Date().getFullYear();
+
+        // mois actuel (1-12) — si l'année sélectionnée est l'année courante
+        // on limite au mois actuel, sinon on affiche les 12 mois
+        this.currentMonth = new Date().getMonth() + 1;
+        this.currentYear  = currentYear;
+
+        const annee = ctx.roi_annee ?? currentYear;
+
+        // nombre de mois à afficher : si année = année courante → mois actuel, sinon 12
+        const nbMois = (annee === currentYear) ? this.currentMonth : 12;
 
         this.state = useState({
             loading     : true,
-            annee       : ctx.roi_annee      ?? new Date().getFullYear(),
-            mois        : ctx.roi_mois       ?? new Date().getMonth() + 1,
+            annee       : annee,
             mois_label  : ctx.roi_mois_label ?? "",
             zone        : ctx.roi_zone       ?? "",
+            nb_mois     : nbMois,
             matrix      : [],
             totaux_col  : [],
             totaux_row  : [],
@@ -472,16 +483,18 @@ export class RoiDashboard extends Component {
     async loadData() {
         this.state.loading = true;
         try {
-            const annee = this.state.annee;
+            const annee  = this.state.annee;
+            const nbMois = this.state.nb_mois;
 
             const tauxResult = await this.orm.searchRead(
                 "taux.change", [["id", "=", 2]], ["montant"], { limit: 1 }
             );
             const taux = tauxResult[0]?.montant ?? 1;
 
+            // matrice nbMois x nbMois
             const promises = [];
-            for (let mc = 1; mc <= 12; mc++) {
-                for (let md = 1; md <= 12; md++) {
+            for (let mc = 1; mc <= nbMois; mc++) {
+                for (let md = 1; md <= nbMois; md++) {
                     promises.push(this._fetchCell(annee, mc, md));
                 }
             }
@@ -489,14 +502,14 @@ export class RoiDashboard extends Component {
             const results = await Promise.all(promises);
 
             const matrix      = [];
-            const totaux_row  = new Array(12).fill(0);
-            const totaux_col  = new Array(12).fill(0);
+            const totaux_row  = new Array(nbMois).fill(0);
+            const totaux_col  = new Array(nbMois).fill(0);
             let   grand_total = 0;
 
-            for (let mc = 0; mc < 12; mc++) {
+            for (let mc = 0; mc < nbMois; mc++) {
                 matrix[mc] = [];
-                for (let md = 0; md < 12; md++) {
-                    const ca = results[mc * 12 + md] * taux;
+                for (let md = 0; md < nbMois; md++) {
+                    const ca = results[mc * nbMois + md] * taux;
                     matrix[mc][md]  = ca;
                     totaux_row[mc] += ca;
                     totaux_col[md] += ca;
@@ -574,26 +587,25 @@ export class RoiDashboard extends Component {
         return this._fmt(val);
     }
 
-    // ← getter pour éviter regex dans le template
     get grandTotalFmt() {
         if (!this.state.grand_total) return "0";
         return this._fmt(this.state.grand_total);
     }
 
-    get cellClass() {
-        return (ca) => {
-            const gt = this.state.grand_total;
-            if (ca >= gt * 0.05) return "roi-cell-top";
-            if (ca >= gt * 0.02) return "roi-cell-high";
-            if (ca >= gt * 0.005) return "roi-cell-medium";
-            if (ca >= 1) return "roi-cell-low";
-            return "";
-        };
+    cellClass(ca) {
+        const gt = this.state.grand_total;
+        if (ca >= gt * 0.05)  return "roi-cell-top";
+        if (ca >= gt * 0.02)  return "roi-cell-high";
+        if (ca >= gt * 0.005) return "roi-cell-medium";
+        if (ca >= 1)          return "roi-cell-low";
+        return "";
     }
 
+    // labels limités au nb_mois
     get MOIS_LABELS() {
-        return ["Jan","Fév","Mar","Avr","Mai","Jun",
-                "Jul","Aoû","Sep","Oct","Nov","Déc"];
+        const all = ["Jan","Fév","Mar","Avr","Mai","Jun",
+                     "Jul","Aoû","Sep","Oct","Nov","Déc"];
+        return all.slice(0, this.state.nb_mois);
     }
 }
 

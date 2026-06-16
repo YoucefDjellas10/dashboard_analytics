@@ -1,6 +1,6 @@
 <templates xml:space="preserve">
     <t t-name="dashboard_analytics.CaDashboard">
-<div style="padding:16px; background:#f1f5f9;">
+<div style="padding:16px; background:#f1f5f9; height:100%; overflow-y:auto;">
 <style>
 .o_action { overflow-y:auto !important; height:100% !important; }
 .o_view_controller { overflow-y:auto !important; height:100% !important; }
@@ -250,7 +250,7 @@
 
     <!-- ROI DASHBOARD TEMPLATE -->
     <t t-name="dashboard_analytics.RoiDashboard">
-<div style="padding:16px; background:#f1f5f9;">
+<div style="padding:16px; background:#f1f5f9; height:100%; overflow-y:auto;">
 <style>
 .roi-header {
     display:flex;
@@ -285,7 +285,7 @@
 .roi-table {
     width:100%;
     border-collapse:collapse;
-    min-width:900px;
+    min-width:600px;
 }
 .roi-table thead tr th {
     background:linear-gradient(135deg,#0f4c81,#1565c0);
