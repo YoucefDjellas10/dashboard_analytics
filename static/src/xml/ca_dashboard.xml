@@ -343,14 +343,6 @@
     padding-left:16px;
     color:#0f172a;
 }
-.roi-cell-link {
-    cursor:pointer;
-    color:#1565c0;
-    font-weight:700;
-    text-decoration:underline dotted;
-    transition:color .15s;
-}
-.roi-cell-link:hover { color:#6a1b9a; }
 .roi-cell-empty { color:#cbd5e1; font-size:11px; }
 .roi-cell-diag   { background:#fef9c3 !important; }
 .roi-cell-low    { background:#dbeafe; }
@@ -403,10 +395,7 @@
                         <t t-foreach="row" t-as="ca" t-key="ca_index">
                             <td t-att-class="cellClass(ca) + (ca_index === row_index ? ' roi-cell-diag' : '')">
                                 <t t-if="ca >= 1">
-                                    <span class="roi-cell-link"
-                                          t-on-click="() => this.ouvrirDetail(row_index + 1, ca_index + 1)">
-                                        <t t-esc="fmtCell(ca)"/>
-                                    </span>
+                                    <t t-esc="fmtCell(ca)"/>
                                 </t>
                                 <t t-else="">
                                     <span class="roi-cell-empty">—</span>
@@ -427,25 +416,6 @@
                 </tr>
             </tfoot>
         </table>
-    </div>
-
-    <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; font-size:11px; color:#64748b; padding:0 4px;">
-        <span style="display:flex;align-items:center;gap:4px;">
-            <span style="width:14px;height:14px;border-radius:3px;background:#dbeafe;display:inline-block;border:1px solid #bfdbfe;"></span> Faible
-        </span>
-        <span style="display:flex;align-items:center;gap:4px;">
-            <span style="width:14px;height:14px;border-radius:3px;background:#bfdbfe;display:inline-block;border:1px solid #93c5fd;"></span> Moyen
-        </span>
-        <span style="display:flex;align-items:center;gap:4px;">
-            <span style="width:14px;height:14px;border-radius:3px;background:#93c5fd;display:inline-block;border:1px solid #60a5fa;"></span> Fort
-        </span>
-        <span style="display:flex;align-items:center;gap:4px;">
-            <span style="width:14px;height:14px;border-radius:3px;background:#3b82f6;display:inline-block;"></span> Top
-        </span>
-        <span style="display:flex;align-items:center;gap:4px;">
-            <span style="width:14px;height:14px;border-radius:3px;background:#fef9c3;display:inline-block;border:1px solid #fde047;"></span> Même mois
-        </span>
-        <span style="color:#94a3b8;">— Cliquer sur une cellule pour voir les réservations</span>
     </div>
 </t>
 
