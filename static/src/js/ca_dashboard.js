@@ -591,14 +591,7 @@ export class RoiDashboard extends Component {
         return this._fmt(this.state.grand_total);
     }
 
-    cellClass(ca) {
-        const gt = this.state.grand_total;
-        if (ca >= gt * 0.05)  return "roi-cell-top";
-        if (ca >= gt * 0.02)  return "roi-cell-high";
-        if (ca >= gt * 0.005) return "roi-cell-medium";
-        if (ca >= 1)          return "roi-cell-low";
-        return "";
-    }
+
 
     // labels lignes = limité au nb_lignes
     get MOIS_LABELS_LIGNES() {

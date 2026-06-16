@@ -345,10 +345,7 @@
 }
 .roi-cell-empty { color:#cbd5e1; font-size:11px; }
 .roi-cell-diag   { background:#fef9c3 !important; }
-.roi-cell-low    { background:#dbeafe; }
-.roi-cell-medium { background:#bfdbfe; }
-.roi-cell-high   { background:#93c5fd; }
-.roi-cell-top    { background:#3b82f6; color:#fff !important; }
+
 </style>
 
 <div class="roi-header">
@@ -393,7 +390,7 @@
                     <tr>
                         <td><t t-esc="MOIS_LABELS_LIGNES[row_index]"/></td>
                         <t t-foreach="row" t-as="ca" t-key="ca_index">
-                            <td t-att-class="cellClass(ca) + (ca_index === row_index ? ' roi-cell-diag' : '')">
+                            <td t-att-class="ca_index === row_index ? 'roi-cell-diag' : ''">
                                 <t t-if="ca >= 1">
                                     <t t-esc="fmtCell(ca)"/>
                                 </t>
