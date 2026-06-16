@@ -591,8 +591,6 @@ export class RoiDashboard extends Component {
         return this._fmt(this.state.grand_total);
     }
 
-
-
     // labels lignes = limité au nb_lignes
     get MOIS_LABELS_LIGNES() {
         const all = ["Jan","Fév","Mar","Avr","Mai","Jun",
@@ -612,3 +610,228 @@ RoiDashboard.template = "dashboard_analytics.RoiDashboard";
 registry
     .category("actions")
     .add("dashboard_analytics.action_roi_dashboard", RoiDashboard);
+
+
+// ═══════════════════════════════════════════════════════════
+//  ROI ENCAISSEMENT DASHBOARD
+//  Lignes  = mois de création du paiement (revenue.record.create_date)
+//  Colonnes = mois d'encaissement :
+//     Cas 1 — date_encaissement renseignée → filtre sur date_encaissement
+//     Cas 2 — date_encaissement vide       → fallback sur reservation.create_date
+//  Montant = montant (€) * taux  +  montant_dzd
+// ═══════════════════════════════════════════════════════════
+
+export class RoiEncaissementDashboard extends Component {
+
+    setup() {
+        this.orm    = useService("orm");
+        this.action = useService("action");
+
+        const ctx         = this.props.action?.context ?? {};
+        const currentYear = new Date().getFullYear();
+
+        this.currentMonth = new Date().getMonth() + 1;
+        this.currentYear  = currentYear;
+
+        const annee    = ctx.roi_enc_annee ?? currentYear;
+        const nbLignes = (annee === currentYear) ? this.currentMonth : 12;
+
+        this.state = useState({
+            loading     : true,
+            annee       : annee,
+            zone        : ctx.roi_enc_zone ?? "",
+            nb_lignes   : nbLignes,
+            matrix      : [],
+            totaux_col  : new Array(12).fill(0),
+            totaux_row  : [],
+            grand_total : 0,
+            years       : (() => {
+                const y = [];
+                for (let i = currentYear; i >= currentYear - 5; i--) y.push(i);
+                return y;
+            })(),
+        });
+
+        onWillStart(() => this.loadData());
+    }
+
+    _pad(n) { return String(n).padStart(2, "0"); }
+
+    _formatORM(d) {
+        return `${d.getFullYear()}-${this._pad(d.getMonth()+1)}-${this._pad(d.getDate())} `
+             + `${this._pad(d.getHours())}:${this._pad(d.getMinutes())}:${this._pad(d.getSeconds())}`;
+    }
+
+    _fmt(n) {
+        return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    }
+
+    // Deux readGroup en parallèle pour couvrir les deux cas
+    async _fetchCell(annee, mois_creation, mois_encaissement) {
+        const cDebut = new Date(annee, mois_creation     - 1, 1,  0,  0,  0);
+        const cFin   = new Date(annee, mois_creation,         0, 23, 59, 59);
+        const eDebut = new Date(annee, mois_encaissement - 1, 1,  0,  0,  0);
+        const eFin   = new Date(annee, mois_encaissement,     0, 23, 59, 59);
+
+        const baseDomain = [
+            ["create_date", ">=", this._formatORM(cDebut)],
+            ["create_date", "<=", this._formatORM(cFin)],
+        ];
+        if (this.state.zone)
+            baseDomain.push(["reservation.zone", "=", parseInt(this.state.zone)]);
+
+        // Cas 1 — date_encaissement renseignée
+        const domainA = [
+            ...baseDomain,
+            ["date_encaissement", "!=", false],
+            ["date_encaissement", ">=", this._formatORM(eDebut)],
+            ["date_encaissement", "<=", this._formatORM(eFin)],
+        ];
+
+        // Cas 2 — date_encaissement vide → fallback reservation.create_date
+        const domainB = [
+            ...baseDomain,
+            ["date_encaissement", "=",  false],
+            ["reservation.create_date", ">=", this._formatORM(eDebut)],
+            ["reservation.create_date", "<=", this._formatORM(eFin)],
+        ];
+
+        const [resA, resB] = await Promise.all([
+            this.orm.readGroup("revenue.record", domainA,
+                ["montant:sum", "montant_dzd:sum"], []),
+            this.orm.readGroup("revenue.record", domainB,
+                ["montant:sum", "montant_dzd:sum"], []),
+        ]);
+
+        return {
+            montant_eur : ((resA[0] ?? {}).montant     ?? 0) + ((resB[0] ?? {}).montant     ?? 0),
+            montant_dzd : ((resA[0] ?? {}).montant_dzd ?? 0) + ((resB[0] ?? {}).montant_dzd ?? 0),
+        };
+    }
+
+    async loadData() {
+        this.state.loading = true;
+        try {
+            const annee    = this.state.annee;
+            const nbLignes = this.state.nb_lignes;
+
+            const tauxResult = await this.orm.searchRead(
+                "taux.change", [["id", "=", 2]], ["montant"], { limit: 1 }
+            );
+            const taux = tauxResult[0]?.montant ?? 1;
+
+            const promises = [];
+            for (let mc = 1; mc <= nbLignes; mc++) {
+                for (let me = 1; me <= 12; me++) {
+                    promises.push(this._fetchCell(annee, mc, me));
+                }
+            }
+
+            const results = await Promise.all(promises);
+
+            const matrix      = [];
+            const totaux_row  = new Array(nbLignes).fill(0);
+            const totaux_col  = new Array(12).fill(0);
+            let   grand_total = 0;
+
+            for (let mc = 0; mc < nbLignes; mc++) {
+                matrix[mc] = [];
+                for (let me = 0; me < 12; me++) {
+                    const r  = results[mc * 12 + me];
+                    const ca = r.montant_eur * taux + r.montant_dzd;
+                    matrix[mc][me]  = ca;
+                    totaux_row[mc] += ca;
+                    totaux_col[me] += ca;
+                    grand_total    += ca;
+                }
+            }
+
+            this.state.matrix      = matrix;
+            this.state.totaux_row  = totaux_row;
+            this.state.totaux_col  = totaux_col;
+            this.state.grand_total = grand_total;
+
+        } finally {
+            this.state.loading = false;
+        }
+    }
+
+    updateSelectedYear(ev) {
+        const annee = parseInt(ev.target.value);
+        const nb    = (annee === this.currentYear) ? this.currentMonth : 12;
+        this.state.annee     = annee;
+        this.state.nb_lignes = nb;
+        this.loadData();
+    }
+
+    retour() {
+        this.action.doAction("dashboard_analytics.action_dashboard_statistiques");
+    }
+
+    // Ouvre la liste des revenue.record de la cellule cliquée
+    ouvrirDetail(mois_creation, mois_encaissement) {
+        const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin",
+                      "Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+        const annee = this.state.annee;
+
+        const cDebut = new Date(annee, mois_creation     - 1, 1,  0,  0,  0);
+        const cFin   = new Date(annee, mois_creation,         0, 23, 59, 59);
+        const eDebut = new Date(annee, mois_encaissement - 1, 1,  0,  0,  0);
+        const eFin   = new Date(annee, mois_encaissement,     0, 23, 59, 59);
+
+        const baseDomain = [
+            ["create_date", ">=", this._formatORM(cDebut)],
+            ["create_date", "<=", this._formatORM(cFin)],
+        ];
+        if (this.state.zone)
+            baseDomain.push(["reservation.zone", "=", parseInt(this.state.zone)]);
+
+        // OR des deux cas pour l'ouverture de la liste
+        const domain = [
+            ...baseDomain,
+            "|",
+            "&", "&",
+            ["date_encaissement", "!=", false],
+            ["date_encaissement", ">=", this._formatORM(eDebut)],
+            ["date_encaissement", "<=", this._formatORM(eFin)],
+            "&", "&",
+            ["date_encaissement", "=",  false],
+            ["reservation.create_date", ">=", this._formatORM(eDebut)],
+            ["reservation.create_date", "<=", this._formatORM(eFin)],
+        ];
+
+        this.action.doAction({
+            type      : "ir.actions.act_window",
+            name      : `Encaissements — Créés ${MOIS[mois_creation-1]} → Encaissés ${MOIS[mois_encaissement-1]} ${annee}`,
+            res_model : "revenue.record",
+            view_mode : "list,form",
+            domain,
+        });
+    }
+
+    fmtCell(val) {
+        if (!val || val < 1) return "—";
+        return this._fmt(val);
+    }
+
+    get grandTotalFmt() {
+        return this._fmt(this.state.grand_total || 0);
+    }
+
+    get MOIS_LABELS_LIGNES() {
+        const all = ["Jan","Fév","Mar","Avr","Mai","Jun",
+                     "Jul","Aoû","Sep","Oct","Nov","Déc"];
+        return all.slice(0, this.state.nb_lignes);
+    }
+
+    get MOIS_LABELS_COLONNES() {
+        return ["Jan","Fév","Mar","Avr","Mai","Jun",
+                "Jul","Aoû","Sep","Oct","Nov","Déc"];
+    }
+}
+
+RoiEncaissementDashboard.template = "dashboard_analytics.RoiEncaissementDashboard";
+
+registry
+    .category("actions")
+    .add("dashboard_analytics.action_roi_encaissement_dashboard", RoiEncaissementDashboard);
