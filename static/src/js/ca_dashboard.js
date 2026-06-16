@@ -151,27 +151,26 @@ export class CaDashboard extends Component {
         this.action.doAction("dashboard_analytics.action_dashboard_statistiques");
     }
 
-    // ← MODIFICATION : ouvrirMois ouvre maintenant le tableau ROI
     ouvrirMois(annee, mois) {
-    const MOIS_LABELS = [
-        "Janvier","Février","Mars","Avril","Mai","Juin",
-        "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
-    ];
-    const label = MOIS_LABELS[mois - 1] ?? "";
+        const MOIS_LABELS = [
+            "Janvier","Février","Mars","Avril","Mai","Juin",
+            "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
+        ];
+        const label = MOIS_LABELS[mois - 1] ?? "";
 
-    this.action.doAction({
-        type      : "ir.actions.client",
-        tag       : "dashboard_analytics.action_roi_dashboard",
-        name      : `ROI — ${label} ${annee}`,
-        target    : "current",
-        context   : {
-            roi_annee      : annee,
-            roi_mois       : mois,
-            roi_mois_label : label,
-            roi_zone       : this.state.selected_zone,
-        },
-    });
-}
+        this.action.doAction({
+            type    : "ir.actions.client",
+            tag     : "dashboard_analytics.action_roi_dashboard",
+            name    : `ROI — ${label} ${annee}`,
+            target  : "current",
+            context : {
+                roi_annee      : annee,
+                roi_mois       : mois,
+                roi_mois_label : label,
+                roi_zone       : this.state.selected_zone,
+            },
+        });
+    }
 
     async _loadPieData() {
         const n     = this.state.annee_n;
@@ -433,7 +432,7 @@ registry
 
 
 // ═══════════════════════════════════════════════════════════
-//  ROI DASHBOARD — nouvelle class ajoutée ici
+//  ROI DASHBOARD
 // ═══════════════════════════════════════════════════════════
 
 export class RoiDashboard extends Component {
@@ -445,15 +444,15 @@ export class RoiDashboard extends Component {
         const ctx = this.props.action?.context ?? {};
 
         this.state = useState({
-            loading    : true,
-            annee      : ctx.roi_annee      ?? new Date().getFullYear(),
-            mois       : ctx.roi_mois       ?? new Date().getMonth() + 1,
-            mois_label : ctx.roi_mois_label ?? "",
-            zone       : ctx.roi_zone       ?? "",
-            matrix     : [],   // matrix[mois_creation-1][mois_depart-1] = ca
-            totaux_col : [],   // total par colonne (mois départ)
-            totaux_row : [],   // total par ligne (mois création)
-            grand_total: 0,
+            loading     : true,
+            annee       : ctx.roi_annee      ?? new Date().getFullYear(),
+            mois        : ctx.roi_mois       ?? new Date().getMonth() + 1,
+            mois_label  : ctx.roi_mois_label ?? "",
+            zone        : ctx.roi_zone       ?? "",
+            matrix      : [],
+            totaux_col  : [],
+            totaux_row  : [],
+            grand_total : 0,
         });
 
         onWillStart(() => this.loadData());
@@ -475,16 +474,10 @@ export class RoiDashboard extends Component {
         try {
             const annee = this.state.annee;
 
-            // On récupère le taux une seule fois
             const tauxResult = await this.orm.searchRead(
                 "taux.change", [["id", "=", 2]], ["montant"], { limit: 1 }
             );
             const taux = tauxResult[0]?.montant ?? 1;
-
-            // Pour chaque combinaison (mois_creation x mois_depart) on fetch le CA
-            // mois_creation = mois où la réservation a été créée (create_date)
-            // mois_depart   = mois où le client part (date_heure_debut)
-            // On construit une matrice 12x12
 
             const promises = [];
             for (let mc = 1; mc <= 12; mc++) {
@@ -494,7 +487,6 @@ export class RoiDashboard extends Component {
             }
 
             const results = await Promise.all(promises);
-            const taux_val = taux;
 
             const matrix      = [];
             const totaux_row  = new Array(12).fill(0);
@@ -504,7 +496,7 @@ export class RoiDashboard extends Component {
             for (let mc = 0; mc < 12; mc++) {
                 matrix[mc] = [];
                 for (let md = 0; md < 12; md++) {
-                    const ca = results[mc * 12 + md] * taux_val;
+                    const ca = results[mc * 12 + md] * taux;
                     matrix[mc][md]  = ca;
                     totaux_row[mc] += ca;
                     totaux_col[md] += ca;
@@ -523,12 +515,10 @@ export class RoiDashboard extends Component {
     }
 
     async _fetchCell(annee, mois_creation, mois_depart) {
-        // create_date dans le mois de création
         const cDebut = new Date(annee, mois_creation - 1, 1,  0,  0,  0);
         const cFin   = new Date(annee, mois_creation,     0, 23, 59, 59);
-        // date_heure_debut dans le mois de départ
-        const dDebut = new Date(annee, mois_depart - 1, 1,  0,  0,  0);
-        const dFin   = new Date(annee, mois_depart,     0, 23, 59, 59);
+        const dDebut = new Date(annee, mois_depart - 1,   1,  0,  0,  0);
+        const dFin   = new Date(annee, mois_depart,       0, 23, 59, 59);
 
         const domain = [
             ["status",           "=",  "confirmee"],
@@ -582,6 +572,23 @@ export class RoiDashboard extends Component {
     fmtCell(val) {
         if (!val || val < 1) return "—";
         return this._fmt(val);
+    }
+
+    // ← getter pour éviter regex dans le template
+    get grandTotalFmt() {
+        if (!this.state.grand_total) return "0";
+        return this._fmt(this.state.grand_total);
+    }
+
+    get cellClass() {
+        return (ca) => {
+            const gt = this.state.grand_total;
+            if (ca >= gt * 0.05) return "roi-cell-top";
+            if (ca >= gt * 0.02) return "roi-cell-high";
+            if (ca >= gt * 0.005) return "roi-cell-medium";
+            if (ca >= 1) return "roi-cell-low";
+            return "";
+        };
     }
 
     get MOIS_LABELS() {

@@ -1,4 +1,3 @@
-
 <templates xml:space="preserve">
     <t t-name="dashboard_analytics.CaDashboard">
 <div style="padding:16px; background:#f1f5f9;">
@@ -6,7 +5,6 @@
 .o_action { overflow-y:auto !important; height:100% !important; }
 .o_view_controller { overflow-y:auto !important; height:100% !important; }
 .o_action_manager { overflow-y:auto !important; }
-
 .ca-header {
     display:flex;
     align-items:center;
@@ -136,7 +134,6 @@
 </style>
 
 <div class="ca-header">
-
     <div style="display:flex; align-items:center; gap:10px;">
         <button class="ca-btn-retour" t-on-click="retourDashboard">
             ← Retour
@@ -145,9 +142,7 @@
            Comparaison mensuelle du Chiffre d'affaires
         </div>
     </div>
-
     <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-
         <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Année</span>
             <select class="ca-select-year form-select form-select-sm"
@@ -159,7 +154,6 @@
                 </t>
             </select>
         </div>
-
         <div style="display:flex; align-items:center; gap:8px;">
             <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Zone</span>
             <select class="ca-select-zone form-select form-select-sm"
@@ -172,9 +166,7 @@
                 </t>
             </select>
         </div>
-
     </div>
-
 </div>
 
 <t t-if="state.loading">
@@ -198,17 +190,14 @@
                 <t t-foreach="state.rows" t-as="row" t-key="row.mois">
                     <tr>
                         <td><t t-esc="row.label"/></td>
-
                         <td class="ca-clickable"
-    t-on-click="() => this.ouvrirMois(state.annee_n1, row.mois)">
-    <t t-esc="fmtRow(row.ca_n1)"/>
-</td>
-
+                            t-on-click="() => this.ouvrirMois(state.annee_n1, row.mois)">
+                            <t t-esc="fmtRow(row.ca_n1)"/>
+                        </td>
                         <td class="ca-clickable"
-    t-on-click="() => this.ouvrirMois(state.annee_n, row.mois)">
-    <t t-esc="fmtRow(row.ca_n)"/>
-</td>
-
+                            t-on-click="() => this.ouvrirMois(state.annee_n, row.mois)">
+                            <t t-esc="fmtRow(row.ca_n)"/>
+                        </td>
                         <td>
                             <t t-if="row.delta !== null">
                                 <span t-attf-class="ca-badge {{ row.delta >= 0 ? 'ca-badge-up' : 'ca-badge-down' }}">
@@ -254,17 +243,12 @@
         </div>
         <canvas id="ca-chart-line" style="width:100%; max-height:400px;"/>
     </div>
-
-
 </t>
 
 </div>
     </t>
 
-
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- ROI DASHBOARD TEMPLATE — ajoutée ici, rien d'autre changé -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- ROI DASHBOARD TEMPLATE -->
     <t t-name="dashboard_analytics.RoiDashboard">
 <div style="padding:16px; background:#f1f5f9;">
 <style>
@@ -303,8 +287,7 @@
     border-collapse:collapse;
     min-width:900px;
 }
-/* En-tête colonne (mois départ) */
-.roi-table thead tr:first-child th {
+.roi-table thead tr th {
     background:linear-gradient(135deg,#0f4c81,#1565c0);
     color:#fff;
     padding:12px 8px;
@@ -315,28 +298,12 @@
     text-align:center;
     white-space:nowrap;
 }
-.roi-table thead tr:first-child th:first-child {
+.roi-table thead tr th:first-child {
     background:linear-gradient(135deg,#1e293b,#334155);
     text-align:left;
     padding-left:16px;
     min-width:110px;
 }
-/* Sous-titre colonnes */
-.roi-table thead tr:last-child th {
-    background:#1e40af;
-    color:#bfdbfe;
-    padding:6px 4px;
-    font-size:10px;
-    font-weight:600;
-    text-align:center;
-}
-.roi-table thead tr:last-child th:first-child {
-    background:#0f172a;
-    color:#94a3b8;
-    padding-left:16px;
-    text-align:left;
-}
-/* Lignes corps */
 .roi-table tbody tr:nth-child(even) td { background:#f8fafc; }
 .roi-table tbody tr:hover td { background:#eff6ff !important; }
 .roi-table td {
@@ -347,7 +314,6 @@
     color:#1e293b;
     white-space:nowrap;
 }
-/* Colonne label (mois création) */
 .roi-table td:first-child {
     text-align:left;
     font-weight:700;
@@ -357,20 +323,18 @@
     border-right:2px solid #e2e8f0;
     font-size:12px;
 }
-/* Colonne total ligne */
 .roi-table td:last-child {
     font-weight:800;
     color:#1565c0;
     background:#eff6ff !important;
     border-left:2px solid #bfdbfe;
 }
-/* Ligne total bas */
 .roi-table tfoot td {
     padding:11px 8px;
     font-size:12px;
     font-weight:800;
     text-align:center;
-    background:linear-gradient(135deg,#f0f9ff,#e0f2fe) !important;
+    background:#e0f2fe !important;
     border-top:2px solid #0ea5e9;
     color:#0c4a6e;
 }
@@ -379,7 +343,6 @@
     padding-left:16px;
     color:#0f172a;
 }
-/* Cellule cliquable */
 .roi-cell-link {
     cursor:pointer;
     color:#1565c0;
@@ -388,13 +351,8 @@
     transition:color .15s;
 }
 .roi-cell-link:hover { color:#6a1b9a; }
-/* Cellule vide */
 .roi-cell-empty { color:#cbd5e1; font-size:11px; }
-/* Diagonal highlight (même mois création = mois départ) */
-.roi-cell-diag {
-    background:#fef9c3 !important;
-}
-/* Intensité de couleur selon montant */
+.roi-cell-diag   { background:#fef9c3 !important; }
 .roi-cell-low    { background:#dbeafe; }
 .roi-cell-medium { background:#bfdbfe; }
 .roi-cell-high   { background:#93c5fd; }
@@ -411,13 +369,12 @@
             <div class="roi-title">📐 Tableau ROI — Retour sur Investissement</div>
             <div class="roi-subtitle">
                 Année <t t-esc="state.annee"/> —
-                Lignes = mois de création de la réservation |
-                Colonnes = mois de départ
+                Lignes = mois de création | Colonnes = mois de départ
             </div>
         </div>
     </div>
     <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 18px; font-size:12px; color:#1e40af; font-weight:600;">
-        Total annuel : <t t-esc="state.grand_total ? Math.round(state.grand_total).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : '0'"/> DA
+        Total annuel : <t t-esc="grandTotalFmt"/> DA
     </div>
 </div>
 
@@ -436,21 +393,18 @@
                     <t t-foreach="MOIS_LABELS" t-as="ml" t-key="ml_index">
                         <th><t t-esc="ml"/></th>
                     </t>
-                    <th>Total créé</th>
+                    <th>Total</th>
                 </tr>
             </thead>
             <tbody>
                 <t t-foreach="state.matrix" t-as="row" t-key="row_index">
                     <tr>
-                        <!-- Label mois création -->
                         <td><t t-esc="MOIS_LABELS[row_index]"/></td>
-
-                        <!-- Cellules mois départ -->
                         <t t-foreach="row" t-as="ca" t-key="ca_index">
-                            <td t-att-class="'roi-cell-' + (ca >= state.grand_total * 0.05 ? 'top' : ca >= state.grand_total * 0.02 ? 'high' : ca >= state.grand_total * 0.005 ? 'medium' : ca >= 1 ? 'low' : '') + (ca_index === row_index ? ' roi-cell-diag' : '')">
+                            <td t-att-class="cellClass(ca) + (ca_index === row_index ? ' roi-cell-diag' : '')">
                                 <t t-if="ca >= 1">
                                     <span class="roi-cell-link"
-                                          t-on-click="() => ouvrirDetail(row_index + 1, ca_index + 1)">
+                                          t-on-click="() => this.ouvrirDetail(row_index + 1, ca_index + 1)">
                                         <t t-esc="fmtCell(ca)"/>
                                     </span>
                                 </t>
@@ -459,8 +413,6 @@
                                 </t>
                             </td>
                         </t>
-
-                        <!-- Total ligne -->
                         <td><t t-esc="fmtCell(state.totaux_row[row_index])"/></td>
                     </tr>
                 </t>
@@ -471,13 +423,12 @@
                     <t t-foreach="state.totaux_col" t-as="tc" t-key="tc_index">
                         <td><t t-esc="fmtCell(tc)"/></td>
                     </t>
-                    <td><t t-esc="fmtCell(state.grand_total)"/></td>
+                    <td><t t-esc="grandTotalFmt"/></td>
                 </tr>
             </tfoot>
         </table>
     </div>
 
-    <!-- Légende couleurs -->
     <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; font-size:11px; color:#64748b; padding:0 4px;">
         <span style="display:flex;align-items:center;gap:4px;">
             <span style="width:14px;height:14px;border-radius:3px;background:#dbeafe;display:inline-block;border:1px solid #bfdbfe;"></span> Faible
