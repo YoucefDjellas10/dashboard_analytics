@@ -285,7 +285,7 @@
 .roi-table {
     width:100%;
     border-collapse:collapse;
-    min-width:600px;
+    min-width:900px;
 }
 .roi-table thead tr th {
     background:linear-gradient(135deg,#0f4c81,#1565c0);
@@ -369,12 +369,12 @@
             <div class="roi-title">📐 Tableau ROI — Retour sur Investissement</div>
             <div class="roi-subtitle">
                 Année <t t-esc="state.annee"/> —
-                Lignes = mois de création | Colonnes = mois de départ
+                Lignes = mois de création | Colonnes = mois de départ (12 mois)
             </div>
         </div>
     </div>
     <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 18px; font-size:12px; color:#1e40af; font-weight:600;">
-        Total annuel : <t t-esc="grandTotalFmt"/> DA
+        Total : <t t-esc="grandTotalFmt"/> DA
     </div>
 </div>
 
@@ -390,16 +390,16 @@
             <thead>
                 <tr>
                     <th>Créé \ Départ</th>
-                    <t t-foreach="MOIS_LABELS" t-as="ml" t-key="ml_index">
+                    <t t-foreach="MOIS_LABELS_COLONNES" t-as="ml" t-key="ml_index">
                         <th><t t-esc="ml"/></th>
                     </t>
-                    <th>Total</th>
+                    <th>Total créé</th>
                 </tr>
             </thead>
             <tbody>
                 <t t-foreach="state.matrix" t-as="row" t-key="row_index">
                     <tr>
-                        <td><t t-esc="MOIS_LABELS[row_index]"/></td>
+                        <td><t t-esc="MOIS_LABELS_LIGNES[row_index]"/></td>
                         <t t-foreach="row" t-as="ca" t-key="ca_index">
                             <td t-att-class="cellClass(ca) + (ca_index === row_index ? ' roi-cell-diag' : '')">
                                 <t t-if="ca >= 1">
