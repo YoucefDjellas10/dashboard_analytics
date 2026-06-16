@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<?xml version="1.0" encoding="UTF-8"?>
+
 <templates xml:space="preserve">
     <t t-name="dashboard_analytics.CaDashboard">
 <div style="padding:16px; background:#f1f5f9;">
