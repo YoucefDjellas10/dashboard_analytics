@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="dashboard_analytics.CaDashboard">
 <div style="padding:16px; background:#f1f5f9;">
@@ -260,4 +261,245 @@
 
 </div>
     </t>
+
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- ROI DASHBOARD TEMPLATE — ajoutée ici, rien d'autre changé -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <t t-name="dashboard_analytics.RoiDashboard">
+<div style="padding:16px; background:#f1f5f9;">
+<style>
+.roi-header {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+    background:#fff;
+    border-radius:16px;
+    padding:16px 24px;
+    margin-bottom:20px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+}
+.roi-title {
+    font-size:20px;
+    font-weight:800;
+    color:#1e293b;
+}
+.roi-subtitle {
+    font-size:13px;
+    color:#64748b;
+    margin-top:3px;
+}
+.roi-table-wrapper {
+    background:#fff;
+    border-radius:16px;
+    border:1px solid #e2e8f0;
+    box-shadow:0 4px 16px rgba(0,0,0,.07);
+    overflow:auto;
+}
+.roi-table {
+    width:100%;
+    border-collapse:collapse;
+    min-width:900px;
+}
+/* En-tête colonne (mois départ) */
+.roi-table thead tr:first-child th {
+    background:linear-gradient(135deg,#0f4c81,#1565c0);
+    color:#fff;
+    padding:12px 8px;
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    text-align:center;
+    white-space:nowrap;
+}
+.roi-table thead tr:first-child th:first-child {
+    background:linear-gradient(135deg,#1e293b,#334155);
+    text-align:left;
+    padding-left:16px;
+    min-width:110px;
+}
+/* Sous-titre colonnes */
+.roi-table thead tr:last-child th {
+    background:#1e40af;
+    color:#bfdbfe;
+    padding:6px 4px;
+    font-size:10px;
+    font-weight:600;
+    text-align:center;
+}
+.roi-table thead tr:last-child th:first-child {
+    background:#0f172a;
+    color:#94a3b8;
+    padding-left:16px;
+    text-align:left;
+}
+/* Lignes corps */
+.roi-table tbody tr:nth-child(even) td { background:#f8fafc; }
+.roi-table tbody tr:hover td { background:#eff6ff !important; }
+.roi-table td {
+    padding:10px 8px;
+    font-size:12px;
+    text-align:center;
+    border-bottom:1px solid #f1f5f9;
+    color:#1e293b;
+    white-space:nowrap;
+}
+/* Colonne label (mois création) */
+.roi-table td:first-child {
+    text-align:left;
+    font-weight:700;
+    color:#475569;
+    padding-left:16px;
+    background:#f8fafc !important;
+    border-right:2px solid #e2e8f0;
+    font-size:12px;
+}
+/* Colonne total ligne */
+.roi-table td:last-child {
+    font-weight:800;
+    color:#1565c0;
+    background:#eff6ff !important;
+    border-left:2px solid #bfdbfe;
+}
+/* Ligne total bas */
+.roi-table tfoot td {
+    padding:11px 8px;
+    font-size:12px;
+    font-weight:800;
+    text-align:center;
+    background:linear-gradient(135deg,#f0f9ff,#e0f2fe) !important;
+    border-top:2px solid #0ea5e9;
+    color:#0c4a6e;
+}
+.roi-table tfoot td:first-child {
+    text-align:left;
+    padding-left:16px;
+    color:#0f172a;
+}
+/* Cellule cliquable */
+.roi-cell-link {
+    cursor:pointer;
+    color:#1565c0;
+    font-weight:700;
+    text-decoration:underline dotted;
+    transition:color .15s;
+}
+.roi-cell-link:hover { color:#6a1b9a; }
+/* Cellule vide */
+.roi-cell-empty { color:#cbd5e1; font-size:11px; }
+/* Diagonal highlight (même mois création = mois départ) */
+.roi-cell-diag {
+    background:#fef9c3 !important;
+}
+/* Intensité de couleur selon montant */
+.roi-cell-low    { background:#dbeafe; }
+.roi-cell-medium { background:#bfdbfe; }
+.roi-cell-high   { background:#93c5fd; }
+.roi-cell-top    { background:#3b82f6; color:#fff !important; }
+</style>
+
+<div class="roi-header">
+    <div style="display:flex; align-items:center; gap:10px;">
+        <button class="ca-btn-retour" t-on-click="retour"
+                style="display:flex;align-items:center;gap:6px;padding:8px 18px;border-radius:9px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:13px;font-weight:600;cursor:pointer;">
+            ← Retour
+        </button>
+        <div>
+            <div class="roi-title">📐 Tableau ROI — Retour sur Investissement</div>
+            <div class="roi-subtitle">
+                Année <t t-esc="state.annee"/> —
+                Lignes = mois de création de la réservation |
+                Colonnes = mois de départ
+            </div>
+        </div>
+    </div>
+    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px 18px; font-size:12px; color:#1e40af; font-weight:600;">
+        Total annuel : <t t-esc="state.grand_total ? Math.round(state.grand_total).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : '0'"/> DA
+    </div>
+</div>
+
+<t t-if="state.loading">
+    <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">
+        ⏳ Chargement de la matrice ROI…
+    </div>
+</t>
+
+<t t-else="">
+    <div class="roi-table-wrapper">
+        <table class="roi-table">
+            <thead>
+                <tr>
+                    <th>Créé \ Départ</th>
+                    <t t-foreach="MOIS_LABELS" t-as="ml" t-key="ml_index">
+                        <th><t t-esc="ml"/></th>
+                    </t>
+                    <th>Total créé</th>
+                </tr>
+            </thead>
+            <tbody>
+                <t t-foreach="state.matrix" t-as="row" t-key="row_index">
+                    <tr>
+                        <!-- Label mois création -->
+                        <td><t t-esc="MOIS_LABELS[row_index]"/></td>
+
+                        <!-- Cellules mois départ -->
+                        <t t-foreach="row" t-as="ca" t-key="ca_index">
+                            <td t-att-class="'roi-cell-' + (ca >= state.grand_total * 0.05 ? 'top' : ca >= state.grand_total * 0.02 ? 'high' : ca >= state.grand_total * 0.005 ? 'medium' : ca >= 1 ? 'low' : '') + (ca_index === row_index ? ' roi-cell-diag' : '')">
+                                <t t-if="ca >= 1">
+                                    <span class="roi-cell-link"
+                                          t-on-click="() => ouvrirDetail(row_index + 1, ca_index + 1)">
+                                        <t t-esc="fmtCell(ca)"/>
+                                    </span>
+                                </t>
+                                <t t-else="">
+                                    <span class="roi-cell-empty">—</span>
+                                </t>
+                            </td>
+                        </t>
+
+                        <!-- Total ligne -->
+                        <td><t t-esc="fmtCell(state.totaux_row[row_index])"/></td>
+                    </tr>
+                </t>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>Total départ</td>
+                    <t t-foreach="state.totaux_col" t-as="tc" t-key="tc_index">
+                        <td><t t-esc="fmtCell(tc)"/></td>
+                    </t>
+                    <td><t t-esc="fmtCell(state.grand_total)"/></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Légende couleurs -->
+    <div style="margin-top:12px; display:flex; gap:12px; flex-wrap:wrap; font-size:11px; color:#64748b; padding:0 4px;">
+        <span style="display:flex;align-items:center;gap:4px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:#dbeafe;display:inline-block;border:1px solid #bfdbfe;"></span> Faible
+        </span>
+        <span style="display:flex;align-items:center;gap:4px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:#bfdbfe;display:inline-block;border:1px solid #93c5fd;"></span> Moyen
+        </span>
+        <span style="display:flex;align-items:center;gap:4px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:#93c5fd;display:inline-block;border:1px solid #60a5fa;"></span> Fort
+        </span>
+        <span style="display:flex;align-items:center;gap:4px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:#3b82f6;display:inline-block;"></span> Top
+        </span>
+        <span style="display:flex;align-items:center;gap:4px;">
+            <span style="width:14px;height:14px;border-radius:3px;background:#fef9c3;display:inline-block;border:1px solid #fde047;"></span> Même mois
+        </span>
+        <span style="color:#94a3b8;">— Cliquer sur une cellule pour voir les réservations</span>
+    </div>
+</t>
+
+</div>
+    </t>
+
 </templates>

@@ -151,25 +151,19 @@ export class CaDashboard extends Component {
         this.action.doAction("dashboard_analytics.action_dashboard_statistiques");
     }
 
+    // ← MODIFICATION : ouvrirMois ouvre maintenant le tableau ROI
     ouvrirMois(annee, mois) {
-        const debut = new Date(annee, mois - 1, 1,  0,  0,  0);
-        const fin   = new Date(annee, mois,     0, 23, 59, 59);
-        const label = `${this.state.rows[mois-1]?.label} ${annee}`;
-
-        const domain = [
-            ["status",      "=",  "confirmee"],
-            ["create_date", ">=", this._formatORM(debut)],
-            ["create_date", "<=", this._formatORM(fin)],
-        ];
-        if (this.state.selected_zone)
-            domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
-
         this.action.doAction({
-            type      : "ir.actions.act_window",
-            name      : `Chiffre d'affaires — ${label}`,
-            res_model : "reservation",
-            view_mode : "list,form",
-            domain,
+            type       : "ir.actions.client",
+            tag        : "dashboard_analytics.action_roi_dashboard",
+            name       : `ROI — ${this.state.rows[mois-1]?.label} ${annee}`,
+            target     : "current",
+            context    : {
+                roi_annee       : annee,
+                roi_mois        : mois,
+                roi_mois_label  : this.state.rows[mois-1]?.label,
+                roi_zone        : this.state.selected_zone,
+            },
         });
     }
 
@@ -430,3 +424,168 @@ CaDashboard.template = "dashboard_analytics.CaDashboard";
 registry
     .category("actions")
     .add("dashboard_analytics.action_ca_dashboard", CaDashboard);
+
+
+// ═══════════════════════════════════════════════════════════
+//  ROI DASHBOARD — nouvelle class ajoutée ici
+// ═══════════════════════════════════════════════════════════
+
+export class RoiDashboard extends Component {
+
+    setup() {
+        this.orm    = useService("orm");
+        this.action = useService("action");
+
+        const ctx = this.props.action?.context ?? {};
+
+        this.state = useState({
+            loading    : true,
+            annee      : ctx.roi_annee      ?? new Date().getFullYear(),
+            mois       : ctx.roi_mois       ?? new Date().getMonth() + 1,
+            mois_label : ctx.roi_mois_label ?? "",
+            zone       : ctx.roi_zone       ?? "",
+            matrix     : [],   // matrix[mois_creation-1][mois_depart-1] = ca
+            totaux_col : [],   // total par colonne (mois départ)
+            totaux_row : [],   // total par ligne (mois création)
+            grand_total: 0,
+        });
+
+        onWillStart(() => this.loadData());
+    }
+
+    _pad(n) { return String(n).padStart(2, "0"); }
+
+    _formatORM(d) {
+        return `${d.getFullYear()}-${this._pad(d.getMonth()+1)}-${this._pad(d.getDate())} `
+             + `${this._pad(d.getHours())}:${this._pad(d.getMinutes())}:${this._pad(d.getSeconds())}`;
+    }
+
+    _fmt(n) {
+        return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    }
+
+    async loadData() {
+        this.state.loading = true;
+        try {
+            const annee = this.state.annee;
+
+            // On récupère le taux une seule fois
+            const tauxResult = await this.orm.searchRead(
+                "taux.change", [["id", "=", 2]], ["montant"], { limit: 1 }
+            );
+            const taux = tauxResult[0]?.montant ?? 1;
+
+            // Pour chaque combinaison (mois_creation x mois_depart) on fetch le CA
+            // mois_creation = mois où la réservation a été créée (create_date)
+            // mois_depart   = mois où le client part (date_heure_debut)
+            // On construit une matrice 12x12
+
+            const promises = [];
+            for (let mc = 1; mc <= 12; mc++) {
+                for (let md = 1; md <= 12; md++) {
+                    promises.push(this._fetchCell(annee, mc, md));
+                }
+            }
+
+            const results = await Promise.all(promises);
+            const taux_val = taux;
+
+            const matrix      = [];
+            const totaux_row  = new Array(12).fill(0);
+            const totaux_col  = new Array(12).fill(0);
+            let   grand_total = 0;
+
+            for (let mc = 0; mc < 12; mc++) {
+                matrix[mc] = [];
+                for (let md = 0; md < 12; md++) {
+                    const ca = results[mc * 12 + md] * taux_val;
+                    matrix[mc][md]  = ca;
+                    totaux_row[mc] += ca;
+                    totaux_col[md] += ca;
+                    grand_total    += ca;
+                }
+            }
+
+            this.state.matrix      = matrix;
+            this.state.totaux_row  = totaux_row;
+            this.state.totaux_col  = totaux_col;
+            this.state.grand_total = grand_total;
+
+        } finally {
+            this.state.loading = false;
+        }
+    }
+
+    async _fetchCell(annee, mois_creation, mois_depart) {
+        // create_date dans le mois de création
+        const cDebut = new Date(annee, mois_creation - 1, 1,  0,  0,  0);
+        const cFin   = new Date(annee, mois_creation,     0, 23, 59, 59);
+        // date_heure_debut dans le mois de départ
+        const dDebut = new Date(annee, mois_depart - 1, 1,  0,  0,  0);
+        const dFin   = new Date(annee, mois_depart,     0, 23, 59, 59);
+
+        const domain = [
+            ["status",           "=",  "confirmee"],
+            ["create_date",      ">=", this._formatORM(cDebut)],
+            ["create_date",      "<=", this._formatORM(cFin)],
+            ["date_heure_debut", ">=", this._formatORM(dDebut)],
+            ["date_heure_debut", "<=", this._formatORM(dFin)],
+        ];
+        if (this.state.zone)
+            domain.push(["zone", "=", parseInt(this.state.zone)]);
+
+        const res = await this.orm.readGroup(
+            "reservation", domain, ["total_reduit_euro:sum"], []
+        );
+        return (res[0] ?? {}).total_reduit_euro ?? 0;
+    }
+
+    retour() {
+        this.action.doAction("dashboard_analytics.action_ca_dashboard");
+    }
+
+    ouvrirDetail(mois_creation, mois_depart) {
+        const MOIS = ["Janvier","Février","Mars","Avril","Mai","Juin",
+                      "Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+        const annee = this.state.annee;
+
+        const cDebut = new Date(annee, mois_creation - 1, 1,  0,  0,  0);
+        const cFin   = new Date(annee, mois_creation,     0, 23, 59, 59);
+        const dDebut = new Date(annee, mois_depart   - 1, 1,  0,  0,  0);
+        const dFin   = new Date(annee, mois_depart,       0, 23, 59, 59);
+
+        const domain = [
+            ["status",           "=",  "confirmee"],
+            ["create_date",      ">=", this._formatORM(cDebut)],
+            ["create_date",      "<=", this._formatORM(cFin)],
+            ["date_heure_debut", ">=", this._formatORM(dDebut)],
+            ["date_heure_debut", "<=", this._formatORM(dFin)],
+        ];
+        if (this.state.zone)
+            domain.push(["zone", "=", parseInt(this.state.zone)]);
+
+        this.action.doAction({
+            type      : "ir.actions.act_window",
+            name      : `Créées en ${MOIS[mois_creation-1]} → Départ ${MOIS[mois_depart-1]} ${annee}`,
+            res_model : "reservation",
+            view_mode : "list,form",
+            domain,
+        });
+    }
+
+    fmtCell(val) {
+        if (!val || val < 1) return "—";
+        return this._fmt(val);
+    }
+
+    get MOIS_LABELS() {
+        return ["Jan","Fév","Mar","Avr","Mai","Jun",
+                "Jul","Aoû","Sep","Oct","Nov","Déc"];
+    }
+}
+
+RoiDashboard.template = "dashboard_analytics.RoiDashboard";
+
+registry
+    .category("actions")
+    .add("dashboard_analytics.action_roi_dashboard", RoiDashboard);
