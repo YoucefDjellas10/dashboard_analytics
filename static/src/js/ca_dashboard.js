@@ -153,19 +153,25 @@ export class CaDashboard extends Component {
 
     // ← MODIFICATION : ouvrirMois ouvre maintenant le tableau ROI
     ouvrirMois(annee, mois) {
-        this.action.doAction({
-            type       : "ir.actions.client",
-            tag        : "dashboard_analytics.action_roi_dashboard",
-            name       : `ROI — ${this.state.rows[mois-1]?.label} ${annee}`,
-            target     : "current",
-            context    : {
-                roi_annee       : annee,
-                roi_mois        : mois,
-                roi_mois_label  : this.state.rows[mois-1]?.label,
-                roi_zone        : this.state.selected_zone,
-            },
-        });
-    }
+    const MOIS_LABELS = [
+        "Janvier","Février","Mars","Avril","Mai","Juin",
+        "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
+    ];
+    const label = MOIS_LABELS[mois - 1] ?? "";
+
+    this.action.doAction({
+        type      : "ir.actions.client",
+        tag       : "dashboard_analytics.action_roi_dashboard",
+        name      : `ROI — ${label} ${annee}`,
+        target    : "current",
+        context   : {
+            roi_annee      : annee,
+            roi_mois       : mois,
+            roi_mois_label : label,
+            roi_zone       : this.state.selected_zone,
+        },
+    });
+}
 
     async _loadPieData() {
         const n     = this.state.annee_n;
