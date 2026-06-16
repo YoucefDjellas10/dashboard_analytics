@@ -610,14 +610,15 @@ export class RoiDashboard extends Component {
         const eDebut = new Date(annee, mois_encaissement - 1, 1,  0,  0,  0);
         const eFin   = new Date(annee, mois_encaissement,     0, 23, 59, 59);
 
+        // Lignes = mois de création de la RÉSERVATION
         const baseDomain = [
-            ["create_date", ">=", this._formatORM(cDebut)],
-            ["create_date", "<=", this._formatORM(cFin)],
+            ["reservation.create_date", ">=", this._formatORM(cDebut)],
+            ["reservation.create_date", "<=", this._formatORM(cFin)],
         ];
         if (this.state.zone)
             baseDomain.push(["reservation.zone", "=", parseInt(this.state.zone)]);
 
-        // Cas 1 — date_encaissement renseignée
+        // Cas 1 — date_encaissement renseignée → colonne = date_encaissement
         const domainA = [
             ...baseDomain,
             ["date_encaissement", "!=", false],
@@ -625,12 +626,12 @@ export class RoiDashboard extends Component {
             ["date_encaissement", "<=", this._formatORM(eFin)],
         ];
 
-        // Cas 2 — date_encaissement vide → fallback reservation.create_date
+        // Cas 2 — date_encaissement vide → colonne = create_date du paiement
         const domainB = [
             ...baseDomain,
             ["date_encaissement", "=",  false],
-            ["reservation.create_date", ">=", this._formatORM(eDebut)],
-            ["reservation.create_date", "<=", this._formatORM(eFin)],
+            ["create_date", ">=", this._formatORM(eDebut)],
+            ["create_date", "<=", this._formatORM(eFin)],
         ];
 
         const [resA, resB] = await Promise.all([
@@ -690,9 +691,10 @@ export class RoiDashboard extends Component {
         const eDebut = new Date(annee, mois_encaissement - 1, 1,  0,  0,  0);
         const eFin   = new Date(annee, mois_encaissement,     0, 23, 59, 59);
 
+        // Lignes = mois de création de la RÉSERVATION
         const baseDomain = [
-            ["create_date", ">=", this._formatORM(cDebut)],
-            ["create_date", "<=", this._formatORM(cFin)],
+            ["reservation.create_date", ">=", this._formatORM(cDebut)],
+            ["reservation.create_date", "<=", this._formatORM(cFin)],
         ];
         if (this.state.zone)
             baseDomain.push(["reservation.zone", "=", parseInt(this.state.zone)]);
@@ -706,8 +708,8 @@ export class RoiDashboard extends Component {
             ["date_encaissement", "<=", this._formatORM(eFin)],
             "&", "&",
             ["date_encaissement", "=",  false],
-            ["reservation.create_date", ">=", this._formatORM(eDebut)],
-            ["reservation.create_date", "<=", this._formatORM(eFin)],
+            ["create_date", ">=", this._formatORM(eDebut)],
+            ["create_date", "<=", this._formatORM(eFin)],
         ];
 
         this.action.doAction({
