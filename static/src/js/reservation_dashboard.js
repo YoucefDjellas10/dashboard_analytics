@@ -1112,9 +1112,14 @@ export class ReservationDetailDashboard extends Component {
             }
         });
 
+        // ── FIX : height="auto" n'est pas une valeur valide pour l'attribut SVG height.
+        // On calcule une hauteur d'affichage proportionnelle, en conservant le ratio du viewBox.
+        const displayWidth  = Math.min(svgW, container.clientWidth || svgW);
+        const displayHeight = svgH * (displayWidth / svgW);
+
         container.innerHTML = `
             <div style="width:100%; overflow-x:auto; padding-bottom:8px;">
-                <svg viewBox="0 0 ${svgW} ${svgH}" width="${Math.min(svgW, container.clientWidth || svgW)}" height="auto" preserveAspectRatio="xMidYMid meet" style="display:block; max-width:100%;">
+                <svg viewBox="0 0 ${svgW} ${svgH}" width="${displayWidth}" height="${displayHeight}" preserveAspectRatio="xMidYMid meet" style="display:block; max-width:100%;">
                     ${cells}
                 </svg>
             </div>
