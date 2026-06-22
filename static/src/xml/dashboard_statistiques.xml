@@ -412,6 +412,8 @@
                                    background:#0e7490; border-radius:10px; transition:width .6s;"/>
             </div>
         </div>
+    </div>
+
     <!-- 8. Véhicules -->
     <div class="dash-card" style="cursor:pointer; color:#3730a3;
                 background:linear-gradient(135deg,#ede9fe,#ddd6fe);"
