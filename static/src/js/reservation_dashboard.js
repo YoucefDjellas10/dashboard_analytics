@@ -32,9 +32,20 @@ export class ReservationDashboard extends Component {
 
     _pad(n) { return String(n).padStart(2, "0"); }
 
+    // d est construit avec des composantes LOCALES (new Date(annee, mois, jour, ...)).
+    // toISOString() le convertit correctement en UTC (ce qu'attend Odoo),
+    // en respectant automatiquement le fuseau horaire du navigateur de l'utilisateur.
     _formatORM(d) {
-        return `${d.getFullYear()}-${this._pad(d.getMonth()+1)}-${this._pad(d.getDate())} `
-             + `${this._pad(d.getHours())}:${this._pad(d.getMinutes())}:${this._pad(d.getSeconds())}`;
+        return d.toISOString().slice(0, 19).replace("T", " ");
+    }
+
+    // create_date renvoyé par Odoo est une string naïve ("YYYY-MM-DD HH:MM:SS") en UTC.
+    // On force l'interprétation UTC en ajoutant "Z", puis les getters locaux
+    // (.getMonth(), .getDay(), .getDate()...) appliqués sur le résultat
+    // respecteront automatiquement le fuseau horaire de l'utilisateur.
+    _parseOdooDate(str) {
+        if (!str) return null;
+        return new Date(str.replace(" ", "T") + "Z");
     }
 
     async _loadZones() {
@@ -105,8 +116,9 @@ export class ReservationDashboard extends Component {
                 const countArr = new Array(12).fill(0);
                 const joursArr = new Array(12).fill(0);
                 for (const r of recs) {
-                    if (!r.create_date) continue;
-                    const moisIdx = new Date(r.create_date).getMonth();
+                    const d = this._parseOdooDate(r.create_date);
+                    if (!d) continue;
+                    const moisIdx = d.getMonth();
                     countArr[moisIdx]++;
                     joursArr[moisIdx] += (r.nbr_jour_reservation || 0);
                 }
@@ -660,6 +672,15 @@ export class ReservationDetailDashboard extends Component {
 
     _pad(n) { return String(n).padStart(2, "0"); }
 
+    // create_date renvoyé par Odoo est une string naïve ("YYYY-MM-DD HH:MM:SS") en UTC.
+    // On force l'interprétation UTC en ajoutant "Z", puis les getters locaux
+    // (.getMonth(), .getDay(), .getDate()...) appliqués sur le résultat
+    // respecteront automatiquement le fuseau horaire de l'utilisateur.
+    _parseOdooDate(str) {
+        if (!str) return null;
+        return new Date(str.replace(" ", "T") + "Z");
+    }
+
     async _loadDetailData() {
         this.state.loading = true;
         try {
@@ -968,8 +989,8 @@ export class ReservationDetailDashboard extends Component {
         const counts = new Array(7).fill(0);
 
         for (const r of this.state.recs_raw) {
-            if (!r.create_date) continue;
-            const d = new Date(r.create_date);
+            const d = this._parseOdooDate(r.create_date);
+            if (!d) continue;
             const idx = (d.getDay() + 6) % 7;
             counts[idx]++;
         }
@@ -1027,8 +1048,8 @@ export class ReservationDetailDashboard extends Component {
         let minYear = Infinity;
 
         for (const r of this.state.recs_raw) {
-            if (!r.create_date) continue;
-            const d = new Date(r.create_date);
+            const d = this._parseOdooDate(r.create_date);
+            if (!d) continue;
             const { week, year } = this._getISOWeek(d);
             const key = `${year}-${String(week).padStart(2,"0")}`;
             if (!matrix[key]) matrix[key] = new Array(7).fill(0);
