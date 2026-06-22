@@ -24,12 +24,6 @@
 }
 .dash-grille-2 {
     display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:16px;
-    margin-bottom:16px;
-}
-.dash-grille-3 {
-    display:grid;
     grid-template-columns:repeat(4,1fr);
     gap:16px;
 }
@@ -130,10 +124,6 @@
         gap:12px;
     }
     .dash-grille-2 {
-        grid-template-columns:repeat(2,1fr);
-        gap:12px;
-    }
-    .dash-grille-3 {
         grid-template-columns:repeat(2,1fr);
         gap:12px;
     }
@@ -362,7 +352,7 @@
 
 </div><!-- fin ligne 1 -->
 
-<!-- LIGNE 2 — 3 cartes -->
+<!-- LIGNE 2 — 4 cartes -->
 <div class="dash-grille-2">
 
     <!-- 5. Dépenses -->
@@ -408,7 +398,7 @@
     </div>
 
     <!-- 7. Taux de remplissage -->
-    <div class="dash-card dash-taux-span2" style="cursor:pointer; color:#164e4e;
+    <div class="dash-card" style="cursor:pointer; color:#164e4e;
                 background:linear-gradient(135deg,#cffafe,#a5f3fc);"
          t-on-click="ouvrirTauxRemplissage">
         <div class="dash-card-body-lg">
@@ -422,13 +412,6 @@
                                    background:#0e7490; border-radius:10px; transition:width .6s;"/>
             </div>
         </div>
-    </div>
-
-</div><!-- fin ligne 2 -->
-
-<!-- LIGNE 3 — Véhicules -->
-<div class="dash-grille-3">
-
     <!-- 8. Véhicules -->
     <div class="dash-card" style="cursor:pointer; color:#3730a3;
                 background:linear-gradient(135deg,#ede9fe,#ddd6fe);"
@@ -450,7 +433,7 @@
         </div>
     </div>
 
-</div><!-- fin ligne 3 -->
+</div><!-- fin ligne 2 -->
 
         </div>
     </t>
