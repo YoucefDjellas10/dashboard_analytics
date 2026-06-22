@@ -26,6 +26,12 @@
     display:grid;
     grid-template-columns:repeat(3,1fr);
     gap:16px;
+    margin-bottom:16px;
+}
+.dash-grille-3 {
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
 }
 .dash-card {
     border-radius:18px;
@@ -124,6 +130,10 @@
         gap:12px;
     }
     .dash-grille-2 {
+        grid-template-columns:repeat(2,1fr);
+        gap:12px;
+    }
+    .dash-grille-3 {
         grid-template-columns:repeat(2,1fr);
         gap:12px;
     }
@@ -415,6 +425,32 @@
     </div>
 
 </div><!-- fin ligne 2 -->
+
+<!-- LIGNE 3 — Véhicules -->
+<div class="dash-grille-3">
+
+    <!-- 8. Véhicules -->
+    <div class="dash-card" style="cursor:pointer; color:#3730a3;
+                background:linear-gradient(135deg,#ede9fe,#ddd6fe);"
+         t-on-click="ouvrirVehicules">
+        <div class="dash-card-body-lg">
+            <div class="dash-card-titre">Véhicules</div>
+            <div class="dash-card-valeur"><t t-esc="state.nb_vehicules"/></div>
+            <t t-if="state.prev_nb_vehicules !== null">
+                <div class="dash-card-prev" style="margin-top:8px;"><t t-esc="state.prev_nb_vehicules"/></div>
+            </t>
+            <t t-if="deltaVehicules">
+                <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 12px;
+                                   border-radius:20px; font-size:13px; font-weight:800;
+                                   background:{{ deltaVehicules.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
+                    <t t-if="deltaVehicules.positive">▲ +<t t-esc="deltaVehicules.val"/> %</t>
+                    <t t-else="">▼ <t t-esc="deltaVehicules.val"/> %</t>
+                </div>
+            </t>
+        </div>
+    </div>
+
+</div><!-- fin ligne 3 -->
 
         </div>
     </t>

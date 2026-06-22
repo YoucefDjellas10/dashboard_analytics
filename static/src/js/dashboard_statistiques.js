@@ -21,6 +21,7 @@ export class DashboardStatistiques extends Component {
             total_depense_da       : 0,
             taux_remplissage       : 0,
             total_previsionnel_da  : 0,
+            nb_vehicules           : 0,
 
             // ── Période N-1 ──
             prev_reservations      : null,
@@ -29,6 +30,7 @@ export class DashboardStatistiques extends Component {
             prev_panier_moyen_da   : null,
             prev_depense_da        : null,
             prev_taux_remplissage  : null,
+            prev_nb_vehicules      : null,
 
             date_debut             : this._toInputDate(debut),
             date_fin               : this._toInputDate(fin),
@@ -302,7 +304,7 @@ export class DashboardStatistiques extends Component {
             taux_remplissage = Math.min(100, Math.round(tauxCalc));
         }
 
-        return { count, ca_da, tresorerie_da, panier_da, depense_da, taux_remplissage, previsionnel_da };
+        return { count, ca_da, tresorerie_da, panier_da, depense_da, taux_remplissage, previsionnel_da, nbVehicules };
     }
 
     // ─────────────────────────────────────────
@@ -347,6 +349,7 @@ export class DashboardStatistiques extends Component {
             this.state.total_depense_da       = cur.depense_da;
             this.state.taux_remplissage       = cur.taux_remplissage;
             this.state.total_previsionnel_da  = cur.previsionnel_da;
+            this.state.nb_vehicules           = cur.nbVehicules;
 
             // Période N-1
             this.state.prev_reservations     = prv.count;
@@ -355,6 +358,7 @@ export class DashboardStatistiques extends Component {
             this.state.prev_panier_moyen_da  = prv.panier_da;
             this.state.prev_depense_da       = prv.depense_da;
             this.state.prev_taux_remplissage = prv.taux_remplissage;
+            this.state.prev_nb_vehicules     = prv.nbVehicules;
 
         } finally {
             this.state.loading = false;
@@ -421,6 +425,7 @@ export class DashboardStatistiques extends Component {
     get deltaDepense()       { return this._delta(this.state.total_depense_da,       this.state.prev_depense_da); }
     get deltaTaux()          { return null; }
     get deltaBalance()       { return this._delta(this.balance, this.prevBalance); }
+    get deltaVehicules()     { return this._delta(this.state.nb_vehicules,           this.state.prev_nb_vehicules); }
 
     // ─────────────────────────────────────────
     //  Actions
@@ -433,6 +438,7 @@ export class DashboardStatistiques extends Component {
     ouvrirPanierMoyen()    { this.action.doAction("dashboard_analytics.action_panier_moyen_dashboard"); }
     ouvrirBalance()        { this.action.doAction("dashboard_analytics.action_balance_dashboard"); }
     ouvrirDepenses()       { this.action.doAction("dashboard_analytics.action_depense_dashboard"); }
+    ouvrirVehicules()      { this.action.doAction("dashboard_analytics.action_vehicule_dashboard"); }
 
     fmt(n) {
         return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
