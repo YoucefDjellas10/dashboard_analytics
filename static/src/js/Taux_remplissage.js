@@ -64,8 +64,8 @@ export class TauxRemplissageDashboard extends Component {
 
         // Véhicules déjà mis en service à cette période (date_debut_service <= fin de période)
         const domainVeh = this.state.selected_zone
-            ? [["zone", "=", parseInt(this.state.selected_zone)], ["date_debut_service", "<=", finStr]]
-            : [["date_debut_service", "<=", finStr]];
+            ? [["zone", "=", parseInt(this.state.selected_zone)], ["active_test", "=", true], ["date_debut_service", "<=", finStr]]
+            : [["active_test", "=", true], ["date_debut_service", "<=", finStr]];
 
         const [resList, vehList] = await Promise.all([
             this.orm.searchRead("reservation", domainRes, ["date_heure_debut", "date_heure_fin"]),
@@ -293,7 +293,7 @@ export class TauxRemplissageDetailDashboard extends Component {
 
                 // Véhicules déjà mis en service à cette période (date_debut_service <= fin de période)
                 const vehList = await this.orm.searchRead("vehicule",
-                    [["zone", "=", zone.id], ["date_debut_service", "<=", finStr]],
+                    [["zone", "=", zone.id], ["active_test", "=", true], ["date_debut_service", "<=", finStr]],
                     ["id", "name", "numero", "model_name"]
                 );
 
