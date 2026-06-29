@@ -234,7 +234,7 @@ export class DashboardStatistiques extends Component {
         ];
         if (zoneId) domainPrevisionnel.push(["zone", "=", zoneId]);
 
-        const [resResult, depResult, tauxResult, vehiculesResult, resDatesList, prevResult] =
+        const [resResult, depResult, tauxResult, vehiculesResult, resDatesList, prevResultList] =
             await Promise.all([
 
                 this.orm.readGroup("reservation",
@@ -263,10 +263,12 @@ export class DashboardStatistiques extends Component {
                     ["date_heure_debut", "date_heure_fin"]
                 ),
 
-                // ── NOUVEAU : somme des reste_payer (prévisionnel) ──
-                this.orm.readGroup("reservation",
+                // ── reste_payer par réservation (prévisionnel) ──
+                // Récupéré ligne par ligne pour pouvoir clamper les valeurs négatives à 0
+                // avant la somme (un avoir/trop-perçu ne doit pas réduire le prévisionnel global).
+                this.orm.searchRead("reservation",
                     domainPrevisionnel,
-                    ["reste_payer:sum"], []
+                    ["reste_payer"]
                 ),
             ]);
 
@@ -281,8 +283,10 @@ export class DashboardStatistiques extends Component {
         const panier_da  = count > 0 ? (caEuro / count) * tauxDB : 0;
         const depense_da = (depResult[0] ?? {}).montant_da ?? 0;
 
-        // reste_payer est en EUR → conversion en DA
-        const previsionnel_eur = (prevResult[0] ?? {}).reste_payer ?? 0;
+        // reste_payer : on clampe chaque valeur négative à 0, puis on somme (en EUR), puis conversion DA
+        const previsionnel_eur = prevResultList.reduce(
+            (sum, r) => sum + Math.max(0, r.reste_payer ?? 0), 0
+        );
         const previsionnel_da  = previsionnel_eur * tauxDB;
 
         // Taux de remplissage
