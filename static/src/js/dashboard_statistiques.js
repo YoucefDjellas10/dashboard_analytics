@@ -226,6 +226,9 @@ export class DashboardStatistiques extends Component {
         const zoneId = this.state.selected_zone ? parseInt(this.state.selected_zone) : null;
         const taux   = this._getTaux(debut);
 
+        // Date de fin de période au format YYYY-MM-DD pour comparer avec date_debut_service
+        const finVehiculeStr = `${fin.getFullYear()}-${this._pad(fin.getMonth()+1)}-${this._pad(fin.getDate())}`;
+
         // ── Domaine prévisionnel : reste_payer des réservations dont date_heure_debut est dans la période ──
         const domainPrevisionnel = [
             ["status",           "=",  "confirmee"],
@@ -251,10 +254,11 @@ export class DashboardStatistiques extends Component {
                     [["id", "=", 2]], ["montant"], { limit: 1 }
                 ),
 
+                // Véhicules déjà mis en service à cette période (date_debut_service <= fin de période)
                 this.orm.searchRead("vehicule",
                     zoneId
-                        ? [["zone", "=", zoneId], ["active_test", "=", true]]
-                        : [["active_test", "=", true]],
+                        ? [["zone", "=", zoneId], ["active_test", "=", true], ["date_debut_service", "<=", finVehiculeStr]]
+                        : [["active_test", "=", true], ["date_debut_service", "<=", finVehiculeStr]],
                     ["id"]
                 ),
 
