@@ -22,6 +22,7 @@ export class DashboardStatistiques extends Component {
             taux_remplissage       : 0,
             total_previsionnel_da  : 0,
             nb_vehicules           : 0,
+            total_valeur_vehicules : 0,
 
             // ── Période N-1 ──
             prev_reservations      : null,
@@ -259,7 +260,7 @@ export class DashboardStatistiques extends Component {
                     zoneId
                         ? [["zone", "=", zoneId], ["active_test", "=", true], ["date_debut_service", "<=", finVehiculeStr]]
                         : [["active_test", "=", true], ["date_debut_service", "<=", finVehiculeStr]],
-                    ["id"]
+                    ["id", "valeur_actuel"]
                 ),
 
                 this.orm.searchRead("reservation",
@@ -312,7 +313,10 @@ export class DashboardStatistiques extends Component {
             taux_remplissage = Math.min(100, Math.round(tauxCalc));
         }
 
-        return { count, ca_da, tresorerie_da, panier_da, depense_da, taux_remplissage, previsionnel_da, nbVehicules };
+        // Somme de la valeur actuelle de tous les véhicules actifs de la période
+        const valeurVehicules = vehiculesResult.reduce((s, v) => s + (v.valeur_actuel || 0), 0);
+
+        return { count, ca_da, tresorerie_da, panier_da, depense_da, taux_remplissage, previsionnel_da, nbVehicules, valeurVehicules };
     }
 
     // ─────────────────────────────────────────
@@ -358,6 +362,7 @@ export class DashboardStatistiques extends Component {
             this.state.taux_remplissage       = cur.taux_remplissage;
             this.state.total_previsionnel_da  = cur.previsionnel_da;
             this.state.nb_vehicules           = cur.nbVehicules;
+            this.state.total_valeur_vehicules = cur.valeurVehicules;
 
             // Période N-1
             this.state.prev_reservations     = prv.count;
@@ -461,6 +466,7 @@ export class DashboardStatistiques extends Component {
     get depenseFormatted()        { return this.fmt(this.state.total_depense_da); }
     get balanceFormatted()        { return this.fmt(this.balance); }
     get previsionnelFormatted()   { return this.fmt(this.state.total_previsionnel_da); }
+    get valeurVehiculesFormatted(){ return this.fmt(this.state.total_valeur_vehicules); }
 }
 
 DashboardStatistiques.template = "dashboard_analytics.DashboardStatistiques";

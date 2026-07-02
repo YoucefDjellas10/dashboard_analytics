@@ -421,9 +421,7 @@
         <div class="dash-card-body-lg">
             <div class="dash-card-titre">Véhicules</div>
             <div class="dash-card-valeur"><t t-esc="state.nb_vehicules"/></div>
-            <t t-if="state.prev_nb_vehicules !== null">
-                <div class="dash-card-prev" style="margin-top:8px;"><t t-esc="state.prev_nb_vehicules"/></div>
-            </t>
+            <div class="dash-card-prev" style="margin-top:8px;"><t t-esc="valeurVehiculesFormatted"/> DA</div>
             <t t-if="deltaVehicules">
                 <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 12px;
                                    border-radius:20px; font-size:13px; font-weight:800;
