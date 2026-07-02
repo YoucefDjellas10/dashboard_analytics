@@ -353,7 +353,69 @@
 </div><!-- fin ligne 1 -->
 
 <!-- LIGNE 2 — 4 cartes -->
-<div class="dash-card" style="cursor:pointer; color:#3730a3;
+<div class="dash-grille-2">
+
+    <!-- 5. Dépenses -->
+    <div class="dash-card" style="cursor:pointer; color:#7f1d1d;
+                background:linear-gradient(135deg,#fee2e2,#fecaca);"
+         t-on-click="ouvrirDepenses">
+        <div class="dash-card-body-lg">
+            <div class="dash-card-titre">Dépenses</div>
+            <div class="dash-card-valeur"><t t-esc="depenseFormatted"/> DA</div>
+            <t t-if="state.prev_depense_da !== null">
+                <div class="dash-card-prev" style="margin-top:8px;"><t t-esc="fmt(state.prev_depense_da)"/> DA</div>
+            </t>
+            <t t-if="deltaDepense">
+                <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 12px;
+                                   border-radius:20px; font-size:13px; font-weight:800;
+                                   background:{{ deltaDepense.positive ? '#dc2626' : '#16a34a' }}; color:#fff;">
+                    <t t-if="deltaDepense.positive">▲ +<t t-esc="deltaDepense.val"/> %</t>
+                    <t t-else="">▼ <t t-esc="deltaDepense.val"/> %</t>
+                </div>
+            </t>
+        </div>
+    </div>
+
+    <!-- 6. Balance -->
+    <div class="dash-card" style="cursor:pointer; color:#1e1b4b;
+                background:linear-gradient(135deg,#e0e7ff,#c7d2fe);"
+         t-on-click="ouvrirBalance">
+        <div class="dash-card-body-lg">
+            <div class="dash-card-titre">Balance</div>
+            <div class="dash-card-valeur"><t t-esc="balanceFormatted"/> DA</div>
+            <t t-if="prevBalance !== null">
+                <div class="dash-card-prev" style="margin-top:8px;"><t t-esc="fmt(prevBalance)"/> DA</div>
+            </t>
+            <t t-if="deltaBalance">
+                <div t-attf-style="margin-top:10px; display:inline-block; padding:3px 12px;
+                                   border-radius:20px; font-size:13px; font-weight:800;
+                                   background:{{ deltaBalance.positive ? '#16a34a' : '#dc2626' }}; color:#fff;">
+                    <t t-if="deltaBalance.positive">▲ +<t t-esc="deltaBalance.val"/> %</t>
+                    <t t-else="">▼ <t t-esc="deltaBalance.val"/> %</t>
+                </div>
+            </t>
+        </div>
+    </div>
+
+    <!-- 7. Taux de remplissage -->
+    <div class="dash-card" style="cursor:pointer; color:#164e4e;
+                background:linear-gradient(135deg,#cffafe,#a5f3fc);"
+         t-on-click="ouvrirTauxRemplissage">
+        <div class="dash-card-body-lg">
+            <div class="dash-card-titre">Taux de remplissage</div>
+            <div class="dash-card-valeur">
+                <t t-esc="state.taux_remplissage"/> %
+            </div>
+            <div style="background:rgba(0,0,0,.1); border-radius:10px;
+                        height:6px; margin:8px 0; overflow:hidden;">
+                <div t-attf-style="width:{{state.taux_remplissage}}%; height:100%;
+                                   background:#0e7490; border-radius:10px; transition:width .6s;"/>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. Véhicules -->
+    <div class="dash-card" style="cursor:pointer; color:#3730a3;
                 background:linear-gradient(135deg,#ede9fe,#ddd6fe);"
          t-on-click="ouvrirVehicules">
         <div class="dash-card-body-lg">
@@ -361,7 +423,9 @@
             <div class="dash-card-valeur"><t t-esc="state.nb_vehicules"/></div>
             <div class="dash-card-prev" style="margin-top:8px;"><t t-esc="valeurVehiculesFormatted"/> DA</div>
         </div>
-    </div><!-- fin ligne 2 -->
+    </div>
+
+</div><!-- fin ligne 2 -->
 
         </div>
     </t>
