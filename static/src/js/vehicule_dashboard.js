@@ -4,19 +4,26 @@ import { registry }   from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { Component, onWillStart, useState } from "@odoo/owl";
 
-export class VehiculeDashboard extends Component {
+export class VehiculeRevenuDashboard extends Component {
 
     setup() {
         this.orm    = useService("orm");
         this.action = useService("action");
 
+        const { debut, fin } = this._getDebutFinMois();
+
         this.state = useState({
             loading         : false,
             zones           : [],
             selected_zone   : "",
-            categories      : [],   // [{ id, name, total_valeur, total_count, modeles: [...] }]
-            total_valeur    : 0,
-            total_count     : 0,
+            date_debut      : this._toInputDate(debut),
+            date_fin        : this._toInputDate(fin),
+
+            categories      : [],   // [{ id, name, total_revenu, total_depense, total_balance, modeles: [...] }]
+            total_revenu    : 0,
+            total_depense   : 0,
+            total_balance   : 0,
+
             expanded_cats   : {},
             expanded_mods   : {},
         });
@@ -24,91 +31,273 @@ export class VehiculeDashboard extends Component {
         onWillStart(() => this._loadZones().then(() => this.loadData()));
     }
 
+    // ─────────────────────────────────────────
+    //  Utilitaires
+    // ─────────────────────────────────────────
+
+    _pad(n) { return String(n).padStart(2, "0"); }
+
+    _formatORM(d) {
+        return `${d.getFullYear()}-${this._pad(d.getMonth()+1)}-${this._pad(d.getDate())} `
+             + `${this._pad(d.getHours())}:${this._pad(d.getMinutes())}:${this._pad(d.getSeconds())}`;
+    }
+
+    _toInputDate(d) {
+        return `${d.getFullYear()}-${this._pad(d.getMonth()+1)}-${this._pad(d.getDate())}`;
+    }
+
+    _parseDebut(str) {
+        const [y, m, d] = str.split("-").map(Number);
+        return new Date(y, m-1, d, 0, 0, 0);
+    }
+
+    _parseFin(str) {
+        const [y, m, d] = str.split("-").map(Number);
+        return new Date(y, m-1, d, 23, 59, 59);
+    }
+
+    _getDebutFinMois() {
+        const now = new Date();
+        return {
+            debut : new Date(now.getFullYear(), now.getMonth(),     1,  0,  0,  0),
+            fin   : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59),
+        };
+    }
+
+    _getTaux(debut) {
+        return debut.getFullYear() < 2026 ? 260 : 270;
+    }
+
+    _DATE_PIVOT = new Date(2025, 10, 1, 0, 0, 0);
+
     async _loadZones() {
         this.state.zones = await this.orm.searchRead(
             "zone", [], ["id", "name"], { order: "name asc" }
         );
     }
 
-    // Même logique de filtrage que dans reservation : "actif" + zone sélectionnée
-    _buildDomain() {
-        const domain = [["active_test", "=", true]];
-        if (this.state.selected_zone)
-            domain.push(["zone", "=", parseInt(this.state.selected_zone)]);
-        return domain;
-    }
+    // ─────────────────────────────────────────
+    //  Chargement des données
+    // ─────────────────────────────────────────
 
     async loadData() {
+        if (!this.state.date_debut || !this.state.date_fin) return;
         this.state.loading = true;
         try {
-            const vehicules = await this.orm.searchRead(
-                "vehicule",
-                this._buildDomain(),
-                ["id", "name", "matricule", "numero", "categorie", "model_name", "valeur_actuel", "zone"],
-                { limit: 0 }
-            );
+            const debut  = this._parseDebut(this.state.date_debut);
+            const fin    = this._parseFin(this.state.date_fin);
+            const zoneId = this.state.selected_zone ? parseInt(this.state.selected_zone) : null;
+            const taux   = this._getTaux(debut);
 
+            const finVehiculeStr = `${fin.getFullYear()}-${this._pad(fin.getMonth()+1)}-${this._pad(fin.getDate())}`;
+            const debutStr = `${debut.getFullYear()}-${this._pad(debut.getMonth()+1)}-${this._pad(debut.getDate())}`;
+
+            const zoneFilterRevenue = zoneId ? [["zone_encaissement", "=", zoneId]] : [];
+
+            // ── Domaines Revenue (split old/new comme _fetchTresorerie) ──
+            const revenuePromises = [];
+
+            if (debut < this._DATE_PIVOT) {
+                const finOld = fin < this._DATE_PIVOT ? fin : new Date(this._DATE_PIVOT - 1);
+                revenuePromises.push(
+                    this.orm.searchRead("revenue.record", [
+                        ...zoneFilterRevenue,
+                        ["is_old", "=", true],
+                        ["date_encaissement", ">=", this._formatORM(debut)],
+                        ["date_encaissement", "<=", this._formatORM(finOld)],
+                    ], ["id", "montant", "montant_dzd", "vehicule"], { limit: 0 }),
+                    this.orm.searchRead("revenue.record", [
+                        ...zoneFilterRevenue,
+                        ["is_old", "=", true],
+                        ["date_encaissement", "=", false],
+                        ["reservation.create_date", ">=", this._formatORM(debut)],
+                        ["reservation.create_date", "<=", this._formatORM(finOld)],
+                    ], ["id", "montant", "montant_dzd", "vehicule"], { limit: 0 })
+                );
+            }
+
+            if (fin >= this._DATE_PIVOT) {
+                const debutNew = debut >= this._DATE_PIVOT ? debut : this._DATE_PIVOT;
+                revenuePromises.push(
+                    this.orm.searchRead("revenue.record", [
+                        ...zoneFilterRevenue,
+                        ["is_old", "!=", true],
+                        ["date_encaissement", ">=", this._formatORM(debutNew)],
+                        ["date_encaissement", "<=", this._formatORM(fin)],
+                    ], ["id", "montant", "montant_dzd", "vehicule"], { limit: 0 }),
+                    this.orm.searchRead("revenue.record", [
+                        ...zoneFilterRevenue,
+                        ["is_old", "!=", true],
+                        ["date_encaissement", "=", false],
+                        ["reservation.create_date", ">=", this._formatORM(debutNew)],
+                        ["reservation.create_date", "<=", this._formatORM(fin)],
+                    ], ["id", "montant", "montant_dzd", "vehicule"], { limit: 0 })
+                );
+            }
+
+            // ── Domaine dépenses ──
+            const depenseDomain = [
+                ["status",              "=",  "valide"],
+                ["date_de_realisation", ">=", debutStr],
+                ["date_de_realisation", "<=", finVehiculeStr],
+            ];
+            if (zoneId) depenseDomain.push(["zone", "=", zoneId]);
+
+            // ── Domaine remboursements ──
+            const refundDomain = [
+                ["date", ">=", this._formatORM(debut)],
+                ["date", "<=", this._formatORM(fin)],
+                ["status", "=", "effectuer"],
+            ];
+            if (zoneId) refundDomain.push(["reservation.zone", "=", zoneId]);
+
+            // ── Véhicules actifs (mise en service <= fin de période) ──
+            const vehiculeDomain = [
+                ["active_test", "=", true],
+                ["date_debut_service", "<=", finVehiculeStr],
+            ];
+            if (zoneId) vehiculeDomain.push(["zone", "=", zoneId]);
+
+            const [vehicules, depenses, refunds, ...revenueParts] = await Promise.all([
+                this.orm.searchRead("vehicule", vehiculeDomain,
+                    ["id", "matricule", "numero", "categorie", "model_name"]),
+                this.orm.searchRead("depense.record", depenseDomain,
+                    ["id", "montant_da", "vehicule_numero"], { limit: 0 }),
+                this.orm.searchRead("refund.table", refundDomain,
+                    ["id", "amount", "reservation"], { limit: 0 }),
+                ...revenuePromises,
+            ]);
+
+            const revenueRecs = [].concat(...revenueParts);
+
+            // ── Map vehicule → reservation (pour rattacher les remboursements) ──
+            const refundResIds = [...new Set(
+                refunds.map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation).filter(Boolean)
+            )];
+            let refundResvMap = {};
+            if (refundResIds.length > 0) {
+                const resvData = await this.orm.searchRead(
+                    "reservation", [["id", "in", refundResIds]], ["id", "vehicule"], { limit: 0 }
+                );
+                for (const rv of resvData) {
+                    refundResvMap[rv.id] = Array.isArray(rv.vehicule) ? rv.vehicule[0] : rv.vehicule || false;
+                }
+            }
+
+            // ── Agrégation par véhicule ──
+            const revenuMap  = {};
+            const depenseMap = {};
+            const refundMap  = {};
+
+            for (const r of revenueRecs) {
+                const vehId = Array.isArray(r.vehicule) ? r.vehicule[0] : r.vehicule || false;
+                if (!vehId) continue;
+                const montant = (r.montant_dzd || 0) + ((r.montant || 0) * taux);
+                revenuMap[vehId] = (revenuMap[vehId] || 0) + montant;
+            }
+
+            for (const d of depenses) {
+                const vehId = Array.isArray(d.vehicule_numero) ? d.vehicule_numero[0] : d.vehicule_numero || false;
+                if (!vehId) continue;
+                depenseMap[vehId] = (depenseMap[vehId] || 0) + (d.montant_da || 0);
+            }
+
+            for (const ref of refunds) {
+                const resId = Array.isArray(ref.reservation) ? ref.reservation[0] : ref.reservation || false;
+                const vehId = resId ? refundResvMap[resId] : false;
+                if (!vehId) continue;
+                refundMap[vehId] = (refundMap[vehId] || 0) + ((ref.amount || 0) * taux);
+            }
+
+            // ── Construction de l'arborescence Catégorie → Modèle → Véhicule ──
             const catMap = {};
+            let total_revenu = 0, total_depense = 0;
 
             for (const v of vehicules) {
                 const catId   = Array.isArray(v.categorie) ? v.categorie[0] : 0;
                 const catName = Array.isArray(v.categorie) ? v.categorie[1] : "Sans catégorie";
                 const modName = v.model_name || "Sans modèle";
-                const valeur  = v.valeur_actuel || 0;
+
+                const revenu  = (revenuMap[v.id]  || 0) - (refundMap[v.id] || 0);
+                const depense = depenseMap[v.id] || 0;
+                const balance = revenu - depense;
+
+                total_revenu  += revenu;
+                total_depense += depense;
 
                 if (!catMap[catId]) {
-                    catMap[catId] = { id: catId, name: catName, total_valeur: 0, total_count: 0, modeles: {} };
+                    catMap[catId] = { id: catId, name: catName, total_revenu: 0, total_depense: 0, total_balance: 0, modeles: {} };
                 }
                 const cat = catMap[catId];
 
                 if (!cat.modeles[modName]) {
-                    cat.modeles[modName] = { name: modName, total_valeur: 0, total_count: 0, vehicules: [] };
+                    cat.modeles[modName] = { name: modName, total_revenu: 0, total_depense: 0, total_balance: 0, vehicules: [] };
                 }
                 const mod = cat.modeles[modName];
 
                 mod.vehicules.push({
                     id        : v.id,
-                    name      : v.name,
                     matricule : v.matricule,
                     numero    : v.numero,
-                    valeur    : valeur,
+                    revenu, depense, balance,
                 });
-                mod.total_valeur += valeur;
-                mod.total_count  += 1;
 
-                cat.total_valeur += valeur;
-                cat.total_count  += 1;
+                mod.total_revenu  += revenu;
+                mod.total_depense += depense;
+                mod.total_balance += balance;
+
+                cat.total_revenu  += revenu;
+                cat.total_depense += depense;
+                cat.total_balance += balance;
             }
 
-            // Tri : véhicules par valeur desc dans chaque modèle,
-            // modèles par valeur totale desc dans chaque catégorie,
-            // catégories par valeur totale desc
             const categories = Object.values(catMap).map(cat => {
                 const modeles = Object.values(cat.modeles)
                     .map(mod => {
-                        mod.vehicules.sort((a, b) => b.valeur - a.valeur);
+                        mod.vehicules.sort((a, b) => b.balance - a.balance);
                         return mod;
                     })
-                    .sort((a, b) => b.total_valeur - a.total_valeur);
+                    .sort((a, b) => b.total_balance - a.total_balance);
                 return { ...cat, modeles };
-            }).sort((a, b) => b.total_valeur - a.total_valeur);
+            }).sort((a, b) => b.total_balance - a.total_balance);
 
-            this.state.categories   = categories;
-            this.state.total_valeur = vehicules.reduce((s, v) => s + (v.valeur_actuel || 0), 0);
-            this.state.total_count  = vehicules.length;
+            this.state.categories    = categories;
+            this.state.total_revenu  = total_revenu;
+            this.state.total_depense = total_depense;
+            this.state.total_balance = total_revenu - total_depense;
 
         } finally {
             this.state.loading = false;
         }
     }
 
-    updateSelectedZone(ev) {
-        this.state.selected_zone = ev.target.value;
-        this.loadData();
+    // ─────────────────────────────────────────
+    //  Handlers
+    // ─────────────────────────────────────────
+
+    onDateDebutChange(ev) { this.state.date_debut = ev.target.value; }
+    onDateFinChange(ev)   { this.state.date_fin   = ev.target.value; }
+
+    updateSelectedZone(ev) { this.state.selected_zone = ev.target.value; }
+
+    async appliquerFiltre() { await this.loadData(); }
+
+    async reinitialiserMois() {
+        const { debut, fin }     = this._getDebutFinMois();
+        this.state.date_debut    = this._toInputDate(debut);
+        this.state.date_fin      = this._toInputDate(fin);
+        this.state.selected_zone = "";
+        await this.loadData();
     }
 
     retourDashboard() {
         this.action.doAction("dashboard_analytics.action_dashboard_statistiques");
+    }
+
+    get labelPeriode() {
+        if (!this.state.date_debut || !this.state.date_fin) return "";
+        const fmt = (str) => { const [y,m,d] = str.split("-"); return `${d}/${m}/${y}`; };
+        return `${fmt(this.state.date_debut)} → ${fmt(this.state.date_fin)}`;
     }
 
     // ── Expand / collapse ──
@@ -131,19 +320,19 @@ export class VehiculeDashboard extends Component {
     // ── Formatage ──
 
     fmt(n) {
-        return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        const abs = Math.abs(Math.round(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        return n < 0 ? `- ${abs}` : abs;
     }
 
-    get totalValeurFormatted() { return this.fmt(this.state.total_valeur); }
+    isPositive(n) { return n >= 0; }
 
-    get valeurMoyenneFormatted() {
-        const moy = this.state.total_count > 0 ? this.state.total_valeur / this.state.total_count : 0;
-        return this.fmt(moy);
-    }
+    get totalRevenuFormatted()  { return this.fmt(this.state.total_revenu); }
+    get totalDepenseFormatted() { return this.fmt(this.state.total_depense); }
+    get totalBalanceFormatted() { return this.fmt(this.state.total_balance); }
 }
 
-VehiculeDashboard.template = "dashboard_analytics.VehiculeDashboard";
+VehiculeRevenuDashboard.template = "dashboard_analytics.VehiculeRevenuDashboard";
 
 registry
     .category("actions")
-    .add("dashboard_analytics.action_vehicule_dashboard", VehiculeDashboard);
+    .add("dashboard_analytics.action_vehicule_revenu_dashboard", VehiculeRevenuDashboard);

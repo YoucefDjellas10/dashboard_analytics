@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
 
-    <t t-name="dashboard_analytics.VehiculeDashboard">
+    <t t-name="dashboard_analytics.VehiculeRevenuDashboard">
 <div style="padding:16px; background:#f1f5f9; min-height:100vh; overflow-y:auto;">
 <style>
 .o_action { overflow-y: auto !important; height: 100% !important; }
@@ -9,97 +9,123 @@
 .o_action_manager { overflow-y: auto !important; }
 .o_content { overflow-y: auto !important; height: 100% !important; }
 
-/* ── Header ── */
-.vd-header {
+/* ── Header / filtres ── */
+.vrd-header {
     display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
     background:#fff; border-radius:16px; padding:16px 24px; margin-bottom:20px;
     border:1px solid #e2e8f0; box-shadow:0 4px 16px rgba(0,0,0,.07);
 }
-.vd-title { font-size:18px; font-weight:800; color:#1e293b; }
-.vd-btn {
+.vrd-title { font-size:18px; font-weight:800; color:#1e293b; }
+.vrd-btn {
     display:flex; align-items:center; gap:6px; padding:8px 18px;
     border-radius:9px; border:1.5px solid #e2e8f0; background:#f8fafc;
     color:#475569; font-size:13px; font-weight:600; cursor:pointer;
     transition:background .2s, transform .15s;
 }
-.vd-btn:hover { background:#e2e8f0; transform:translateY(-2px); }
-.vd-select-zone {
-    width:220px; border-radius:8px; border:1.5px solid #e2e8f0; font-size:13px;
+.vrd-btn:hover { background:#e2e8f0; transform:translateY(-2px); }
+.vrd-btn-primary {
+    border:none; background:linear-gradient(135deg,#1565c0,#6a1b9a); color:#fff;
+    box-shadow:0 3px 10px rgba(21,101,192,.4);
+}
+.vrd-input-date, .vrd-select-zone {
+    border-radius:8px; border:1.5px solid #e2e8f0; font-size:13px;
     color:#1e293b; background:#f8fafc; padding:7px 12px;
 }
+.vrd-select-zone { width:200px; }
 
 /* ── Cartes résumé ── */
-.vd-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px; }
-.vd-card {
-    border-radius:16px; padding:20px 24px; box-shadow:0 6px 20px rgba(0,0,0,.1);
-}
-.vd-card-titre  { font-size:13px; font-weight:700; opacity:.75; margin-bottom:6px; }
-.vd-card-valeur { font-size:24px; font-weight:900; letter-spacing:-1px; }
+.vrd-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px; }
+.vrd-card { border-radius:16px; padding:20px 24px; box-shadow:0 6px 20px rgba(0,0,0,.1); }
+.vrd-card-titre  { font-size:13px; font-weight:700; opacity:.75; margin-bottom:6px; }
+.vrd-card-valeur { font-size:24px; font-weight:900; letter-spacing:-1px; }
 
 /* ── Table wrapper ── */
-.vd-card-table { background:#fff; border-radius:16px; border:1px solid #e2e8f0; box-shadow:0 4px 16px rgba(0,0,0,.07); overflow:hidden; }
-.vd-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-.vd-table { width:100%; border-collapse:collapse; font-size:13px; }
-.vd-table thead tr { background:linear-gradient(135deg,#1565c0,#6a1b9a); color:#fff; }
-.vd-table thead th { padding:12px 16px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; text-align:right; white-space:nowrap; }
-.vd-table thead th:first-child { text-align:left; }
+.vrd-card-table { background:#fff; border-radius:16px; border:1px solid #e2e8f0; box-shadow:0 4px 16px rgba(0,0,0,.07); overflow:hidden; }
+.vrd-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.vrd-table { width:100%; border-collapse:collapse; font-size:13px; }
+.vrd-table thead tr { background:linear-gradient(135deg,#1565c0,#6a1b9a); color:#fff; }
+.vrd-table thead th { padding:12px 16px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; text-align:right; white-space:nowrap; }
+.vrd-table thead th:first-child { text-align:left; }
 
-.vd-cat-row { background:linear-gradient(90deg,#eef2ff 0%,#f5f3ff 100%); cursor:pointer; user-select:none; border-bottom:1px solid #c7d2fe; }
-.vd-cat-row:hover { background:linear-gradient(90deg,#e0e7ff 0%,#ede9fe 100%); }
-.vd-cat-row td { padding:12px 16px; font-weight:800; color:#3730a3; border-bottom:1px solid #c7d2fe; }
-.vd-cat-row td:first-child { text-align:left; }
-.vd-arrow { display:inline-block; font-size:11px; transition:transform .2s ease; color:#6366f1; margin-right:8px; }
-.vd-arrow.open { transform:rotate(90deg); }
+.vrd-cat-row { background:linear-gradient(90deg,#eef2ff 0%,#f5f3ff 100%); cursor:pointer; user-select:none; border-bottom:1px solid #c7d2fe; }
+.vrd-cat-row:hover { background:linear-gradient(90deg,#e0e7ff 0%,#ede9fe 100%); }
+.vrd-cat-row td { padding:12px 16px; font-weight:800; color:#3730a3; border-bottom:1px solid #c7d2fe; }
+.vrd-cat-row td:first-child { text-align:left; }
+.vrd-arrow { display:inline-block; font-size:11px; transition:transform .2s ease; color:#6366f1; margin-right:8px; }
+.vrd-arrow.open { transform:rotate(90deg); }
 
-.vd-mod-row { background:#fafafa; cursor:pointer; user-select:none; border-bottom:1px solid #f1f5f9; }
-.vd-mod-row:hover { background:#f0f7ff; }
-.vd-mod-row td { padding:10px 16px 10px 32px; font-weight:700; color:#475569; }
-.vd-mod-row td:first-child { text-align:left; }
+.vrd-mod-row { background:#fafafa; cursor:pointer; user-select:none; border-bottom:1px solid #f1f5f9; }
+.vrd-mod-row:hover { background:#f0f7ff; }
+.vrd-mod-row td { padding:10px 16px 10px 32px; font-weight:700; color:#475569; }
+.vrd-mod-row td:first-child { text-align:left; }
 
-.vd-veh-row td { padding:8px 16px 8px 52px; text-align:right; color:#1e293b; border-bottom:1px solid #f8fafc; }
-.vd-veh-row td:first-child { text-align:left; font-weight:600; color:#334155; }
-.vd-veh-row:hover td { background:#f8fafc; }
+.vrd-veh-row td { padding:8px 16px 8px 52px; text-align:right; color:#1e293b; border-bottom:1px solid #f8fafc; }
+.vrd-veh-row td:first-child { text-align:left; font-weight:600; color:#334155; }
+.vrd-veh-row:hover td { background:#f8fafc; }
 
-.vd-total-row td {
+.vrd-total-row td {
     background:linear-gradient(135deg,#f8fafc,#f1f5f9) !important;
     font-weight:800 !important; border-top:2px solid #e2e8f0 !important;
     padding:12px 16px; text-align:right;
 }
-.vd-total-row td:first-child { text-align:left; }
+.vrd-total-row td:first-child { text-align:left; }
+
+.vrd-neg { color:#dc2626; }
+.vrd-pos { color:#16a34a; }
 
 /* ══════════════════════════════════════════════
    RESPONSIVE
    ══════════════════════════════════════════════ */
 @media (max-width:1024px) {
-    .vd-header { flex-direction:column; align-items:flex-start; }
-    .vd-cards { grid-template-columns:1fr 1fr; }
-    .vd-select-zone { width:180px; }
+    .vrd-header { flex-direction:column; align-items:flex-start; }
+    .vrd-cards { grid-template-columns:1fr 1fr; }
 }
 @media (max-width:768px) {
-    .vd-cards { grid-template-columns:1fr; gap:10px; }
-    .vd-card { padding:14px 18px; }
-    .vd-card-valeur { font-size:19px; }
-    .vd-table { font-size:11px; }
-    .vd-table thead th, .vd-cat-row td, .vd-mod-row td, .vd-veh-row td, .vd-total-row td { padding:7px 8px; }
-    .vd-mod-row td { padding-left:20px; }
-    .vd-veh-row td { padding-left:32px; }
+    .vrd-cards { grid-template-columns:1fr; gap:10px; }
+    .vrd-card { padding:14px 18px; }
+    .vrd-card-valeur { font-size:19px; }
+    .vrd-table { font-size:11px; }
+    .vrd-table thead th, .vrd-cat-row td, .vrd-mod-row td, .vrd-veh-row td, .vrd-total-row td { padding:7px 8px; }
+    .vrd-mod-row td { padding-left:20px; }
+    .vrd-veh-row td { padding-left:32px; }
+    .vrd-select-zone, .vrd-input-date { width:100%; }
 }
 </style>
 
-<!-- Header -->
-<div class="vd-header">
+<!-- Header + filtres -->
+<div class="vrd-header">
     <div style="display:flex; align-items:center; gap:10px;">
-        <button class="vd-btn" t-on-click="retourDashboard">← Retour</button>
-        <div class="vd-title">🚗 Véhicules actifs — par catégorie / modèle</div>
+        <button class="vrd-btn" t-on-click="retourDashboard">← Retour</button>
+        <div class="vrd-title">💰 Véhicules — Revenu / Dépense / Balance</div>
     </div>
-    <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase;">Zone</span>
-        <select class="vd-select-zone form-select form-select-sm" t-on-change="updateSelectedZone">
-            <option value="">🌍 Toutes les zones</option>
-            <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
-                <option t-att-value="zone.id" t-att-selected="state.selected_zone == zone.id" t-esc="zone.name"/>
-            </t>
-        </select>
+
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase;">Du</span>
+            <input type="date" class="form-control form-control-sm vrd-input-date"
+                   t-att-value="state.date_debut" t-on-change="onDateDebutChange"/>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase;">Au</span>
+            <input type="date" class="form-control form-control-sm vrd-input-date"
+                   t-att-value="state.date_fin" t-on-change="onDateFinChange"/>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase;">Zone</span>
+            <select class="form-select form-select-sm vrd-select-zone" t-on-change="updateSelectedZone">
+                <option value="">🌍 Toutes les zones</option>
+                <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+                    <option t-att-value="zone.id" t-att-selected="state.selected_zone == zone.id" t-esc="zone.name"/>
+                </t>
+            </select>
+        </div>
+        <button class="vrd-btn vrd-btn-primary" t-on-click="appliquerFiltre" t-att-disabled="state.loading">
+            <t t-if="state.loading">⏳ Chargement…</t>
+            <t t-else="">🔍 Appliquer</t>
+        </button>
+        <button class="vrd-btn" t-on-click="reinitialiserMois" t-att-disabled="state.loading">
+            🔄 Mois actuel
+        </button>
     </div>
 </div>
 
@@ -111,65 +137,75 @@
 <t t-else="">
 
     <!-- Cartes résumé -->
-    <div class="vd-cards">
-        <div class="vd-card" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe); color:#1a3a5c;">
-            <div class="vd-card-titre">Véhicules actifs</div>
-            <div class="vd-card-valeur"><t t-esc="state.total_count"/></div>
+    <div class="vrd-cards">
+        <div class="vrd-card" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0); color:#14532d;">
+            <div class="vrd-card-titre">Revenu total</div>
+            <div class="vrd-card-valeur"><t t-esc="totalRevenuFormatted"/> DA</div>
         </div>
-        <div class="vd-card" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0); color:#14532d;">
-            <div class="vd-card-titre">Valeur totale du parc</div>
-            <div class="vd-card-valeur"><t t-esc="totalValeurFormatted"/> DA</div>
+        <div class="vrd-card" style="background:linear-gradient(135deg,#fee2e2,#fecaca); color:#7f1d1d;">
+            <div class="vrd-card-titre">Dépense totale</div>
+            <div class="vrd-card-valeur"><t t-esc="totalDepenseFormatted"/> DA</div>
         </div>
-        <div class="vd-card" style="background:linear-gradient(135deg,#ffedd5,#fed7aa); color:#7c2d00;">
-            <div class="vd-card-titre">Valeur moyenne / véhicule</div>
-            <div class="vd-card-valeur"><t t-esc="valeurMoyenneFormatted"/> DA</div>
+        <div class="vrd-card" t-attf-style="background:linear-gradient(135deg,{{ isPositive(state.total_balance) ? '#e0e7ff,#c7d2fe' : '#fee2e2,#fecaca' }}); color:{{ isPositive(state.total_balance) ? '#1e1b4b' : '#7f1d1d' }};">
+            <div class="vrd-card-titre">Balance</div>
+            <div class="vrd-card-valeur"><t t-esc="totalBalanceFormatted"/> DA</div>
         </div>
     </div>
 
     <!-- Tableau groupé -->
-    <div class="vd-card-table">
-        <div class="vd-scroll">
-            <table class="vd-table">
+    <div class="vrd-card-table">
+        <div class="vrd-scroll">
+            <table class="vrd-table">
                 <thead>
                     <tr>
                         <th style="min-width:220px;">Catégorie / Modèle / Véhicule</th>
-                        <th>Nb véhicules</th>
-                        <th>Valeur (DA)</th>
+                        <th>Revenu (DA)</th>
+                        <th>Dépense (DA)</th>
+                        <th>Balance (DA)</th>
                     </tr>
                 </thead>
                 <tbody>
                     <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
 
                         <!-- Ligne CATÉGORIE -->
-                        <tr class="vd-cat-row" t-on-click="() => this.toggleCategorie(cat.id)">
+                        <tr class="vrd-cat-row" t-on-click="() => this.toggleCategorie(cat.id)">
                             <td>
-                                <span t-attf-class="vd-arrow {{ isCategorieExpanded(cat.id) ? 'open' : '' }}">▶</span>
+                                <span t-attf-class="vrd-arrow {{ isCategorieExpanded(cat.id) ? 'open' : '' }}">▶</span>
                                 🏷️ <t t-esc="cat.name"/>
                             </td>
-                            <td><t t-esc="cat.total_count"/></td>
-                            <td><t t-esc="fmt(cat.total_valeur)"/></td>
+                            <td><t t-esc="fmt(cat.total_revenu)"/></td>
+                            <td><t t-esc="fmt(cat.total_depense)"/></td>
+                            <td t-attf-class="{{ isPositive(cat.total_balance) ? 'vrd-pos' : 'vrd-neg' }}">
+                                <t t-esc="fmt(cat.total_balance)"/>
+                            </td>
                         </tr>
 
                         <t t-if="isCategorieExpanded(cat.id)">
                             <t t-foreach="cat.modeles" t-as="mod" t-key="mod.name">
 
                                 <!-- Ligne MODÈLE -->
-                                <tr class="vd-mod-row" t-on-click="() => this.toggleModele(cat.id, mod.name)">
+                                <tr class="vrd-mod-row" t-on-click="() => this.toggleModele(cat.id, mod.name)">
                                     <td>
-                                        <span t-attf-class="vd-arrow {{ isModeleExpanded(cat.id, mod.name) ? 'open' : '' }}">▶</span>
+                                        <span t-attf-class="vrd-arrow {{ isModeleExpanded(cat.id, mod.name) ? 'open' : '' }}">▶</span>
                                         🚘 <t t-esc="mod.name"/>
                                     </td>
-                                    <td><t t-esc="mod.total_count"/></td>
-                                    <td><t t-esc="fmt(mod.total_valeur)"/></td>
+                                    <td><t t-esc="fmt(mod.total_revenu)"/></td>
+                                    <td><t t-esc="fmt(mod.total_depense)"/></td>
+                                    <td t-attf-class="{{ isPositive(mod.total_balance) ? 'vrd-pos' : 'vrd-neg' }}">
+                                        <t t-esc="fmt(mod.total_balance)"/>
+                                    </td>
                                 </tr>
 
                                 <!-- Lignes VÉHICULES -->
                                 <t t-if="isModeleExpanded(cat.id, mod.name)">
                                     <t t-foreach="mod.vehicules" t-as="veh" t-key="veh.id">
-                                        <tr class="vd-veh-row">
+                                        <tr class="vrd-veh-row">
                                             <td><t t-esc="veh.matricule"/> (<t t-esc="veh.numero"/>)</td>
-                                            <td>1</td>
-                                            <td><t t-esc="fmt(veh.valeur)"/></td>
+                                            <td><t t-esc="fmt(veh.revenu)"/></td>
+                                            <td><t t-esc="fmt(veh.depense)"/></td>
+                                            <td t-attf-class="{{ isPositive(veh.balance) ? 'vrd-pos' : 'vrd-neg' }}">
+                                                <t t-esc="fmt(veh.balance)"/>
+                                            </td>
                                         </tr>
                                     </t>
                                 </t>
@@ -180,10 +216,13 @@
                     </t>
                 </tbody>
                 <tfoot>
-                    <tr class="vd-total-row">
+                    <tr class="vrd-total-row">
                         <td>Total général</td>
-                        <td><t t-esc="state.total_count"/></td>
-                        <td><t t-esc="totalValeurFormatted"/></td>
+                        <td><t t-esc="totalRevenuFormatted"/></td>
+                        <td><t t-esc="totalDepenseFormatted"/></td>
+                        <td t-attf-class="{{ isPositive(state.total_balance) ? 'vrd-pos' : 'vrd-neg' }}">
+                            <t t-esc="totalBalanceFormatted"/>
+                        </td>
                     </tr>
                 </tfoot>
             </table>
