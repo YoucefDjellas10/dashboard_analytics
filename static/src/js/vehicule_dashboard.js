@@ -4,7 +4,7 @@ import { registry }   from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { Component, onWillStart, useState } from "@odoo/owl";
 
-export class VehiculeRevenuDashboard extends Component {
+export class VehiculeDashboard extends Component {
 
     setup() {
         this.orm    = useService("orm");
@@ -19,7 +19,9 @@ export class VehiculeRevenuDashboard extends Component {
             date_debut      : this._toInputDate(debut),
             date_fin        : this._toInputDate(fin),
 
-            categories      : [],   // [{ id, name, total_revenu, total_depense, total_balance, modeles: [...] }]
+            categories      : [],   // [{ id, name, total_valeur, total_revenu, total_depense, total_balance, modeles: [...] }]
+            total_valeur    : 0,
+            total_count     : 0,
             total_revenu    : 0,
             total_depense   : 0,
             total_balance   : 0,
@@ -160,7 +162,7 @@ export class VehiculeRevenuDashboard extends Component {
 
             const [vehicules, depenses, refunds, ...revenueParts] = await Promise.all([
                 this.orm.searchRead("vehicule", vehiculeDomain,
-                    ["id", "matricule", "numero", "categorie", "model_name"]),
+                    ["id", "matricule", "numero", "categorie", "model_name", "valeur_actuel"]),
                 this.orm.searchRead("depense.record", depenseDomain,
                     ["id", "montant_da", "vehicule_numero"], { limit: 0 }),
                 this.orm.searchRead("refund.table", refundDomain,
@@ -211,27 +213,39 @@ export class VehiculeRevenuDashboard extends Component {
 
             // ── Construction de l'arborescence Catégorie → Modèle → Véhicule ──
             const catMap = {};
-            let total_revenu = 0, total_depense = 0;
+            let total_valeur = 0, total_revenu = 0, total_depense = 0;
 
             for (const v of vehicules) {
                 const catId   = Array.isArray(v.categorie) ? v.categorie[0] : 0;
                 const catName = Array.isArray(v.categorie) ? v.categorie[1] : "Sans catégorie";
                 const modName = v.model_name || "Sans modèle";
+                const valeur  = v.valeur_actuel || 0;
 
                 const revenu  = (revenuMap[v.id]  || 0) - (refundMap[v.id] || 0);
                 const depense = depenseMap[v.id] || 0;
                 const balance = revenu - depense;
 
+                total_valeur  += valeur;
                 total_revenu  += revenu;
                 total_depense += depense;
 
                 if (!catMap[catId]) {
-                    catMap[catId] = { id: catId, name: catName, total_revenu: 0, total_depense: 0, total_balance: 0, modeles: {} };
+                    catMap[catId] = {
+                        id: catId, name: catName,
+                        total_valeur: 0, total_count: 0,
+                        total_revenu: 0, total_depense: 0, total_balance: 0,
+                        modeles: {},
+                    };
                 }
                 const cat = catMap[catId];
 
                 if (!cat.modeles[modName]) {
-                    cat.modeles[modName] = { name: modName, total_revenu: 0, total_depense: 0, total_balance: 0, vehicules: [] };
+                    cat.modeles[modName] = {
+                        name: modName,
+                        total_valeur: 0, total_count: 0,
+                        total_revenu: 0, total_depense: 0, total_balance: 0,
+                        vehicules: [],
+                    };
                 }
                 const mod = cat.modeles[modName];
 
@@ -239,13 +253,17 @@ export class VehiculeRevenuDashboard extends Component {
                     id        : v.id,
                     matricule : v.matricule,
                     numero    : v.numero,
-                    revenu, depense, balance,
+                    valeur, revenu, depense, balance,
                 });
 
+                mod.total_valeur  += valeur;
+                mod.total_count   += 1;
                 mod.total_revenu  += revenu;
                 mod.total_depense += depense;
                 mod.total_balance += balance;
 
+                cat.total_valeur  += valeur;
+                cat.total_count   += 1;
                 cat.total_revenu  += revenu;
                 cat.total_depense += depense;
                 cat.total_balance += balance;
@@ -254,14 +272,16 @@ export class VehiculeRevenuDashboard extends Component {
             const categories = Object.values(catMap).map(cat => {
                 const modeles = Object.values(cat.modeles)
                     .map(mod => {
-                        mod.vehicules.sort((a, b) => b.balance - a.balance);
+                        mod.vehicules.sort((a, b) => b.valeur - a.valeur);
                         return mod;
                     })
-                    .sort((a, b) => b.total_balance - a.total_balance);
+                    .sort((a, b) => b.total_valeur - a.total_valeur);
                 return { ...cat, modeles };
-            }).sort((a, b) => b.total_balance - a.total_balance);
+            }).sort((a, b) => b.total_valeur - a.total_valeur);
 
             this.state.categories    = categories;
+            this.state.total_valeur  = total_valeur;
+            this.state.total_count   = vehicules.length;
             this.state.total_revenu  = total_revenu;
             this.state.total_depense = total_depense;
             this.state.total_balance = total_revenu - total_depense;
@@ -278,7 +298,10 @@ export class VehiculeRevenuDashboard extends Component {
     onDateDebutChange(ev) { this.state.date_debut = ev.target.value; }
     onDateFinChange(ev)   { this.state.date_fin   = ev.target.value; }
 
-    updateSelectedZone(ev) { this.state.selected_zone = ev.target.value; }
+    updateSelectedZone(ev) {
+        this.state.selected_zone = ev.target.value;
+        this.loadData();
+    }
 
     async appliquerFiltre() { await this.loadData(); }
 
@@ -326,13 +349,19 @@ export class VehiculeRevenuDashboard extends Component {
 
     isPositive(n) { return n >= 0; }
 
-    get totalRevenuFormatted()  { return this.fmt(this.state.total_revenu); }
-    get totalDepenseFormatted() { return this.fmt(this.state.total_depense); }
-    get totalBalanceFormatted() { return this.fmt(this.state.total_balance); }
+    get totalValeurFormatted()   { return this.fmt(this.state.total_valeur); }
+    get totalRevenuFormatted()   { return this.fmt(this.state.total_revenu); }
+    get totalDepenseFormatted()  { return this.fmt(this.state.total_depense); }
+    get totalBalanceFormatted()  { return this.fmt(this.state.total_balance); }
+
+    get valeurMoyenneFormatted() {
+        const moy = this.state.total_count > 0 ? this.state.total_valeur / this.state.total_count : 0;
+        return this.fmt(moy);
+    }
 }
 
-VehiculeRevenuDashboard.template = "dashboard_analytics.VehiculeRevenuDashboard";
+VehiculeDashboard.template = "dashboard_analytics.VehiculeDashboard";
 
 registry
     .category("actions")
-    .add("dashboard_analytics.action_vehicule_revenu_dashboard", VehiculeRevenuDashboard);
+    .add("dashboard_analytics.action_vehicule_dashboard", VehiculeDashboard);
