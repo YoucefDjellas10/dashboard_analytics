@@ -89,6 +89,7 @@
     .vd-mod-row td { padding-left:20px; }
     .vd-veh-row td { padding-left:32px; }
     .vd-select-zone, .vd-input-date { width:100%; }
+    canvas { max-height:280px !important; }
 }
 </style>
 
@@ -236,6 +237,14 @@
                 </tfoot>
             </table>
         </div>
+    </div>
+
+    <!-- Graphique — Balance par véhicule -->
+    <div class="vd-card-table" style="margin-top:20px; padding:24px;">
+        <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
+            📊 Balance par véhicule
+        </div>
+        <canvas id="vd-chart-balance" style="width:100%; max-height:420px;"/>
     </div>
 
 </t>

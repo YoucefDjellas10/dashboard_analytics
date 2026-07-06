@@ -288,6 +288,79 @@ export class VehiculeDashboard extends Component {
 
         } finally {
             this.state.loading = false;
+            setTimeout(() => this._renderChartBalance(), 50);
+        }
+    }
+
+    // ─────────────────────────────────────────
+    //  Graphique — Balance par véhicule
+    // ─────────────────────────────────────────
+
+    _renderChartBalance() {
+        const canvas = document.getElementById("vd-chart-balance");
+        if (!canvas) return;
+        if (this._chartBalance) { this._chartBalance.destroy(); this._chartBalance = null; }
+
+        // Liste plate de tous les véhicules, triée par balance décroissante
+        const vehicules = [];
+        for (const cat of this.state.categories) {
+            for (const mod of cat.modeles) {
+                for (const veh of mod.vehicules) {
+                    vehicules.push(veh);
+                }
+            }
+        }
+        vehicules.sort((a, b) => b.balance - a.balance);
+
+        const labels = vehicules.map(v => `${v.matricule} (${v.numero})`);
+        const data   = vehicules.map(v => Math.round(v.balance));
+        const colors = data.map(v => v >= 0 ? "rgba(22,163,74,0.8)" : "rgba(220,38,38,0.8)");
+
+        const draw = () => {
+            this._chartBalance = new Chart(canvas, {
+                type: "bar",
+                data: {
+                    labels,
+                    datasets: [{
+                        label           : "Balance (DA)",
+                        data,
+                        backgroundColor : colors,
+                        borderRadius    : 6,
+                        borderSkipped   : false,
+                    }],
+                },
+                options: {
+                    responsive : true,
+                    maintainAspectRatio : true,
+                    plugins: {
+                        legend : { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${this.fmt(ctx.parsed.y)} DA`,
+                            },
+                        },
+                    },
+                    scales: {
+                        x: {
+                            grid : { display: false },
+                            ticks: { font: { weight: "600" }, autoSkip: true, maxRotation: 60, minRotation: 0 },
+                        },
+                        y: {
+                            grid : { color: "rgba(0,0,0,.06)" },
+                            ticks: { font: { weight: "600" } },
+                            title: { display: true, text: "Balance (DA)" },
+                        },
+                    },
+                },
+            });
+        };
+
+        if (window.Chart) { draw(); }
+        else {
+            const s = document.createElement("script");
+            s.src   = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            s.onload = draw;
+            document.head.appendChild(s);
         }
     }
 
