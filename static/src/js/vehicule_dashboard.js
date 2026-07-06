@@ -269,6 +269,8 @@ export class VehiculeDashboard extends Component {
                 cat.total_balance += balance;
             }
 
+            // Catégories triées par ordre alphabétique (A, B, C…) ;
+            // modèles et véhicules restent triés par valeur décroissante.
             const categories = Object.values(catMap).map(cat => {
                 const modeles = Object.values(cat.modeles)
                     .map(mod => {
@@ -277,7 +279,7 @@ export class VehiculeDashboard extends Component {
                     })
                     .sort((a, b) => b.total_valeur - a.total_valeur);
                 return { ...cat, modeles };
-            }).sort((a, b) => b.total_valeur - a.total_valeur);
+            }).sort((a, b) => a.name.localeCompare(b.name));
 
             this.state.categories    = categories;
             this.state.total_valeur  = total_valeur;
@@ -312,7 +314,8 @@ export class VehiculeDashboard extends Component {
         }
         vehicules.sort((a, b) => b.balance - a.balance);
 
-        const labels = vehicules.map(v => `${v.matricule} (${v.numero})`);
+        // Uniquement le numéro du véhicule en label (pas le matricule)
+        const labels = vehicules.map(v => v.numero);
         const data   = vehicules.map(v => Math.round(v.balance));
         const colors = data.map(v => v >= 0 ? "rgba(22,163,74,0.8)" : "rgba(220,38,38,0.8)");
 
