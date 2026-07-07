@@ -66,11 +66,29 @@ export class VehiculeDashboard extends Component {
         };
     }
 
-    _getTaux(debut) {
-        return debut.getFullYear() < 2026 ? 260 : 270;
-    }
-
+    // Pivot du flag is_old (revenue.record "ancien" vs "nouveau") — sert uniquement
+    // à choisir le bon domaine de recherche, plus au calcul du taux (voir plus bas).
     _DATE_PIVOT = new Date(2025, 10, 1, 0, 0, 0);
+
+    // ── Remboursements : refund.table n'a pas (à confirmer) de champ DA déjà
+    // stocké comme montant_eur_dzd sur revenue.record. On garde donc ici une
+    // segmentation par taux/date en attendant confirmation du modèle refund.table.
+    _TAUX_PIVOT = new Date(2026, 0, 1, 0, 0, 0);
+
+    _buildRefundSegments(debut, fin) {
+        const segments  = [];
+        const pivotTaux = this._TAUX_PIVOT;
+
+        if (debut < pivotTaux) {
+            const segEnd = fin < pivotTaux ? fin : new Date(pivotTaux - 1);
+            segments.push({ start: debut, end: segEnd, taux: 260 });
+        }
+        if (fin >= pivotTaux) {
+            const segStart = debut >= pivotTaux ? debut : pivotTaux;
+            segments.push({ start: segStart, end: fin, taux: 270 });
+        }
+        return segments;
+    }
 
     async _loadZones() {
         this.state.zones = await this.orm.searchRead(
@@ -89,14 +107,15 @@ export class VehiculeDashboard extends Component {
             const debut  = this._parseDebut(this.state.date_debut);
             const fin    = this._parseFin(this.state.date_fin);
             const zoneId = this.state.selected_zone ? parseInt(this.state.selected_zone) : null;
-            const taux   = this._getTaux(debut);
 
             const finVehiculeStr = `${fin.getFullYear()}-${this._pad(fin.getMonth()+1)}-${this._pad(fin.getDate())}`;
             const debutStr = `${debut.getFullYear()}-${this._pad(debut.getMonth()+1)}-${this._pad(debut.getDate())}`;
 
             const zoneFilterRevenue = zoneId ? [["zone_encaissement", "=", zoneId]] : [];
 
-            // ── Domaines Revenue (split old/new comme _fetchTresorerie) ──
+            // ── Domaines Revenue : split old/new uniquement (le taux est déjà
+            // intégré dans le champ stocké montant_eur_dzd, pas besoin de le
+            // recalculer nous-mêmes) ──
             const revenuePromises = [];
 
             if (debut < this._DATE_PIVOT) {
@@ -107,14 +126,14 @@ export class VehiculeDashboard extends Component {
                         ["is_old", "=", true],
                         ["date_encaissement", ">=", this._formatORM(debut)],
                         ["date_encaissement", "<=", this._formatORM(finOld)],
-                    ], ["id", "montant", "montant_dzd", "vehicule"], { limit: 0 }),
+                    ], ["id", "montant_dzd", "montant_eur_dzd", "vehicule"], { limit: 0 }),
                     this.orm.searchRead("revenue.record", [
                         ...zoneFilterRevenue,
                         ["is_old", "=", true],
                         ["date_encaissement", "=", false],
                         ["reservation.create_date", ">=", this._formatORM(debut)],
                         ["reservation.create_date", "<=", this._formatORM(finOld)],
-                    ], ["id", "montant", "montant_dzd", "vehicule"], { limit: 0 })
+                    ], ["id", "montant_dzd", "montant_eur_dzd", "vehicule"], { limit: 0 })
                 );
             }
 
@@ -126,14 +145,14 @@ export class VehiculeDashboard extends Component {
                         ["is_old", "!=", true],
                         ["date_encaissement", ">=", this._formatORM(debutNew)],
                         ["date_encaissement", "<=", this._formatORM(fin)],
-                    ], ["id", "montant", "montant_dzd", "vehicule"], { limit: 0 }),
+                    ], ["id", "montant_dzd", "montant_eur_dzd", "vehicule"], { limit: 0 }),
                     this.orm.searchRead("revenue.record", [
                         ...zoneFilterRevenue,
                         ["is_old", "!=", true],
                         ["date_encaissement", "=", false],
                         ["reservation.create_date", ">=", this._formatORM(debutNew)],
                         ["reservation.create_date", "<=", this._formatORM(fin)],
-                    ], ["id", "montant", "montant_dzd", "vehicule"], { limit: 0 })
+                    ], ["id", "montant_dzd", "montant_eur_dzd", "vehicule"], { limit: 0 })
                 );
             }
 
@@ -145,13 +164,18 @@ export class VehiculeDashboard extends Component {
             ];
             if (zoneId) depenseDomain.push(["zone", "=", zoneId]);
 
-            // ── Domaine remboursements ──
-            const refundDomain = [
-                ["date", ">=", this._formatORM(debut)],
-                ["date", "<=", this._formatORM(fin)],
-                ["status", "=", "effectuer"],
-            ];
-            if (zoneId) refundDomain.push(["reservation.zone", "=", zoneId]);
+            // ── Domaine remboursements, segmenté par taux (voir note ci-dessus) ──
+            const refundSegments = this._buildRefundSegments(debut, fin);
+            const refundPromises = refundSegments.map(seg => {
+                const domain = [
+                    ["date", ">=", this._formatORM(seg.start)],
+                    ["date", "<=", this._formatORM(seg.end)],
+                    ["status", "=", "effectuer"],
+                ];
+                if (zoneId) domain.push(["reservation.zone", "=", zoneId]);
+                return this.orm.searchRead("refund.table", domain, ["id", "amount", "reservation"], { limit: 0 })
+                    .then(recs => recs.map(r => ({ ...r, _taux: seg.taux })));
+            });
 
             // ── Véhicules actifs (mise en service <= fin de période) ──
             const vehiculeDomain = [
@@ -160,17 +184,17 @@ export class VehiculeDashboard extends Component {
             ];
             if (zoneId) vehiculeDomain.push(["zone", "=", zoneId]);
 
-            const [vehicules, depenses, refunds, ...revenueParts] = await Promise.all([
+            const [vehicules, depenses, refundParts, ...revenueParts] = await Promise.all([
                 this.orm.searchRead("vehicule", vehiculeDomain,
                     ["id", "matricule", "numero", "categorie", "model_name", "valeur_actuel"]),
                 this.orm.searchRead("depense.record", depenseDomain,
                     ["id", "montant_da", "vehicule_numero"], { limit: 0 }),
-                this.orm.searchRead("refund.table", refundDomain,
-                    ["id", "amount", "reservation"], { limit: 0 }),
+                Promise.all(refundPromises),
                 ...revenuePromises,
             ]);
 
             const revenueRecs = [].concat(...revenueParts);
+            const refunds     = [].concat(...refundParts);
 
             // ── Map vehicule → reservation (pour rattacher les remboursements) ──
             const refundResIds = [...new Set(
@@ -194,7 +218,9 @@ export class VehiculeDashboard extends Component {
             for (const r of revenueRecs) {
                 const vehId = Array.isArray(r.vehicule) ? r.vehicule[0] : r.vehicule || false;
                 if (!vehId) continue;
-                const montant = (r.montant_dzd || 0) + ((r.montant || 0) * taux);
+                // montant_eur_dzd est déjà le montant EUR converti en DA au taux
+                // en vigueur au moment de la transaction (champ stocké côté Odoo).
+                const montant = (r.montant_dzd || 0) + (r.montant_eur_dzd || 0);
                 revenuMap[vehId] = (revenuMap[vehId] || 0) + montant;
             }
 
@@ -208,7 +234,7 @@ export class VehiculeDashboard extends Component {
                 const resId = Array.isArray(ref.reservation) ? ref.reservation[0] : ref.reservation || false;
                 const vehId = resId ? refundResvMap[resId] : false;
                 if (!vehId) continue;
-                refundMap[vehId] = (refundMap[vehId] || 0) + ((ref.amount || 0) * taux);
+                refundMap[vehId] = (refundMap[vehId] || 0) + ((ref.amount || 0) * ref._taux);
             }
 
             // ── Construction de l'arborescence Catégorie → Modèle → Véhicule ──
