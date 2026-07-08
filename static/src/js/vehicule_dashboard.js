@@ -4,6 +4,11 @@ import { registry }   from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { Component, onWillStart, useState } from "@odoo/owl";
 
+const MOIS_LABELS = [
+    "Janvier","Février","Mars","Avril","Mai","Juin",
+    "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
+];
+
 export class VehiculeDashboard extends Component {
 
     setup() {
@@ -19,7 +24,7 @@ export class VehiculeDashboard extends Component {
             date_debut      : this._toInputDate(debut),
             date_fin        : this._toInputDate(fin),
 
-            categories      : [],   // [{ id, name, total_valeur, total_revenu, total_depense, total_balance, modeles: [...] }]
+            categories      : [],
             total_valeur    : 0,
             total_count     : 0,
             total_revenu    : 0,
@@ -73,8 +78,7 @@ export class VehiculeDashboard extends Component {
     _TAUX_PIVOT = new Date(2026, 0, 1, 0, 0, 0);
 
     // Découpe [debut..fin] aux deux pivots (is_old et taux) et attache
-    // à chaque segment le flag is_old et le taux EUR→DA applicables,
-    // exactement comme le fait TresorerieDetailDashboard mois par mois.
+    // à chaque segment le flag is_old et le taux EUR→DA applicables.
     _buildSegments(debut, fin) {
         const cuts = [this._DATE_PIVOT, this._TAUX_PIVOT]
             .filter(p => p > debut && p <= fin)
@@ -277,8 +281,7 @@ export class VehiculeDashboard extends Component {
                 cat.total_balance += balance;
             }
 
-            // Catégories triées par ordre alphabétique (A, B, C…) ;
-            // modèles et véhicules restent triés par valeur décroissante.
+            // Catégories triées A→Z ; modèles/véhicules par valeur décroissante.
             const categories = Object.values(catMap).map(cat => {
                 const modeles = Object.values(cat.modeles)
                     .map(mod => {
@@ -303,6 +306,24 @@ export class VehiculeDashboard extends Component {
     }
 
     // ─────────────────────────────────────────
+    //  Navigation vers le détail véhicule
+    // ─────────────────────────────────────────
+
+    ouvrirVehicule(veh) {
+        this.action.doAction({
+            type   : "ir.actions.client",
+            tag    : "dashboard_analytics.action_vehicule_detail_dashboard",
+            name   : `Véhicule ${veh.matricule} (${veh.numero})`,
+            target : "current",
+            params : {
+                vehicule_id : veh.id,
+                matricule   : veh.matricule,
+                numero      : veh.numero,
+            },
+        });
+    }
+
+    // ─────────────────────────────────────────
     //  Graphique — Balance par véhicule
     // ─────────────────────────────────────────
 
@@ -311,7 +332,6 @@ export class VehiculeDashboard extends Component {
         if (!canvas) return;
         if (this._chartBalance) { this._chartBalance.destroy(); this._chartBalance = null; }
 
-        // Liste plate de tous les véhicules, triée par balance décroissante
         const vehicules = [];
         for (const cat of this.state.categories) {
             for (const mod of cat.modeles) {
@@ -322,7 +342,6 @@ export class VehiculeDashboard extends Component {
         }
         vehicules.sort((a, b) => b.balance - a.balance);
 
-        // Uniquement le numéro du véhicule en label (pas le matricule)
         const labels = vehicules.map(v => v.numero);
         const data   = vehicules.map(v => Math.round(v.balance));
         const colors = data.map(v => v >= 0 ? "rgba(22,163,74,0.8)" : "rgba(220,38,38,0.8)");
@@ -449,3 +468,229 @@ VehiculeDashboard.template = "dashboard_analytics.VehiculeDashboard";
 registry
     .category("actions")
     .add("dashboard_analytics.action_vehicule_dashboard", VehiculeDashboard);
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  COMPOSANT : VehiculeDetailDashboard
+//  Historique mensuel Revenu / Dépense / Balance d'un véhicule,
+//  depuis son premier mouvement jusqu'au mois courant.
+// ═══════════════════════════════════════════════════════════════════════════
+
+export class VehiculeDetailDashboard extends Component {
+
+    setup() {
+        this.orm    = useService("orm");
+        this.action = useService("action");
+
+        const params = this.props.action?.params || {};
+
+        this.state = useState({
+            loading       : true,
+            vehicule_id   : params.vehicule_id || null,
+            matricule     : params.matricule   || "",
+            numero        : params.numero      || "",
+            rows          : [],   // [{ key, label, revenu, depense, balance }]
+            total_revenu  : 0,
+            total_depense : 0,
+            total_balance : 0,
+        });
+
+        onWillStart(() => this.loadData());
+    }
+
+    _DATE_PIVOT = new Date(2025, 10, 1, 0, 0, 0);   // pivot is_old
+    _TAUX_PIVOT = new Date(2026, 0, 1, 0, 0, 0);    // 260 avant 2026, 270 après
+
+    // Parse "YYYY-MM-DD" ou "YYYY-MM-DD HH:MM:SS" venant de l'ORM
+    _parseServerDate(str) {
+        if (!str) return null;
+        const [datePart, timePart] = str.split(" ");
+        const [y, m, d] = datePart.split("-").map(Number);
+        if (timePart) {
+            const [hh, mm, ss] = timePart.split(":").map(Number);
+            return new Date(y, m - 1, d, hh || 0, mm || 0, ss || 0);
+        }
+        return new Date(y, m - 1, d);
+    }
+
+    _tauxFor(d) { return d < this._TAUX_PIVOT ? 260 : 270; }
+
+    async loadData() {
+        const vehId = this.state.vehicule_id;
+        if (!vehId) { this.state.loading = false; return; }
+        this.state.loading = true;
+        try {
+            const [recsAvec, recsSans, depenses, refunds] = await Promise.all([
+                // Paiements avec date d'encaissement
+                this.orm.searchRead("revenue.record",
+                    [["vehicule", "=", vehId], ["date_encaissement", "!=", false]],
+                    ["id", "montant", "montant_dzd", "is_old", "date_encaissement"], { limit: 0 }),
+                // Paiements sans date → rattachés au create_date de la réservation
+                this.orm.searchRead("revenue.record",
+                    [["vehicule", "=", vehId], ["date_encaissement", "=", false]],
+                    ["id", "montant", "montant_dzd", "is_old", "reservation"], { limit: 0 }),
+                // Dépenses validées du véhicule
+                this.orm.searchRead("depense.record",
+                    [["vehicule_numero", "=", vehId], ["status", "=", "valide"]],
+                    ["id", "montant_da", "date_de_realisation"], { limit: 0 }),
+                // Remboursements effectués liés aux réservations de ce véhicule
+                this.orm.searchRead("refund.table",
+                    [["reservation.vehicule", "=", vehId], ["status", "=", "effectuer"]],
+                    ["id", "amount", "date"], { limit: 0 }),
+            ]);
+
+            // create_date des réservations pour les paiements sans date
+            const resIds = [...new Set(
+                recsSans.map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation).filter(Boolean)
+            )];
+            let resvDateMap = {};
+            if (resIds.length > 0) {
+                const resvData = await this.orm.searchRead(
+                    "reservation", [["id", "in", resIds]], ["id", "create_date"], { limit: 0 }
+                );
+                for (const rv of resvData) resvDateMap[rv.id] = rv.create_date;
+            }
+
+            // ── Agrégation par mois ──
+            const monthMap = {};   // "2025-01" → { revenu, depense }
+            const touch = (key) => monthMap[key] || (monthMap[key] = { revenu: 0, depense: 0 });
+            const keyOf = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2, "0")}`;
+
+            const addRevenue = (rec, d) => {
+                if (!d) return;
+                // Cohérence is_old : avant le pivot on ne compte que les "anciens",
+                // après le pivot que les "nouveaux" (même logique que la trésorerie).
+                const isOldPeriod = d < this._DATE_PIVOT;
+                if (isOldPeriod !== (rec.is_old === true)) return;
+                const taux = this._tauxFor(d);
+                touch(keyOf(d)).revenu += (rec.montant_dzd || 0) + ((rec.montant || 0) * taux);
+            };
+
+            for (const r of recsAvec) {
+                addRevenue(r, this._parseServerDate(r.date_encaissement));
+            }
+            for (const r of recsSans) {
+                const resId = Array.isArray(r.reservation) ? r.reservation[0] : r.reservation;
+                addRevenue(r, resId ? this._parseServerDate(resvDateMap[resId]) : null);
+            }
+
+            for (const ref of refunds) {
+                const d = this._parseServerDate(ref.date);
+                if (!d) continue;
+                touch(keyOf(d)).revenu -= (ref.amount || 0) * this._tauxFor(d);
+            }
+
+            for (const dep of depenses) {
+                const d = this._parseServerDate(dep.date_de_realisation);
+                if (!d) continue;
+                touch(keyOf(d)).depense += dep.montant_da || 0;
+            }
+
+            // ── Liste continue de mois : du premier mouvement au mois courant ──
+            const keys = Object.keys(monthMap).sort();
+            const rows = [];
+            let total_revenu = 0, total_depense = 0;
+
+            if (keys.length > 0) {
+                let [y, m] = keys[0].split("-").map(Number);
+
+                const now  = new Date();
+                let endY = now.getFullYear(), endM = now.getMonth() + 1;
+                const [yl, ml] = keys[keys.length - 1].split("-").map(Number);
+                if (yl > endY || (yl === endY && ml > endM)) { endY = yl; endM = ml; }
+
+                while (y < endY || (y === endY && m <= endM)) {
+                    const key  = `${y}-${String(m).padStart(2, "0")}`;
+                    const cell = monthMap[key] || { revenu: 0, depense: 0 };
+                    const balance = cell.revenu - cell.depense;
+
+                    rows.push({
+                        key,
+                        label   : `${MOIS_LABELS[m - 1]} ${y}`,
+                        revenu  : cell.revenu,
+                        depense : cell.depense,
+                        balance,
+                    });
+
+                    total_revenu  += cell.revenu;
+                    total_depense += cell.depense;
+
+                    m++;
+                    if (m > 12) { m = 1; y++; }
+                }
+            }
+
+            this.state.rows          = rows;
+            this.state.total_revenu  = total_revenu;
+            this.state.total_depense = total_depense;
+            this.state.total_balance = total_revenu - total_depense;
+
+        } finally {
+            this.state.loading = false;
+            setTimeout(() => this._renderChart(), 50);
+        }
+    }
+
+    _renderChart() {
+        const canvas = document.getElementById("vdd-chart");
+        if (!canvas) return;
+        if (this._chart) { this._chart.destroy(); this._chart = null; }
+
+        const labels  = this.state.rows.map(r => r.label);
+        const revenus = this.state.rows.map(r => Math.round(r.revenu));
+        const deps    = this.state.rows.map(r => Math.round(r.depense));
+
+        const draw = () => {
+            this._chart = new Chart(canvas, {
+                type: "bar",
+                data: {
+                    labels,
+                    datasets: [
+                        { label: "Revenu (DA)",  data: revenus, backgroundColor: "rgba(22,163,74,0.75)",  borderRadius: 6, borderSkipped: false },
+                        { label: "Dépense (DA)", data: deps,    backgroundColor: "rgba(220,38,38,0.75)", borderRadius: 6, borderSkipped: false },
+                    ],
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: true,
+                    plugins: {
+                        legend  : { position: "top", labels: { font: { weight: "bold" } } },
+                        tooltip : { callbacks: { label: ctx => ` ${ctx.dataset.label} : ${this.fmt(ctx.parsed.y)} DA` } },
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { weight: "600" }, autoSkip: true, maxRotation: 60 } },
+                        y: { beginAtZero: true, grid: { color: "rgba(0,0,0,.06)" }, ticks: { font: { weight: "600" } } },
+                    },
+                },
+            });
+        };
+
+        if (window.Chart) { draw(); }
+        else {
+            const s = document.createElement("script");
+            s.src   = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js";
+            s.onload = draw;
+            document.head.appendChild(s);
+        }
+    }
+
+    retour() {
+        this.action.doAction("dashboard_analytics.action_vehicule_dashboard");
+    }
+
+    fmt(n) {
+        const abs = Math.abs(Math.round(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        return n < 0 ? `- ${abs}` : abs;
+    }
+
+    isPositive(n) { return n >= 0; }
+
+    get totalRevenuFormatted()  { return this.fmt(this.state.total_revenu); }
+    get totalDepenseFormatted() { return this.fmt(this.state.total_depense); }
+    get totalBalanceFormatted() { return this.fmt(this.state.total_balance); }
+}
+
+VehiculeDetailDashboard.template = "dashboard_analytics.VehiculeDetailDashboard";
+
+registry
+    .category("actions")
+    .add("dashboard_analytics.action_vehicule_detail_dashboard", VehiculeDetailDashboard);

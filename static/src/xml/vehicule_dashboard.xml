@@ -59,9 +59,10 @@
 .vd-mod-row td { padding:10px 16px 10px 32px; font-weight:700; color:#475569; }
 .vd-mod-row td:first-child { text-align:left; }
 
+.vd-veh-row { cursor:pointer; }
 .vd-veh-row td { padding:8px 16px 8px 52px; text-align:right; color:#1e293b; border-bottom:1px solid #f8fafc; }
 .vd-veh-row td:first-child { text-align:left; font-weight:600; color:#334155; }
-.vd-veh-row:hover td { background:#f8fafc; }
+.vd-veh-row:hover td { background:#eef2ff; }
 
 .vd-total-row td {
     background:linear-gradient(135deg,#f8fafc,#f1f5f9) !important;
@@ -204,11 +205,12 @@
                                     </td>
                                 </tr>
 
-                                <!-- Lignes VÉHICULES -->
+                                <!-- Lignes VÉHICULES (cliquables → détail mensuel) -->
                                 <t t-if="isModeleExpanded(cat.id, mod.name)">
                                     <t t-foreach="mod.vehicules" t-as="veh" t-key="veh.id">
-                                        <tr class="vd-veh-row">
-                                            <td><t t-esc="veh.matricule"/> (<t t-esc="veh.numero"/>)</td>
+                                        <tr class="vd-veh-row" t-on-click="() => this.ouvrirVehicule(veh)"
+                                            title="Voir l'historique mensuel de ce véhicule">
+                                            <td>📈 <t t-esc="veh.matricule"/> (<t t-esc="veh.numero"/>)</td>
                                             <td><t t-esc="fmt(veh.valeur)"/></td>
                                             <td><t t-esc="fmt(veh.revenu)"/></td>
                                             <td><t t-esc="fmt(veh.depense)"/></td>
@@ -245,6 +247,157 @@
             📊 Balance par véhicule
         </div>
         <canvas id="vd-chart-balance" style="width:100%; max-height:420px;"/>
+    </div>
+
+</t>
+
+</div>
+    </t>
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+         DÉTAIL VÉHICULE — Historique mensuel Revenu / Dépense / Balance
+         ═══════════════════════════════════════════════════════════ -->
+    <t t-name="dashboard_analytics.VehiculeDetailDashboard">
+<div style="padding:16px; background:#f1f5f9; min-height:100vh; overflow-y:auto;">
+<style>
+.o_action { overflow-y: auto !important; height: 100% !important; }
+.o_view_controller { overflow-y: auto !important; height: 100% !important; }
+.o_action_manager { overflow-y: auto !important; }
+.o_content { overflow-y: auto !important; height: 100% !important; }
+
+.vdd-header {
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;
+    background:#fff; border-radius:16px; padding:16px 24px; margin-bottom:20px;
+    border:1px solid #e2e8f0; box-shadow:0 4px 16px rgba(0,0,0,.07);
+}
+.vdd-title { font-size:18px; font-weight:800; color:#1e293b; }
+.vdd-btn {
+    display:flex; align-items:center; gap:6px; padding:8px 18px;
+    border-radius:9px; border:1.5px solid #e2e8f0; background:#f8fafc;
+    color:#475569; font-size:13px; font-weight:600; cursor:pointer;
+    transition:background .2s, transform .15s;
+}
+.vdd-btn:hover { background:#e2e8f0; transform:translateY(-2px); }
+
+.vdd-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px; }
+.vdd-card { border-radius:16px; padding:20px 24px; box-shadow:0 6px 20px rgba(0,0,0,.1); }
+.vdd-card-titre  { font-size:13px; font-weight:700; opacity:.75; margin-bottom:6px; }
+.vdd-card-valeur { font-size:22px; font-weight:900; letter-spacing:-1px; }
+
+.vdd-card-table { background:#fff; border-radius:16px; border:1px solid #e2e8f0; box-shadow:0 4px 16px rgba(0,0,0,.07); overflow:hidden; }
+.vdd-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.vdd-table { width:100%; border-collapse:collapse; font-size:13px; }
+.vdd-table thead tr { background:linear-gradient(135deg,#1565c0,#6a1b9a); color:#fff; }
+.vdd-table thead th { padding:12px 16px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; text-align:right; white-space:nowrap; }
+.vdd-table thead th:first-child { text-align:left; }
+.vdd-table tbody td { padding:10px 16px; text-align:right; color:#1e293b; border-bottom:1px solid #f1f5f9; }
+.vdd-table tbody td:first-child { text-align:left; font-weight:700; color:#334155; }
+.vdd-table tbody tr:hover td { background:#f8fafc; }
+
+.vdd-total-row td {
+    background:linear-gradient(135deg,#f8fafc,#f1f5f9) !important;
+    font-weight:800 !important; border-top:2px solid #e2e8f0 !important;
+    padding:12px 16px; text-align:right;
+}
+.vdd-total-row td:first-child { text-align:left; }
+
+.vdd-neg { color:#dc2626; }
+.vdd-pos { color:#16a34a; }
+
+@media (max-width:1024px) {
+    .vdd-header { flex-direction:column; align-items:flex-start; }
+    .vdd-cards { grid-template-columns:1fr; gap:10px; }
+}
+@media (max-width:768px) {
+    .vdd-card { padding:14px 18px; }
+    .vdd-card-valeur { font-size:19px; }
+    .vdd-table { font-size:11px; }
+    .vdd-table thead th, .vdd-table tbody td, .vdd-total-row td { padding:7px 8px; }
+    canvas { max-height:280px !important; }
+}
+</style>
+
+<!-- Header -->
+<div class="vdd-header">
+    <div style="display:flex; align-items:center; gap:10px;">
+        <button class="vdd-btn" t-on-click="retour">← Retour</button>
+        <div class="vdd-title">
+            🚗 <t t-esc="state.matricule"/> (<t t-esc="state.numero"/>) — Historique mensuel
+        </div>
+    </div>
+</div>
+
+<!-- Loading -->
+<t t-if="state.loading">
+    <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">⏳ Chargement…</div>
+</t>
+
+<t t-else="">
+
+    <!-- Cartes résumé (cumul depuis le premier mouvement) -->
+    <div class="vdd-cards">
+        <div class="vdd-card" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0); color:#14532d;">
+            <div class="vdd-card-titre">Revenu total</div>
+            <div class="vdd-card-valeur"><t t-esc="totalRevenuFormatted"/> DA</div>
+        </div>
+        <div class="vdd-card" style="background:linear-gradient(135deg,#fee2e2,#fecaca); color:#7f1d1d;">
+            <div class="vdd-card-titre">Dépense totale</div>
+            <div class="vdd-card-valeur"><t t-esc="totalDepenseFormatted"/> DA</div>
+        </div>
+        <div class="vdd-card" t-attf-style="background:linear-gradient(135deg,{{ isPositive(state.total_balance) ? '#e0e7ff,#c7d2fe' : '#fee2e2,#fecaca' }}); color:{{ isPositive(state.total_balance) ? '#1e1b4b' : '#7f1d1d' }};">
+            <div class="vdd-card-titre">Balance totale</div>
+            <div class="vdd-card-valeur"><t t-esc="totalBalanceFormatted"/> DA</div>
+        </div>
+    </div>
+
+    <!-- Tableau mensuel -->
+    <div class="vdd-card-table">
+        <div class="vdd-scroll">
+            <table class="vdd-table">
+                <thead>
+                    <tr>
+                        <th style="min-width:160px;">Mois</th>
+                        <th>Revenu (DA)</th>
+                        <th>Dépense (DA)</th>
+                        <th>Balance (DA)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-if="state.rows.length === 0">
+                        <tr><td colspan="4" style="text-align:center; color:#94a3b8; padding:30px;">Aucun mouvement pour ce véhicule</td></tr>
+                    </t>
+                    <t t-foreach="state.rows" t-as="row" t-key="row.key">
+                        <tr>
+                            <td>📅 <t t-esc="row.label"/></td>
+                            <td><t t-esc="fmt(row.revenu)"/></td>
+                            <td><t t-esc="fmt(row.depense)"/></td>
+                            <td t-attf-class="{{ isPositive(row.balance) ? 'vdd-pos' : 'vdd-neg' }}">
+                                <t t-esc="fmt(row.balance)"/>
+                            </td>
+                        </tr>
+                    </t>
+                </tbody>
+                <tfoot>
+                    <tr class="vdd-total-row">
+                        <td>Total</td>
+                        <td><t t-esc="totalRevenuFormatted"/></td>
+                        <td><t t-esc="totalDepenseFormatted"/></td>
+                        <td t-attf-class="{{ isPositive(state.total_balance) ? 'vdd-pos' : 'vdd-neg' }}">
+                            <t t-esc="totalBalanceFormatted"/>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- Graphique — Revenu vs Dépense par mois -->
+    <div class="vdd-card-table" style="margin-top:20px; padding:24px;">
+        <div style="font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px;">
+            📊 Revenu vs Dépense par mois
+        </div>
+        <canvas id="vdd-chart" style="width:100%; max-height:420px;"/>
     </div>
 
 </t>
