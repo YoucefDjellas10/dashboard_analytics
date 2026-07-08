@@ -140,7 +140,7 @@ export class VehiculeDashboard extends Component {
                 );
             }
 
-            // ── Domaine dépenses ──
+            // ── Domaine dépenses (identique au DepenseDashboard) ──
             const depenseDomain = [
                 ["status",              "=",  "valide"],
                 ["date_de_realisation", ">=", debutStr],
