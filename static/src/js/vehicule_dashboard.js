@@ -66,28 +66,31 @@ export class VehiculeDashboard extends Component {
         };
     }
 
-    // Pivot du flag is_old (revenue.record "ancien" vs "nouveau") — sert uniquement
-    // à choisir le bon domaine de recherche, plus au calcul du taux (voir plus bas).
+    // Pivot du flag is_old (revenue.record "ancien" vs "nouveau")
     _DATE_PIVOT = new Date(2025, 10, 1, 0, 0, 0);
 
-    // ── Remboursements : refund.table n'a pas (à confirmer) de champ DA déjà
-    // stocké comme montant_eur_dzd sur revenue.record. On garde donc ici une
-    // segmentation par taux/date en attendant confirmation du modèle refund.table.
+    // Pivot du taux EUR→DA : 260 avant 2026, 270 à partir de 2026
     _TAUX_PIVOT = new Date(2026, 0, 1, 0, 0, 0);
 
-    _buildRefundSegments(debut, fin) {
-        const segments  = [];
-        const pivotTaux = this._TAUX_PIVOT;
-
-        if (debut < pivotTaux) {
-            const segEnd = fin < pivotTaux ? fin : new Date(pivotTaux - 1);
-            segments.push({ start: debut, end: segEnd, taux: 260 });
+    // Découpe [debut..fin] aux deux pivots (is_old et taux) et attache
+    // à chaque segment le flag is_old et le taux EUR→DA applicables,
+    // exactement comme le fait TresorerieDetailDashboard mois par mois.
+    _buildSegments(debut, fin) {
+        const cuts = [this._DATE_PIVOT, this._TAUX_PIVOT]
+            .filter(p => p > debut && p <= fin)
+            .sort((a, b) => a - b);
+        const segments = [];
+        let start = debut;
+        for (const cut of cuts) {
+            segments.push({ start, end: new Date(cut - 1) });
+            start = cut;
         }
-        if (fin >= pivotTaux) {
-            const segStart = debut >= pivotTaux ? debut : pivotTaux;
-            segments.push({ start: segStart, end: fin, taux: 270 });
-        }
-        return segments;
+        segments.push({ start, end: fin });
+        return segments.map(seg => ({
+            ...seg,
+            isOld : seg.start < this._DATE_PIVOT,
+            taux  : seg.start < this._TAUX_PIVOT ? 260 : 270,
+        }));
     }
 
     async _loadZones() {
@@ -113,46 +116,27 @@ export class VehiculeDashboard extends Component {
 
             const zoneFilterRevenue = zoneId ? [["zone_encaissement", "=", zoneId]] : [];
 
-            // ── Domaines Revenue : split old/new uniquement (le taux est déjà
-            // intégré dans le champ stocké montant_eur_dzd, pas besoin de le
-            // recalculer nous-mêmes) ──
+            // ── Domaines Revenue : segmentés par pivot is_old + pivot taux.
+            // Même formule que TresorerieDetailDashboard :
+            // montant_dzd + (montant EUR × taux du segment) ──
+            const segments   = this._buildSegments(debut, fin);
+            const FIELDS_REV = ["id", "montant", "montant_dzd", "vehicule"];
+
             const revenuePromises = [];
-
-            if (debut < this._DATE_PIVOT) {
-                const finOld = fin < this._DATE_PIVOT ? fin : new Date(this._DATE_PIVOT - 1);
+            for (const seg of segments) {
+                const flagFilter = seg.isOld ? [["is_old", "=", true]] : [["is_old", "!=", true]];
                 revenuePromises.push(
                     this.orm.searchRead("revenue.record", [
-                        ...zoneFilterRevenue,
-                        ["is_old", "=", true],
-                        ["date_encaissement", ">=", this._formatORM(debut)],
-                        ["date_encaissement", "<=", this._formatORM(finOld)],
-                    ], ["id", "montant_dzd", "montant_eur_dzd", "vehicule"], { limit: 0 }),
+                        ...zoneFilterRevenue, ...flagFilter,
+                        ["date_encaissement", ">=", this._formatORM(seg.start)],
+                        ["date_encaissement", "<=", this._formatORM(seg.end)],
+                    ], FIELDS_REV, { limit: 0 }).then(recs => recs.map(r => ({ ...r, _taux: seg.taux }))),
                     this.orm.searchRead("revenue.record", [
-                        ...zoneFilterRevenue,
-                        ["is_old", "=", true],
+                        ...zoneFilterRevenue, ...flagFilter,
                         ["date_encaissement", "=", false],
-                        ["reservation.create_date", ">=", this._formatORM(debut)],
-                        ["reservation.create_date", "<=", this._formatORM(finOld)],
-                    ], ["id", "montant_dzd", "montant_eur_dzd", "vehicule"], { limit: 0 })
-                );
-            }
-
-            if (fin >= this._DATE_PIVOT) {
-                const debutNew = debut >= this._DATE_PIVOT ? debut : this._DATE_PIVOT;
-                revenuePromises.push(
-                    this.orm.searchRead("revenue.record", [
-                        ...zoneFilterRevenue,
-                        ["is_old", "!=", true],
-                        ["date_encaissement", ">=", this._formatORM(debutNew)],
-                        ["date_encaissement", "<=", this._formatORM(fin)],
-                    ], ["id", "montant_dzd", "montant_eur_dzd", "vehicule"], { limit: 0 }),
-                    this.orm.searchRead("revenue.record", [
-                        ...zoneFilterRevenue,
-                        ["is_old", "!=", true],
-                        ["date_encaissement", "=", false],
-                        ["reservation.create_date", ">=", this._formatORM(debutNew)],
-                        ["reservation.create_date", "<=", this._formatORM(fin)],
-                    ], ["id", "montant_dzd", "montant_eur_dzd", "vehicule"], { limit: 0 })
+                        ["reservation.create_date", ">=", this._formatORM(seg.start)],
+                        ["reservation.create_date", "<=", this._formatORM(seg.end)],
+                    ], FIELDS_REV, { limit: 0 }).then(recs => recs.map(r => ({ ...r, _taux: seg.taux }))),
                 );
             }
 
@@ -164,9 +148,8 @@ export class VehiculeDashboard extends Component {
             ];
             if (zoneId) depenseDomain.push(["zone", "=", zoneId]);
 
-            // ── Domaine remboursements, segmenté par taux (voir note ci-dessus) ──
-            const refundSegments = this._buildRefundSegments(debut, fin);
-            const refundPromises = refundSegments.map(seg => {
+            // ── Domaine remboursements, segmentés avec le même taux ──
+            const refundPromises = segments.map(seg => {
                 const domain = [
                     ["date", ">=", this._formatORM(seg.start)],
                     ["date", "<=", this._formatORM(seg.end)],
@@ -218,9 +201,8 @@ export class VehiculeDashboard extends Component {
             for (const r of revenueRecs) {
                 const vehId = Array.isArray(r.vehicule) ? r.vehicule[0] : r.vehicule || false;
                 if (!vehId) continue;
-                // montant_eur_dzd est déjà le montant EUR converti en DA au taux
-                // en vigueur au moment de la transaction (champ stocké côté Odoo).
-                const montant = (r.montant_dzd || 0) + (r.montant_eur_dzd || 0);
+                // Même formule que le tableau trésorerie : EUR converti au taux du segment
+                const montant = (r.montant_dzd || 0) + ((r.montant || 0) * r._taux);
                 revenuMap[vehId] = (revenuMap[vehId] || 0) + montant;
             }
 
