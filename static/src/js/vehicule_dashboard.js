@@ -473,7 +473,7 @@ registry
 // ═══════════════════════════════════════════════════════════════════════════
 //  COMPOSANT : VehiculeDetailDashboard
 //  Historique mensuel Revenu / Dépense / Balance d'un véhicule,
-//  depuis son premier mouvement jusqu'au mois courant.
+//  depuis sa date de mise en service jusqu'au mois courant.
 // ═══════════════════════════════════════════════════════════════════════════
 
 export class VehiculeDetailDashboard extends Component {
@@ -485,14 +485,16 @@ export class VehiculeDetailDashboard extends Component {
         const params = this.props.action?.params || {};
 
         this.state = useState({
-            loading       : true,
-            vehicule_id   : params.vehicule_id || null,
-            matricule     : params.matricule   || "",
-            numero        : params.numero      || "",
-            rows          : [],   // [{ key, label, revenu, depense, balance }]
-            total_revenu  : 0,
-            total_depense : 0,
-            total_balance : 0,
+            loading          : true,
+            vehicule_id      : params.vehicule_id || null,
+            matricule        : params.matricule   || "",
+            numero           : params.numero      || "",
+            prix_achat       : 0,
+            date_service_str : "",
+            rows             : [],   // [{ key, label, revenu, depense, balance }]
+            total_revenu     : 0,
+            total_depense    : 0,
+            total_balance    : 0,
         });
 
         onWillStart(() => this.loadData());
@@ -520,7 +522,11 @@ export class VehiculeDetailDashboard extends Component {
         if (!vehId) { this.state.loading = false; return; }
         this.state.loading = true;
         try {
-            const [recsAvec, recsSans, depenses, refunds] = await Promise.all([
+            const [vehData, recsAvec, recsSans, depenses, refunds] = await Promise.all([
+                // Fiche du véhicule : prix d'achat + date de mise en service
+                this.orm.searchRead("vehicule",
+                    [["id", "=", vehId]],
+                    ["id", "prix_achat", "date_debut_service"], { limit: 1 }),
                 // Paiements avec date d'encaissement
                 this.orm.searchRead("revenue.record",
                     [["vehicule", "=", vehId], ["date_encaissement", "!=", false]],
@@ -538,6 +544,15 @@ export class VehiculeDetailDashboard extends Component {
                     [["reservation.vehicule", "=", vehId], ["status", "=", "effectuer"]],
                     ["id", "amount", "date"], { limit: 0 }),
             ]);
+
+            // ── Fiche véhicule : prix d'achat + date de mise en service ──
+            const veh         = vehData[0] || {};
+            const serviceDate = this._parseServerDate(veh.date_debut_service);
+
+            this.state.prix_achat = veh.prix_achat || 0;
+            this.state.date_service_str = serviceDate
+                ? `${String(serviceDate.getDate()).padStart(2,"0")}/${String(serviceDate.getMonth()+1).padStart(2,"0")}/${serviceDate.getFullYear()}`
+                : "";
 
             // create_date des réservations pour les paiements sans date
             const resIds = [...new Set(
@@ -586,19 +601,33 @@ export class VehiculeDetailDashboard extends Component {
                 touch(keyOf(d)).depense += dep.montant_da || 0;
             }
 
-            // ── Liste continue de mois : du premier mouvement au mois courant ──
+            // ── Mois de départ : la date de mise en service (même si revenu 0).
+            // Si un mouvement existe avant cette date, on démarre plus tôt
+            // pour ne rien perdre dans les totaux. ──
             const keys = Object.keys(monthMap).sort();
+
+            let y0 = null, m0 = null;
+            if (serviceDate) {
+                y0 = serviceDate.getFullYear();
+                m0 = serviceDate.getMonth() + 1;
+            }
+            if (keys.length > 0) {
+                const [yk, mk] = keys[0].split("-").map(Number);
+                if (y0 === null || yk < y0 || (yk === y0 && mk < m0)) { y0 = yk; m0 = mk; }
+            }
+
             const rows = [];
             let total_revenu = 0, total_depense = 0;
 
-            if (keys.length > 0) {
-                let [y, m] = keys[0].split("-").map(Number);
-
+            if (y0 !== null) {
                 const now  = new Date();
                 let endY = now.getFullYear(), endM = now.getMonth() + 1;
-                const [yl, ml] = keys[keys.length - 1].split("-").map(Number);
-                if (yl > endY || (yl === endY && ml > endM)) { endY = yl; endM = ml; }
+                if (keys.length > 0) {
+                    const [yl, ml] = keys[keys.length - 1].split("-").map(Number);
+                    if (yl > endY || (yl === endY && ml > endM)) { endY = yl; endM = ml; }
+                }
 
+                let y = y0, m = m0;
                 while (y < endY || (y === endY && m <= endM)) {
                     const key  = `${y}-${String(m).padStart(2, "0")}`;
                     const cell = monthMap[key] || { revenu: 0, depense: 0 };
@@ -684,6 +713,7 @@ export class VehiculeDetailDashboard extends Component {
 
     isPositive(n) { return n >= 0; }
 
+    get prixAchatFormatted()    { return this.fmt(this.state.prix_achat); }
     get totalRevenuFormatted()  { return this.fmt(this.state.total_revenu); }
     get totalDepenseFormatted() { return this.fmt(this.state.total_depense); }
     get totalBalanceFormatted() { return this.fmt(this.state.total_balance); }
