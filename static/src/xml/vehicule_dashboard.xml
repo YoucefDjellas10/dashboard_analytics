@@ -280,7 +280,7 @@
 }
 .vdd-btn:hover { background:#e2e8f0; transform:translateY(-2px); }
 
-.vdd-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
+.vdd-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:20px; }
 .vdd-card { border-radius:16px; padding:20px 24px; box-shadow:0 6px 20px rgba(0,0,0,.1); }
 .vdd-card-titre  { font-size:13px; font-weight:700; opacity:.75; margin-bottom:6px; }
 .vdd-card-valeur { font-size:22px; font-weight:900; letter-spacing:-1px; }
@@ -346,13 +346,9 @@
                 🗓️ En service depuis le <t t-esc="state.date_service_str"/>
             </div>
         </div>
-        <div class="vdd-card" style="background:linear-gradient(135deg,#dcfce7,#bbf7d0); color:#14532d;">
-            <div class="vdd-card-titre">Revenu total</div>
-            <div class="vdd-card-valeur"><t t-esc="totalRevenuFormatted"/> DA</div>
-        </div>
-        <div class="vdd-card" style="background:linear-gradient(135deg,#fee2e2,#fecaca); color:#7f1d1d;">
-            <div class="vdd-card-titre">Dépense totale</div>
-            <div class="vdd-card-valeur"><t t-esc="totalDepenseFormatted"/> DA</div>
+        <div class="vdd-card" style="background:linear-gradient(135deg,#ede9fe,#ddd6fe); color:#3730a3;">
+            <div class="vdd-card-titre">Valeur actuelle</div>
+            <div class="vdd-card-valeur"><t t-esc="valeurActuelleFormatted"/> DA</div>
         </div>
         <div class="vdd-card" t-attf-style="background:linear-gradient(135deg,{{ isPositive(state.total_balance) ? '#e0e7ff,#c7d2fe' : '#fee2e2,#fecaca' }}); color:{{ isPositive(state.total_balance) ? '#1e1b4b' : '#7f1d1d' }};">
             <div class="vdd-card-titre">Balance totale</div>

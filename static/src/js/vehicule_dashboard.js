@@ -490,6 +490,7 @@ export class VehiculeDetailDashboard extends Component {
             matricule        : params.matricule   || "",
             numero           : params.numero      || "",
             prix_achat       : 0,
+            valeur_actuel    : 0,
             date_service_str : "",
             rows             : [],   // [{ key, label, revenu, depense, balance }]
             total_revenu     : 0,
@@ -523,10 +524,10 @@ export class VehiculeDetailDashboard extends Component {
         this.state.loading = true;
         try {
             const [vehData, recsAvec, recsSans, depenses, refunds] = await Promise.all([
-                // Fiche du véhicule : prix d'achat + date de mise en service
+                // Fiche du véhicule : prix d'achat, valeur actuelle, mise en service
                 this.orm.searchRead("vehicule",
                     [["id", "=", vehId]],
-                    ["id", "prix_achat", "date_debut_service"], { limit: 1 }),
+                    ["id", "prix_achat", "valeur_actuel", "date_debut_service"], { limit: 1 }),
                 // Paiements avec date d'encaissement
                 this.orm.searchRead("revenue.record",
                     [["vehicule", "=", vehId], ["date_encaissement", "!=", false]],
@@ -545,11 +546,12 @@ export class VehiculeDetailDashboard extends Component {
                     ["id", "amount", "date"], { limit: 0 }),
             ]);
 
-            // ── Fiche véhicule : prix d'achat + date de mise en service ──
+            // ── Fiche véhicule ──
             const veh         = vehData[0] || {};
             const serviceDate = this._parseServerDate(veh.date_debut_service);
 
-            this.state.prix_achat = veh.prix_achat || 0;
+            this.state.prix_achat    = veh.prix_achat    || 0;
+            this.state.valeur_actuel = veh.valeur_actuel || 0;
             this.state.date_service_str = serviceDate
                 ? `${String(serviceDate.getDate()).padStart(2,"0")}/${String(serviceDate.getMonth()+1).padStart(2,"0")}/${serviceDate.getFullYear()}`
                 : "";
@@ -713,10 +715,11 @@ export class VehiculeDetailDashboard extends Component {
 
     isPositive(n) { return n >= 0; }
 
-    get prixAchatFormatted()    { return this.fmt(this.state.prix_achat); }
-    get totalRevenuFormatted()  { return this.fmt(this.state.total_revenu); }
-    get totalDepenseFormatted() { return this.fmt(this.state.total_depense); }
-    get totalBalanceFormatted() { return this.fmt(this.state.total_balance); }
+    get prixAchatFormatted()     { return this.fmt(this.state.prix_achat); }
+    get valeurActuelleFormatted(){ return this.fmt(this.state.valeur_actuel); }
+    get totalRevenuFormatted()   { return this.fmt(this.state.total_revenu); }
+    get totalDepenseFormatted()  { return this.fmt(this.state.total_depense); }
+    get totalBalanceFormatted()  { return this.fmt(this.state.total_balance); }
 }
 
 VehiculeDetailDashboard.template = "dashboard_analytics.VehiculeDetailDashboard";
