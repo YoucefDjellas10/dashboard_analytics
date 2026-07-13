@@ -3,6 +3,7 @@
 
     <t t-name="dashboard_analytics.VehiculeDashboard">
 <div style="padding:16px; background:#f1f5f9; min-height:100vh; overflow-y:auto;">
+
 <style>
 .o_action { overflow-y: auto !important; height: 100% !important; }
 .o_view_controller { overflow-y: auto !important; height: 100% !important; }
@@ -70,9 +71,23 @@
     padding:12px 16px; text-align:right;
 }
 .vd-total-row td:first-child { text-align:left; }
-
 .vd-neg { color:#dc2626; }
 .vd-pos { color:#16a34a; }
+
+/* ── Popup impression ── */
+.vd-modal-overlay {
+    position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:1050;
+    display:flex; align-items:center; justify-content:center; padding:16px;
+}
+.vd-modal {
+    background:#fff; border-radius:16px; padding:24px; width:100%; max-width:420px;
+    box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+.vd-modal-title { font-size:16px; font-weight:800; color:#1e293b; margin-bottom:16px; }
+.vd-modal-field { margin-bottom:12px; }
+.vd-modal-field label { display:block; font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:4px; }
+.vd-modal-error { color:#dc2626; font-size:12px; font-weight:600; margin-bottom:10px; }
+.vd-modal-footer { display:flex; justify-content:flex-end; gap:10px; margin-top:8px; }
 
 /* ══════════════════════════════════════════════
    RESPONSIVE
@@ -100,7 +115,6 @@
         <button class="vd-btn" t-on-click="retourDashboard">← Retour</button>
         <div class="vd-title">🚗 Véhicules — Valeur / Revenu / Dépense / Balance</div>
     </div>
-
     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
         <div style="display:flex; align-items:center; gap:6px;">
             <span style="font-size:10px; font-weight:600; color:#64748b; text-transform:uppercase;">Du</span>
@@ -128,6 +142,9 @@
         <button class="vd-btn" t-on-click="reinitialiserMois" t-att-disabled="state.loading">
             🔄 Mois actuel
         </button>
+        <button class="vd-btn" t-on-click="ouvrirPopupImpression">
+            🖨️ Imprimer PDF
+        </button>
     </div>
 </div>
 
@@ -135,7 +152,6 @@
 <t t-if="state.loading">
     <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">⏳ Chargement…</div>
 </t>
-
 <t t-else="">
 
     <!-- Cartes résumé -->
@@ -173,7 +189,6 @@
                 </thead>
                 <tbody>
                     <t t-foreach="state.categories" t-as="cat" t-key="cat.id">
-
                         <!-- Ligne CATÉGORIE -->
                         <tr class="vd-cat-row" t-on-click="() => this.toggleCategorie(cat.id)">
                             <td>
@@ -187,10 +202,8 @@
                                 <t t-esc="fmt(cat.total_balance)"/>
                             </td>
                         </tr>
-
                         <t t-if="isCategorieExpanded(cat.id)">
                             <t t-foreach="cat.modeles" t-as="mod" t-key="mod.name">
-
                                 <!-- Ligne MODÈLE -->
                                 <tr class="vd-mod-row" t-on-click="() => this.toggleModele(cat.id, mod.name)">
                                     <td>
@@ -204,7 +217,6 @@
                                         <t t-esc="fmt(mod.total_balance)"/>
                                     </td>
                                 </tr>
-
                                 <!-- Lignes VÉHICULES (cliquables → détail mensuel) -->
                                 <t t-if="isModeleExpanded(cat.id, mod.name)">
                                     <t t-foreach="mod.vehicules" t-as="veh" t-key="veh.id">
@@ -220,10 +232,8 @@
                                         </tr>
                                     </t>
                                 </t>
-
                             </t>
                         </t>
-
                     </t>
                 </tbody>
                 <tfoot>
@@ -251,15 +261,60 @@
 
 </t>
 
+<!-- Popup impression PDF -->
+<t t-if="state.show_print_modal">
+    <div class="vd-modal-overlay" t-on-click="fermerPopupImpression">
+        <div class="vd-modal" t-on-click.stop="() => {}">
+            <div class="vd-modal-title">🖨️ Imprimer le rapport véhicules</div>
+            <div class="vd-modal-field">
+                <label>Du <span style="color:#dc2626;">*</span></label>
+                <input type="date" class="form-control form-control-sm vd-input-date"
+                       t-att-value="state.print_date_debut" t-on-change="onPrintDateDebutChange"/>
+            </div>
+            <div class="vd-modal-field">
+                <label>Au <span style="color:#dc2626;">*</span></label>
+                <input type="date" class="form-control form-control-sm vd-input-date"
+                       t-att-value="state.print_date_fin" t-on-change="onPrintDateFinChange"/>
+            </div>
+            <div class="vd-modal-field">
+                <label>Zone (optionnel)</label>
+                <select class="form-select form-select-sm" t-on-change="onPrintZoneChange">
+                    <option value="">🌍 Toutes les zones</option>
+                    <t t-foreach="state.zones" t-as="zone" t-key="zone.id">
+                        <option t-att-value="zone.id" t-att-selected="state.print_zone == zone.id" t-esc="zone.name"/>
+                    </t>
+                </select>
+            </div>
+            <div class="vd-modal-field">
+                <label>Modèle (optionnel)</label>
+                <select class="form-select form-select-sm" t-on-change="onPrintModelChange">
+                    <option value="">🚘 Tous les modèles</option>
+                    <t t-foreach="state.print_models" t-as="mod" t-key="mod">
+                        <option t-att-value="mod" t-att-selected="state.print_model == mod" t-esc="mod"/>
+                    </t>
+                </select>
+            </div>
+            <div t-if="state.print_error" class="vd-modal-error" t-esc="state.print_error"/>
+            <div class="vd-modal-footer">
+                <button class="vd-btn" t-on-click="fermerPopupImpression">Annuler</button>
+                <button class="vd-btn vd-btn-primary" t-on-click="imprimerPDF" t-att-disabled="state.print_loading">
+                    <t t-if="state.print_loading">⏳ Préparation…</t>
+                    <t t-else="">🖨️ Imprimer</t>
+                </button>
+            </div>
+        </div>
+    </div>
+</t>
+
 </div>
     </t>
-
 
     <!-- ═══════════════════════════════════════════════════════════
          DÉTAIL VÉHICULE — Historique mensuel Revenu / Dépense / Balance
          ═══════════════════════════════════════════════════════════ -->
     <t t-name="dashboard_analytics.VehiculeDetailDashboard">
 <div style="padding:16px; background:#f1f5f9; min-height:100vh; overflow-y:auto;">
+
 <style>
 .o_action { overflow-y: auto !important; height: 100% !important; }
 .o_view_controller { overflow-y: auto !important; height: 100% !important; }
@@ -302,7 +357,6 @@
     padding:12px 16px; text-align:right;
 }
 .vdd-total-row td:first-child { text-align:left; }
-
 .vdd-neg { color:#dc2626; }
 .vdd-pos { color:#16a34a; }
 
@@ -334,7 +388,6 @@
 <t t-if="state.loading">
     <div style="text-align:center; padding:60px; font-size:16px; color:#94a3b8;">⏳ Chargement…</div>
 </t>
-
 <t t-else="">
 
     <!-- Cartes résumé -->

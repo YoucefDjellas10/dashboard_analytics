@@ -10,7 +10,6 @@ const MOIS_LABELS = [
 ];
 
 export class VehiculeDashboard extends Component {
-
     setup() {
         this.orm    = useService("orm");
         this.action = useService("action");
@@ -23,16 +22,23 @@ export class VehiculeDashboard extends Component {
             selected_zone   : "",
             date_debut      : this._toInputDate(debut),
             date_fin        : this._toInputDate(fin),
-
             categories      : [],
             total_valeur    : 0,
             total_count     : 0,
             total_revenu    : 0,
             total_depense   : 0,
             total_balance   : 0,
-
             expanded_cats   : {},
             expanded_mods   : {},
+            // ── Popup impression PDF ──
+            show_print_modal : false,
+            print_date_debut : this._toInputDate(debut),
+            print_date_fin   : this._toInputDate(fin),
+            print_zone       : "",
+            print_model      : "",
+            print_models     : [],
+            print_loading    : false,
+            print_error      : "",
         });
 
         onWillStart(() => this._loadZones().then(() => this.loadData()));
@@ -41,7 +47,6 @@ export class VehiculeDashboard extends Component {
     // ─────────────────────────────────────────
     //  Utilitaires
     // ─────────────────────────────────────────
-
     _pad(n) { return String(n).padStart(2, "0"); }
 
     _formatORM(d) {
@@ -83,6 +88,7 @@ export class VehiculeDashboard extends Component {
         const cuts = [this._DATE_PIVOT, this._TAUX_PIVOT]
             .filter(p => p > debut && p <= fin)
             .sort((a, b) => a - b);
+
         const segments = [];
         let start = debut;
         for (const cut of cuts) {
@@ -90,6 +96,7 @@ export class VehiculeDashboard extends Component {
             start = cut;
         }
         segments.push({ start, end: fin });
+
         return segments.map(seg => ({
             ...seg,
             isOld : seg.start < this._DATE_PIVOT,
@@ -106,10 +113,10 @@ export class VehiculeDashboard extends Component {
     // ─────────────────────────────────────────
     //  Chargement des données
     // ─────────────────────────────────────────
-
     async loadData() {
         if (!this.state.date_debut || !this.state.date_fin) return;
         this.state.loading = true;
+
         try {
             const debut  = this._parseDebut(this.state.date_debut);
             const fin    = this._parseFin(this.state.date_fin);
@@ -125,7 +132,6 @@ export class VehiculeDashboard extends Component {
             // montant_dzd + (montant EUR × taux du segment) ──
             const segments   = this._buildSegments(debut, fin);
             const FIELDS_REV = ["id", "montant", "montant_dzd", "vehicule"];
-
             const revenuePromises = [];
             for (const seg of segments) {
                 const flagFilter = seg.isOld ? [["is_old", "=", true]] : [["is_old", "!=", true]];
@@ -232,7 +238,6 @@ export class VehiculeDashboard extends Component {
                 const catName = Array.isArray(v.categorie) ? v.categorie[1] : "Sans catégorie";
                 const modName = v.model_name || "Sans modèle";
                 const valeur  = v.valeur_actuel || 0;
-
                 const revenu  = (revenuMap[v.id]  || 0) - (refundMap[v.id] || 0);
                 const depense = depenseMap[v.id] || 0;
                 const balance = revenu - depense;
@@ -308,7 +313,6 @@ export class VehiculeDashboard extends Component {
     // ─────────────────────────────────────────
     //  Navigation vers le détail véhicule
     // ─────────────────────────────────────────
-
     ouvrirVehicule(veh) {
         this.action.doAction({
             type   : "ir.actions.client",
@@ -326,7 +330,6 @@ export class VehiculeDashboard extends Component {
     // ─────────────────────────────────────────
     //  Graphique — Balance par véhicule
     // ─────────────────────────────────────────
-
     _renderChartBalance() {
         const canvas = document.getElementById("vd-chart-balance");
         if (!canvas) return;
@@ -397,7 +400,6 @@ export class VehiculeDashboard extends Component {
     // ─────────────────────────────────────────
     //  Handlers
     // ─────────────────────────────────────────
-
     onDateDebutChange(ev) { this.state.date_debut = ev.target.value; }
     onDateFinChange(ev)   { this.state.date_fin   = ev.target.value; }
 
@@ -427,14 +429,12 @@ export class VehiculeDashboard extends Component {
     }
 
     // ── Expand / collapse ──
-
     toggleCategorie(cat_id) {
         this.state.expanded_cats[cat_id] = !this.state.expanded_cats[cat_id];
     }
     isCategorieExpanded(cat_id) {
         return !!this.state.expanded_cats[cat_id];
     }
-
     toggleModele(cat_id, mod_name) {
         const key = `${cat_id}_${mod_name}`;
         this.state.expanded_mods[key] = !this.state.expanded_mods[key];
@@ -443,20 +443,260 @@ export class VehiculeDashboard extends Component {
         return !!this.state.expanded_mods[`${cat_id}_${mod_name}`];
     }
 
-    // ── Formatage ──
+    // ─────────────────────────────────────────
+    //  Impression PDF
+    // ─────────────────────────────────────────
 
+    async ouvrirPopupImpression() {
+        this.state.print_date_debut = this.state.date_debut;
+        this.state.print_date_fin   = this.state.date_fin;
+        this.state.print_zone       = this.state.selected_zone || "";
+        this.state.print_model      = "";
+        this.state.print_error      = "";
+        this.state.show_print_modal = true;
+        // Liste des modèles distincts (chargée une seule fois)
+        if (this.state.print_models.length === 0) {
+            const vehs = await this.orm.searchRead(
+                "vehicule", [["active_test", "=", true]], ["model_name"], { limit: 0 }
+            );
+            this.state.print_models = [...new Set(vehs.map(v => v.model_name).filter(Boolean))]
+                .sort((a, b) => a.localeCompare(b));
+        }
+    }
+
+    fermerPopupImpression() { this.state.show_print_modal = false; }
+
+    onPrintDateDebutChange(ev) { this.state.print_date_debut = ev.target.value; }
+    onPrintDateFinChange(ev)   { this.state.print_date_fin   = ev.target.value; }
+    onPrintZoneChange(ev)      { this.state.print_zone       = ev.target.value; }
+    onPrintModelChange(ev)     { this.state.print_model      = ev.target.value; }
+
+    async imprimerPDF() {
+        if (!this.state.print_date_debut || !this.state.print_date_fin) {
+            this.state.print_error = "Les champs « Du » et « Au » sont obligatoires.";
+            return;
+        }
+        const debut = this._parseDebut(this.state.print_date_debut);
+        const fin   = this._parseFin(this.state.print_date_fin);
+        if (debut > fin) {
+            this.state.print_error = "La date « Du » doit être antérieure à la date « Au ».";
+            return;
+        }
+        this.state.print_error = "";
+
+        // Ouvrir la fenêtre TOUT DE SUITE (sinon le navigateur la bloque après les await)
+        const w = window.open("", "_blank");
+        if (!w) {
+            this.state.print_error = "Popup bloqué par le navigateur — autorise les popups pour Odoo.";
+            return;
+        }
+        w.document.write("<p style='font-family:Arial;padding:24px;color:#64748b;'>⏳ Préparation du rapport…</p>");
+
+        this.state.print_loading = true;
+        try {
+            const zoneId    = this.state.print_zone ? parseInt(this.state.print_zone) : null;
+            const modelName = this.state.print_model || "";
+            const debutStr  = this._toInputDate(debut);
+            const finStr    = this._toInputDate(fin);
+
+            // ── Véhicules : actifs + déjà en service à la fin de la période ──
+            const vehiculeDomain = [
+                ["active_test", "=", true],
+                ["date_debut_service", "<=", finStr],
+            ];
+            if (zoneId)    vehiculeDomain.push(["zone", "=", zoneId]);
+            if (modelName) vehiculeDomain.push(["model_name", "=", modelName]);
+
+            // ── Revenus segmentés (même logique que loadData) ──
+            const zoneFilterRevenue = zoneId ? [["zone_encaissement", "=", zoneId]] : [];
+            const segments   = this._buildSegments(debut, fin);
+            const FIELDS_REV = ["id", "montant", "montant_dzd", "vehicule"];
+            const revenuePromises = [];
+            for (const seg of segments) {
+                const flagFilter = seg.isOld ? [["is_old", "=", true]] : [["is_old", "!=", true]];
+                revenuePromises.push(
+                    this.orm.searchRead("revenue.record", [
+                        ...zoneFilterRevenue, ...flagFilter,
+                        ["date_encaissement", ">=", this._formatORM(seg.start)],
+                        ["date_encaissement", "<=", this._formatORM(seg.end)],
+                    ], FIELDS_REV, { limit: 0 }).then(recs => recs.map(r => ({ ...r, _taux: seg.taux }))),
+                    this.orm.searchRead("revenue.record", [
+                        ...zoneFilterRevenue, ...flagFilter,
+                        ["date_encaissement", "=", false],
+                        ["reservation.create_date", ">=", this._formatORM(seg.start)],
+                        ["reservation.create_date", "<=", this._formatORM(seg.end)],
+                    ], FIELDS_REV, { limit: 0 }).then(recs => recs.map(r => ({ ...r, _taux: seg.taux }))),
+                );
+            }
+
+            // ── Dépenses validées ──
+            const depenseDomain = [
+                ["status",              "=",  "valide"],
+                ["date_de_realisation", ">=", debutStr],
+                ["date_de_realisation", "<=", finStr],
+            ];
+            if (zoneId) depenseDomain.push(["zone", "=", zoneId]);
+
+            // ── Remboursements effectués, segmentés ──
+            const refundPromises = segments.map(seg => {
+                const domain = [
+                    ["date", ">=", this._formatORM(seg.start)],
+                    ["date", "<=", this._formatORM(seg.end)],
+                    ["status", "=", "effectuer"],
+                ];
+                if (zoneId) domain.push(["reservation.zone", "=", zoneId]);
+                return this.orm.searchRead("refund.table", domain, ["id", "amount", "reservation"], { limit: 0 })
+                    .then(recs => recs.map(r => ({ ...r, _taux: seg.taux })));
+            });
+
+            const [vehicules, depenses, refundParts, ...revenueParts] = await Promise.all([
+                this.orm.searchRead("vehicule", vehiculeDomain,
+                    ["id", "matricule", "numero", "model_name", "prix_achat", "valeur_actuel"], { limit: 0 }),
+                this.orm.searchRead("depense.record", depenseDomain,
+                    ["id", "montant_da", "vehicule_numero"], { limit: 0 }),
+                Promise.all(refundPromises),
+                ...revenuePromises,
+            ]);
+            const revenueRecs = [].concat(...revenueParts);
+            const refunds     = [].concat(...refundParts);
+
+            // reservation → vehicule pour les remboursements
+            const refundResIds = [...new Set(
+                refunds.map(r => Array.isArray(r.reservation) ? r.reservation[0] : r.reservation).filter(Boolean)
+            )];
+            let refundResvMap = {};
+            if (refundResIds.length > 0) {
+                const resvData = await this.orm.searchRead(
+                    "reservation", [["id", "in", refundResIds]], ["id", "vehicule"], { limit: 0 }
+                );
+                for (const rv of resvData) {
+                    refundResvMap[rv.id] = Array.isArray(rv.vehicule) ? rv.vehicule[0] : rv.vehicule || false;
+                }
+            }
+
+            // ── Agrégation par véhicule ──
+            const revenuMap = {}, depenseMap = {};
+            for (const r of revenueRecs) {
+                const vehId = Array.isArray(r.vehicule) ? r.vehicule[0] : r.vehicule || false;
+                if (!vehId) continue;
+                revenuMap[vehId] = (revenuMap[vehId] || 0) + (r.montant_dzd || 0) + ((r.montant || 0) * r._taux);
+            }
+            for (const ref of refunds) {
+                const resId = Array.isArray(ref.reservation) ? ref.reservation[0] : ref.reservation || false;
+                const vehId = resId ? refundResvMap[resId] : false;
+                if (!vehId) continue;
+                revenuMap[vehId] = (revenuMap[vehId] || 0) - (ref.amount || 0) * ref._taux;
+            }
+            for (const d of depenses) {
+                const vehId = Array.isArray(d.vehicule_numero) ? d.vehicule_numero[0] : d.vehicule_numero || false;
+                if (!vehId) continue;
+                depenseMap[vehId] = (depenseMap[vehId] || 0) + (d.montant_da || 0);
+            }
+
+            // ── Lignes du rapport, triées Modèle puis N° ──
+            const rows = vehicules.map(v => ({
+                model      : v.model_name || "Sans modèle",
+                numero     : v.numero || "",
+                matricule  : v.matricule || "",
+                prix_achat : v.prix_achat || 0,
+                valeur     : v.valeur_actuel || 0,
+                balance    : (revenuMap[v.id] || 0) - (depenseMap[v.id] || 0),
+            })).sort((a, b) =>
+                a.model.localeCompare(b.model) || String(a.numero).localeCompare(String(b.numero))
+            );
+            const tot = rows.reduce((acc, r) => {
+                acc.prix += r.prix_achat; acc.val += r.valeur; acc.bal += r.balance;
+                return acc;
+            }, { prix: 0, val: 0, bal: 0 });
+
+            this._ecrireFenetreImpression(w, rows, tot, {
+                debut: this.state.print_date_debut,
+                fin  : this.state.print_date_fin,
+                zoneId, modelName,
+            });
+            this.state.show_print_modal = false;
+        } catch (e) {
+            w.close();
+            this.state.print_error = "Erreur lors de la préparation du rapport.";
+            throw e;
+        } finally {
+            this.state.print_loading = false;
+        }
+    }
+
+    _ecrireFenetreImpression(w, rows, tot, ctx) {
+        const esc = (s) => String(s === undefined || s === null ? "" : s)
+            .replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+        const fmtDate = (str) => { const [y, m, d] = str.split("-"); return `${d}/${m}/${y}`; };
+        const zone   = ctx.zoneId
+            ? (this.state.zones.find(z => z.id === ctx.zoneId)?.name || "")
+            : "Toutes les zones";
+        const modele = ctx.modelName || "Tous les modèles";
+
+        const lignes = rows.map(r => `
+            <tr>
+                <td>${esc(r.model)}</td>
+                <td>${esc(r.numero)}${r.matricule ? ` — ${esc(r.matricule)}` : ""}</td>
+                <td class="num">${this.fmt(r.prix_achat)}</td>
+                <td class="num">${this.fmt(r.valeur)}</td>
+                <td class="num ${r.balance >= 0 ? "pos" : "neg"}">${this.fmt(r.balance)}</td>
+            </tr>`).join("");
+
+        const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"/><title>Rapport véhicules</title>
+<style>
+    body { font-family: Arial, Helvetica, sans-serif; color:#1e293b; padding:24px; }
+    h1 { font-size:18px; margin:0 0 4px; }
+    .sub { font-size:12px; color:#475569; margin-bottom:16px; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th, td { border:1px solid #cbd5e1; padding:6px 10px; text-align:left; }
+    th { background:#1565c0; color:#fff; text-transform:uppercase; font-size:10px; }
+    .num, th.num { text-align:right; white-space:nowrap; }
+    .pos { color:#16a34a; } .neg { color:#dc2626; }
+    tfoot td { font-weight:bold; background:#f1f5f9; }
+    @media print { body { padding:0; } th { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style></head>
+<body>
+    <h1>Rapport véhicules — Balance</h1>
+    <div class="sub">
+        Période : ${fmtDate(ctx.debut)} → ${fmtDate(ctx.fin)}
+        &nbsp;|&nbsp; Zone : ${esc(zone)}
+        &nbsp;|&nbsp; Modèle : ${esc(modele)}
+        &nbsp;|&nbsp; Imprimé le ${new Date().toLocaleDateString("fr-FR")}
+    </div>
+    <table>
+        <thead><tr>
+            <th>Modèle</th><th>N° véhicule</th>
+            <th class="num">Prix d'achat (DA)</th>
+            <th class="num">Valeur actuelle (DA)</th>
+            <th class="num">Balance (DA)</th>
+        </tr></thead>
+        <tbody>${lignes || `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px;">Aucun véhicule pour ces critères</td></tr>`}</tbody>
+        <tfoot><tr>
+            <td colspan="2">Total (${rows.length} véh.)</td>
+            <td class="num">${this.fmt(tot.prix)}</td>
+            <td class="num">${this.fmt(tot.val)}</td>
+            <td class="num ${tot.bal >= 0 ? "pos" : "neg"}">${this.fmt(tot.bal)}</td>
+        </tr></tfoot>
+    </table>
+    <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 300); };<\/script>
+</body></html>`;
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+    }
+
+    // ── Formatage ──
     fmt(n) {
         const abs = Math.abs(Math.round(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
         return n < 0 ? `- ${abs}` : abs;
     }
-
     isPositive(n) { return n >= 0; }
 
     get totalValeurFormatted()   { return this.fmt(this.state.total_valeur); }
     get totalRevenuFormatted()   { return this.fmt(this.state.total_revenu); }
     get totalDepenseFormatted()  { return this.fmt(this.state.total_depense); }
     get totalBalanceFormatted()  { return this.fmt(this.state.total_balance); }
-
     get valeurMoyenneFormatted() {
         const moy = this.state.total_count > 0 ? this.state.total_valeur / this.state.total_count : 0;
         return this.fmt(moy);
@@ -464,20 +704,16 @@ export class VehiculeDashboard extends Component {
 }
 
 VehiculeDashboard.template = "dashboard_analytics.VehiculeDashboard";
-
 registry
     .category("actions")
     .add("dashboard_analytics.action_vehicule_dashboard", VehiculeDashboard);
-
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  COMPOSANT : VehiculeDetailDashboard
 //  Historique mensuel Revenu / Dépense / Balance d'un véhicule,
 //  depuis sa date de mise en service jusqu'au mois courant.
 // ═══════════════════════════════════════════════════════════════════════════
-
 export class VehiculeDetailDashboard extends Component {
-
     setup() {
         this.orm    = useService("orm");
         this.action = useService("action");
@@ -522,6 +758,7 @@ export class VehiculeDetailDashboard extends Component {
         const vehId = this.state.vehicule_id;
         if (!vehId) { this.state.loading = false; return; }
         this.state.loading = true;
+
         try {
             const [vehData, recsAvec, recsSans, depenses, refunds] = await Promise.all([
                 // Fiche du véhicule : prix d'achat, valeur actuelle, mise en service
@@ -549,7 +786,6 @@ export class VehiculeDetailDashboard extends Component {
             // ── Fiche véhicule ──
             const veh         = vehData[0] || {};
             const serviceDate = this._parseServerDate(veh.date_debut_service);
-
             this.state.prix_achat    = veh.prix_achat    || 0;
             this.state.valeur_actuel = veh.valeur_actuel || 0;
             this.state.date_service_str = serviceDate
@@ -590,13 +826,11 @@ export class VehiculeDetailDashboard extends Component {
                 const resId = Array.isArray(r.reservation) ? r.reservation[0] : r.reservation;
                 addRevenue(r, resId ? this._parseServerDate(resvDateMap[resId]) : null);
             }
-
             for (const ref of refunds) {
                 const d = this._parseServerDate(ref.date);
                 if (!d) continue;
                 touch(keyOf(d)).revenu -= (ref.amount || 0) * this._tauxFor(d);
             }
-
             for (const dep of depenses) {
                 const d = this._parseServerDate(dep.date_de_realisation);
                 if (!d) continue;
@@ -607,7 +841,6 @@ export class VehiculeDetailDashboard extends Component {
             // Si un mouvement existe avant cette date, on démarre plus tôt
             // pour ne rien perdre dans les totaux. ──
             const keys = Object.keys(monthMap).sort();
-
             let y0 = null, m0 = null;
             if (serviceDate) {
                 y0 = serviceDate.getFullYear();
@@ -634,7 +867,6 @@ export class VehiculeDetailDashboard extends Component {
                     const key  = `${y}-${String(m).padStart(2, "0")}`;
                     const cell = monthMap[key] || { revenu: 0, depense: 0 };
                     const balance = cell.revenu - cell.depense;
-
                     rows.push({
                         key,
                         label   : `${MOIS_LABELS[m - 1]} ${y}`,
@@ -642,10 +874,8 @@ export class VehiculeDetailDashboard extends Component {
                         depense : cell.depense,
                         balance,
                     });
-
                     total_revenu  += cell.revenu;
                     total_depense += cell.depense;
-
                     m++;
                     if (m > 12) { m = 1; y++; }
                 }
@@ -712,7 +942,6 @@ export class VehiculeDetailDashboard extends Component {
         const abs = Math.abs(Math.round(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
         return n < 0 ? `- ${abs}` : abs;
     }
-
     isPositive(n) { return n >= 0; }
 
     get prixAchatFormatted()     { return this.fmt(this.state.prix_achat); }
@@ -723,7 +952,6 @@ export class VehiculeDetailDashboard extends Component {
 }
 
 VehiculeDetailDashboard.template = "dashboard_analytics.VehiculeDetailDashboard";
-
 registry
     .category("actions")
     .add("dashboard_analytics.action_vehicule_detail_dashboard", VehiculeDetailDashboard);
