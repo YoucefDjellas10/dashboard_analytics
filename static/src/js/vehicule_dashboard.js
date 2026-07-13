@@ -444,7 +444,7 @@ export class VehiculeDashboard extends Component {
     }
 
     // ─────────────────────────────────────────
-    //  Impression PDF
+    //  Impression PDF (téléchargement direct)
     // ─────────────────────────────────────────
 
     async ouvrirPopupImpression() {
@@ -482,17 +482,9 @@ export class VehiculeDashboard extends Component {
             this.state.print_error = "La date « Du » doit être antérieure à la date « Au ».";
             return;
         }
-        this.state.print_error = "";
-
-        // Ouvrir la fenêtre TOUT DE SUITE (sinon le navigateur la bloque après les await)
-        const w = window.open("", "_blank");
-        if (!w) {
-            this.state.print_error = "Popup bloqué par le navigateur — autorise les popups pour Odoo.";
-            return;
-        }
-        w.document.write("<p style='font-family:Arial;padding:24px;color:#64748b;'>⏳ Préparation du rapport…</p>");
-
+        this.state.print_error   = "";
         this.state.print_loading = true;
+
         try {
             const zoneId    = this.state.print_zone ? parseInt(this.state.print_zone) : null;
             const modelName = this.state.print_model || "";
@@ -609,81 +601,114 @@ export class VehiculeDashboard extends Component {
                 return acc;
             }, { prix: 0, val: 0, bal: 0 });
 
-            this._ecrireFenetreImpression(w, rows, tot, {
+            // ── Génération + téléchargement du fichier PDF ──
+            await this._ensureJsPDF();
+            this._genererPDF(rows, tot, {
                 debut: this.state.print_date_debut,
                 fin  : this.state.print_date_fin,
                 zoneId, modelName,
             });
             this.state.show_print_modal = false;
         } catch (e) {
-            w.close();
-            this.state.print_error = "Erreur lors de la préparation du rapport.";
+            this.state.print_error = "Erreur lors de la génération du PDF.";
             throw e;
         } finally {
             this.state.print_loading = false;
         }
     }
 
-    _ecrireFenetreImpression(w, rows, tot, ctx) {
-        const esc = (s) => String(s === undefined || s === null ? "" : s)
-            .replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    // Charge jsPDF + le plugin autoTable depuis un CDN (comme Chart.js)
+    _loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const s = document.createElement("script");
+            s.src = src;
+            s.onload  = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+        });
+    }
+
+    async _ensureJsPDF() {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            await this._loadScript("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js");
+        }
+        if (!window.jspdf.jsPDF.API.autoTable) {
+            await this._loadScript("https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js");
+        }
+    }
+
+    _genererPDF(rows, tot, ctx) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
         const fmtDate = (str) => { const [y, m, d] = str.split("-"); return `${d}/${m}/${y}`; };
         const zone   = ctx.zoneId
-            ? (this.state.zones.find(z => z.id === ctx.zoneId)?.name || "")
+            ? ((this.state.zones.find(z => z.id === ctx.zoneId) || {}).name || "")
             : "Toutes les zones";
         const modele = ctx.modelName || "Tous les modèles";
 
-        const lignes = rows.map(r => `
-            <tr>
-                <td>${esc(r.model)}</td>
-                <td>${esc(r.numero)}${r.matricule ? ` — ${esc(r.matricule)}` : ""}</td>
-                <td class="num">${this.fmt(r.prix_achat)}</td>
-                <td class="num">${this.fmt(r.valeur)}</td>
-                <td class="num ${r.balance >= 0 ? "pos" : "neg"}">${this.fmt(r.balance)}</td>
-            </tr>`).join("");
+        // ── En-tête ──
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(30, 41, 59);
+        doc.text("Rapport véhicules - Balance", 14, 18);
 
-        const html = `<!DOCTYPE html>
-<html><head><meta charset="utf-8"/><title>Rapport véhicules</title>
-<style>
-    body { font-family: Arial, Helvetica, sans-serif; color:#1e293b; padding:24px; }
-    h1 { font-size:18px; margin:0 0 4px; }
-    .sub { font-size:12px; color:#475569; margin-bottom:16px; }
-    table { width:100%; border-collapse:collapse; font-size:12px; }
-    th, td { border:1px solid #cbd5e1; padding:6px 10px; text-align:left; }
-    th { background:#1565c0; color:#fff; text-transform:uppercase; font-size:10px; }
-    .num, th.num { text-align:right; white-space:nowrap; }
-    .pos { color:#16a34a; } .neg { color:#dc2626; }
-    tfoot td { font-weight:bold; background:#f1f5f9; }
-    @media print { body { padding:0; } th { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
-</style></head>
-<body>
-    <h1>Rapport véhicules — Balance</h1>
-    <div class="sub">
-        Période : ${fmtDate(ctx.debut)} → ${fmtDate(ctx.fin)}
-        &nbsp;|&nbsp; Zone : ${esc(zone)}
-        &nbsp;|&nbsp; Modèle : ${esc(modele)}
-        &nbsp;|&nbsp; Imprimé le ${new Date().toLocaleDateString("fr-FR")}
-    </div>
-    <table>
-        <thead><tr>
-            <th>Modèle</th><th>N° véhicule</th>
-            <th class="num">Prix d'achat (DA)</th>
-            <th class="num">Valeur actuelle (DA)</th>
-            <th class="num">Balance (DA)</th>
-        </tr></thead>
-        <tbody>${lignes || `<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px;">Aucun véhicule pour ces critères</td></tr>`}</tbody>
-        <tfoot><tr>
-            <td colspan="2">Total (${rows.length} véh.)</td>
-            <td class="num">${this.fmt(tot.prix)}</td>
-            <td class="num">${this.fmt(tot.val)}</td>
-            <td class="num ${tot.bal >= 0 ? "pos" : "neg"}">${this.fmt(tot.bal)}</td>
-        </tr></tfoot>
-    </table>
-    <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 300); };<\/script>
-</body></html>`;
-        w.document.open();
-        w.document.write(html);
-        w.document.close();
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(71, 85, 105);
+        doc.text(`Période : ${fmtDate(ctx.debut)} au ${fmtDate(ctx.fin)}`, 14, 26);
+        doc.text(`Zone : ${zone}   |   Modèle : ${modele}`, 14, 31);
+        doc.text(`Imprimé le ${new Date().toLocaleDateString("fr-FR")}   |   ${rows.length} véhicule(s)`, 14, 36);
+
+        // ── Tableau ──
+        const body = rows.map(r => [
+            r.model,
+            r.numero + (r.matricule ? ` - ${r.matricule}` : ""),
+            this.fmt(r.prix_achat),
+            this.fmt(r.valeur),
+            this.fmt(r.balance),
+        ]);
+        if (body.length === 0) {
+            body.push([{
+                content: "Aucun véhicule pour ces critères",
+                colSpan: 5,
+                styles: { halign: "center", textColor: [148, 163, 184] },
+            }]);
+        }
+
+        doc.autoTable({
+            startY : 42,
+            head   : [["Modèle", "N° véhicule", "Prix d'achat (DA)", "Valeur actuelle (DA)", "Balance (DA)"]],
+            body,
+            foot   : [[
+                `Total (${rows.length} véh.)`, "",
+                this.fmt(tot.prix), this.fmt(tot.val), this.fmt(tot.bal),
+            ]],
+            styles       : { fontSize: 9, cellPadding: 2.5, textColor: [30, 41, 59] },
+            headStyles   : { fillColor: [21, 101, 192], textColor: [255, 255, 255], fontStyle: "bold" },
+            footStyles   : { fillColor: [241, 245, 249], textColor: [30, 41, 59], fontStyle: "bold" },
+            columnStyles : {
+                0: { halign: "left"  },
+                1: { halign: "left"  },
+                2: { halign: "right" },
+                3: { halign: "right" },
+                4: { halign: "right" },
+            },
+            didParseCell : (data) => {
+                // En-têtes et total des colonnes chiffrées alignés à droite
+                if ((data.section === "head" || data.section === "foot") && data.column.index >= 2) {
+                    data.cell.styles.halign = "right";
+                }
+                // Balance en vert/rouge (corps + total)
+                if (data.column.index === 4 && (data.section === "body" || data.section === "foot")) {
+                    const raw = String(data.cell.raw || "");
+                    data.cell.styles.textColor = raw.startsWith("-") ? [220, 38, 38] : [22, 163, 74];
+                }
+            },
+        });
+
+        // ── Téléchargement du fichier ──
+        doc.save(`rapport_vehicules_${ctx.debut}_${ctx.fin}.pdf`);
     }
 
     // ── Formatage ──
